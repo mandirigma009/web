@@ -1,0 +1,46 @@
+/* Wrapper for label + input + error */
+.input-wrapper {
+  margin-bottom: 1rem; /* spacing between inputs */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Label styling */
+.input-label {
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500; /* medium */
+  color: #374151; /* gray-700 */
+  margin-bottom: 0.25rem;
+}
+
+/* Input field */
+.input-field {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db; /* gray-300 */
+  border-radius: 0.5rem;      /* rounded-lg */
+  outline: none;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: #3b82f6;      /* blue-500 */
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* Error state */
+.input-field.error {
+  border-color: #ef4444;      /* red-500 */
+}
+
+.input-field.error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px #ef4444;
+}
+
+/* Error message */
+.input-error {
+  color: #ef4444; /* red-500 */
+  font-size: 0.875rem; /* text-sm */
+  margin-top: 0.25rem;
+}
