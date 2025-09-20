@@ -1,21 +1,24 @@
-const jwt = require("jsonwebtoken");
-const JWT_SECRET = "supersecretkey";
+// middleware/authMiddleware.js
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || "access_dev_secret";
 
 function authMiddleware(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const token =
+    req.cookies?.accessToken ||
+    (req.headers.authorization && req.headers.authorization.split(" ")[1]);
 
   if (!token) {
-    return res.status(401).json({ error: "No token provided" });
+    return res.status(401).json({ message: "No token provided" });
   }
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(403).json({ error: "Invalid or expired token" });
+      return res.status(403).json({ message: "Invalid or expired token" });
     }
-    req.user = decoded; // attach user data to request
+    req.user = decoded; // includes id, email, name, role
     next();
   });
 }
 
-module.exports = authMiddleware;
+export default authMiddleware;

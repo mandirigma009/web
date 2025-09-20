@@ -3,38 +3,43 @@ import { Navigate, useLocation } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: JSX.Element;
+  requiredRole?: number; // 0 = student, 1 = admin
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<{ id: number; role: number } | null>(null);
   const location = useLocation();
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/me", {
-          credentials: "include", // ✅ send cookies
+          credentials: "include",
         });
         if (res.ok) {
-          setIsAuthenticated(true);
+          const data = await res.json();
+          setUser(data.user);
         } else {
-          setIsAuthenticated(false);
+          setUser(null);
         }
       } catch {
-        setIsAuthenticated(false);
+        setUser(null);
       } finally {
         setIsChecking(false);
       }
     };
-
     checkAuth();
   }, []);
 
-  if (isChecking) return;
+  if (isChecking) return null;
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (requiredRole !== undefined && user.role !== requiredRole) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return children;

@@ -3,6 +3,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import db from "../db.js";
+
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -37,7 +38,9 @@ router.post("/signup", async (req, res) => {
       }
       if (results.length > 0) return res.status(400).json({ message: "Email already exists" });
 
-      const hashed = await bcrypt.hash(password, 10); //encrypt password in db, hash the password before saving
+   
+       //db.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [name, email, password], (err2, result) => {
+    const hashed = await bcrypt.hash(password, 10); //encrypt password in db, hash the password before saving
       db.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [name, email, hashed], (err2, result) => {
         if (err2) {
           console.error("DB insert error:", err2);
@@ -53,46 +56,62 @@ router.post("/signup", async (req, res) => {
 });
 
 // ---------------- LOGIN ----------------
+// ---------------- LOGIN ----------------
 // issues access & refresh tokens, sets cookies
 router.post("/login", (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: "Email and password are required" });
+    if (!email || !password)
+      return res.status(400).json({ message: "Email and password are required" });
 
     db.query("SELECT * FROM users WHERE email = ?", [email], async (err, results) => {
       if (err) {
         console.error("DB error:", err);
         return res.status(500).json({ message: "Database error" });
       }
-      if (results.length === 0) return res.status(401).json({ message: "Invalid credentials" });
+      if (results.length === 0)
+        return res.status(401).json({ message: "Invalid credentials" });
 
       const user = results[0];
       const match = await bcrypt.compare(password, user.password);
       if (!match) return res.status(401).json({ message: "Invalid credentials" });
 
-      // create tokens
-     // create tokens with id, email, name
-const accessToken = jwt.sign(
-  { id: user.id, email: user.email, name: user.name },
-  ACCESS_SECRET,
-  { expiresIn: "60m" }
-);
+      // ✅ create tokens with role included
+      const accessToken = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role, // include role from DB
+        },
+        ACCESS_SECRET,
+        { expiresIn: "60m" }
+      );
 
-const refreshToken = jwt.sign(
-  { id: user.id, email: user.email, name: user.name },
-  REFRESH_SECRET,
-  { expiresIn: "12h" }
-);
+      const refreshToken = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role, // include role from DB
+        },
+        REFRESH_SECRET,
+        { expiresIn: "12h" }
+      );
 
-
-      // set cookies
-      res.cookie("accessToken", accessToken, cookieOptions(60 * 60 * 1000));   // 60m
+      // ✅ set cookies
+      res.cookie("accessToken", accessToken, cookieOptions(60 * 60 * 1000)); // 60m
       res.cookie("refreshToken", refreshToken, cookieOptions(12 * 60 * 60 * 1000)); // 12h
 
-      // return minimal user info (not tokens in body required)
+      // ✅ return user info including role
       return res.json({
         message: "Login successful",
-        user: { id: user.id, name: user.name, email: user.email },
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role, // include role in response too
+        },
       });
     });
   } catch (err) {
@@ -100,6 +119,7 @@ const refreshToken = jwt.sign(
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 // ---------------- REFRESH ----------------
 // reads refresh cookie and issues new access token
@@ -147,9 +167,13 @@ router.get("/me", (req, res) => {
     jwt.verify(token, ACCESS_SECRET, (err, payload) => {
       if (err) return res.status(401).json({ message: "Invalid/expired access token" });
 
-      // now payload contains id, email, name
       return res.json({
-        user: { id: payload.id, name: payload.name, email: payload.email },
+        user: {
+          id: payload.id,
+          name: payload.name,
+          email: payload.email,
+          role: payload.role, // ✅ return role
+        },
       });
     });
   } catch (err) {
@@ -157,5 +181,7 @@ router.get("/me", (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
 
 export default router;

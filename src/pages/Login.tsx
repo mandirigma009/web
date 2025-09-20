@@ -3,21 +3,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { Input } from "../components/Input";
 import { Form } from "../components/Form";
 import { SubmitButton } from "../components/Button";
-import { validateEmail, validatePassword } from "../utils/validation"
+import { validateEmail, validatePassword } from "../utils/validation";
+import "../styles/login.css";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
- const [error, setError] = useState<{
-    email?: string;
-    
-    }>({});
-
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
-  const [error1, setError1] = useState("");
 
-  // 🔹 Check if already logged in
+  // ✅ Redirect if already logged in
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -26,16 +22,15 @@ function Login() {
           credentials: "include",
         });
         if (res.ok) {
-          navigate("/dashboard");
-        } else if (res.status === 401) {
-        // User is NOT logged in → stay on login page
-        console.log("User not authenticated");
-      } else {
-        console.error("Unexpected response:", res.status);
-      }
-        
-      } catch (err) {
-        console.error("Auth check failed:", err);
+          const data = await res.json();
+          if (data.user?.role === 1) {
+            navigate("/admin");
+          } else {
+            navigate("/student");
+          }
+        }
+      } catch {
+        // not logged in, continue to login
       }
     };
     checkAuth();
@@ -43,20 +38,18 @@ function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError({});
-    setError1("Invalid Email or Password");
-    setSuccess("");
 
-    // 🔹 Validate inputs before API call
+    // Validate inputs
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
 
     if (emailError || passwordError) {
-      setError({
-        email: emailError || "",
-      });
+      setErrors({ email: emailError || "", password: passwordError || "" });
       return;
     }
+
+    setErrors({});
+    setSuccess("");
 
     try {
       const res = await fetch("http://localhost:5000/api/login", {
@@ -67,62 +60,75 @@ function Login() {
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Login failed");
 
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
+      setSuccess("Login successful! Redirecting...");
+      setEmail("");
+      setPassword("");
+
+      // Redirect based on role
+      if (data.user?.role === 1) {
+        navigate("/admin");
+      } else {
+        navigate("/student");
       }
-
-      setSuccess("Login successful!");
-      navigate("/dashboard");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      setError(err.message);
+      setErrors({ password: err.message });
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
-      <Form title="Login" description="Welcome back" onSubmit={handleSubmit}>
-      {error && <p className="flex items-center justify-center input-error">{error1}</p>}
-           {success && <p className="flex items-center justify-center text-green-500 text-sm">{success}</p>}
+    <div className="login-container">
+      <div className="login-card">
+        <div className="login-header">
+          <img src="/logo.png" alt="School Logo" className="login-logo" />
+          <h2>Welcome Back</h2>
+          <p className="text-gray-500 text-sm">Log in to your account</p>
+        </div>
 
-        <Input
-          type="email"
-          value={email}
-                onChange={(e) => {
-            setEmail(e.target.value);
-            setError((prev) => ({ ...prev, email: validateEmail(e.target.value) || "" }));
-          }}
-          placeholder="Enter your email"
-          required
-          error={error.email}
-        />
-        <Input
-          type="password"
-          value={password}
-         onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError((prev) => ({
-                      ...prev,
-                      password: validatePassword(e.target.value) || "",
-                    }));
-                  }}
-                  placeholder="Enter your password"
-                  required
-                 
-        />
+        <Form onSubmit={handleSubmit}>
+          {success && <p className="success-message">{success}</p>}
 
-        <SubmitButton variant="primary" className="w-full">
-          Log In
-        </SubmitButton>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setErrors((prev) => ({
+                ...prev,
+                email: validateEmail(e.target.value) || "",
+              }));
+            }}
+            placeholder="Email Address"
+            required
+            error={errors.email}
+          />
 
-        <p className="text-center text-gray-500 text-sm mt-4">
-          Don’t have an account?{" "}
-          <Link to="/signup" className="text-blue-600 hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </Form>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrors((prev) => ({
+                ...prev,
+                password: validatePassword(e.target.value) || "",
+              }));
+            }}
+            placeholder="Password"
+            required
+            error={errors.password}
+          />
+
+          <SubmitButton variant="primary" className="login-btn">
+            Log In
+          </SubmitButton>
+
+          <p className="login-footer">
+            Don't have an account? <Link to="/signup">Sign Up</Link>
+          </p>
+        </Form>
+      </div>
     </div>
   );
 }

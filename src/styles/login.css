@@ -1,0 +1,102 @@
+/* Background setup */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: url("/bg-campus.jpg") no-repeat center center/cover;
+  position: relative;
+  background-image: url("/images/onpeieceBg.jpg");
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(0, 0, 0, 0.05); /* adds overlay */
+  background-blend-mode: multiply;       /* blends overlay */
+}
+
+/* Dark overlay */
+.login-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  opacity:  75%;
+}
+
+/* Card */
+.login-card {
+  position: relative;
+  z-index: 1;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+/* Header */
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 0.5rem;
+}
+
+.login-header h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #222;
+}
+
+/* Button */
+.login-btn {
+  width: 100%;
+  margin-top: 1rem;
+  background: #28a745;
+  color: white;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.login-btn:hover {
+  background: #218838;
+}
+
+/* Footer */
+.login-footer {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.signup-link {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.signup-link a {
+  color: #007bff;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.signup-link a:hover {
+  text-decoration: underline;
+}
+
+/* Success/Error messages */
+.success-message {
+  color: green;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}

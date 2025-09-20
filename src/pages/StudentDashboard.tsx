@@ -42,8 +42,8 @@ function Dashboard() {
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">
-        Welcome to Dashboard {name && `, ${name}`}
+      <h1 className="flex items-center justify-center text-xl font-bold mb-4">
+        Welcome to Student's Dashboard {name && `, ${name}`}
       </h1>
       <Button variant="secondary" onClick={handleLogout}>
         Log Out

@@ -3,27 +3,33 @@ import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js";
+import protectedRoutes from "./routes/protected.js"; // ✅ add this
+import usersRoutes from "./routes/users.js"; // ✅ import the route
+
+
+
+
 
 dotenv.config();
 
 const app = express();
 
-// ✅ Middleware
-app.use(cookieParser()); //Parses cookies sent from the browser for handling authentication tokens.
-app.use(express.json()); //Parses incoming JSON request
+app.use(cookieParser());
+app.use(express.json());
 
-// ✅ CORS setup for cookie-based auth
+// ✅ CORS setup
 app.use(
-  cors({ //Enables Cross-Origin Resource Sharing, allowing your frontend to communicate with the backend.
-    origin: "http://localhost:5173", // change to your frontend origin
-    credentials: true, // allow cookies
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
   })
 );
 
 // ✅ Routes
 app.use("/api", authRoutes);
-
-// ✅ Start server
+app.use("/api/protected", protectedRoutes); // ✅ protected APIs
+app.use("/api", usersRoutes); // ✅ mount under /api
+app.use("/api/users", usersRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
