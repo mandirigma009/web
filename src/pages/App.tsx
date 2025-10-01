@@ -16,13 +16,9 @@ const navigate = useNavigate();
           credentials: "include",
         });
         if (res.ok) {
-          const data = await res.json();
-          navigate("/admin");
-          if (data.user?.role === 1) {
-            navigate("/admin");
-          } else {
-            navigate("/student");
-          }
+         
+          navigate("/dashboard");
+         
         }
       } catch (err) {
         console.error("Auth check failed:", err);

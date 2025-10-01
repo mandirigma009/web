@@ -13,7 +13,6 @@ function Login() {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
-  // ✅ Redirect if already logged in
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -22,12 +21,10 @@ function Login() {
           credentials: "include",
         });
         if (res.ok) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const data = await res.json();
-          if (data.user?.role === 1) {
-            navigate("/admin");
-          } else {
-            navigate("/student");
-          }
+          // Everyone goes to /dashboard
+          navigate("/dashboard");
         }
       } catch {
         // not logged in, continue to login
@@ -39,7 +36,6 @@ function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate inputs
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
 
@@ -66,12 +62,8 @@ function Login() {
       setEmail("");
       setPassword("");
 
-      // Redirect based on role
-      if (data.user?.role === 1) {
-        navigate("/admin");
-      } else {
-        navigate("/student");
-      }
+      // Everyone goes to dashboard
+      navigate("/dashboard");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setErrors({ password: err.message });
@@ -95,10 +87,7 @@ function Login() {
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              setErrors((prev) => ({
-                ...prev,
-                email: validateEmail(e.target.value) || "",
-              }));
+              setErrors((prev) => ({ ...prev, email: validateEmail(e.target.value) || "" }));
             }}
             placeholder="Email Address"
             required
@@ -110,19 +99,14 @@ function Login() {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              setErrors((prev) => ({
-                ...prev,
-                password: validatePassword(e.target.value) || "",
-              }));
+              setErrors((prev) => ({ ...prev, password: validatePassword(e.target.value) || "" }));
             }}
             placeholder="Password"
             required
             error={errors.password}
           />
 
-          <SubmitButton variant="primary" className="login-btn">
-            Log In
-          </SubmitButton>
+          <SubmitButton variant="primary" className="login-btn">Log In</SubmitButton>
 
           <p className="login-footer">
             Don't have an account? <Link to="/signup">Sign Up</Link>

@@ -3,10 +3,10 @@ import { Navigate, useLocation } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: JSX.Element;
-  requiredRole?: number; // 0 = student, 1 = admin
+  requiredRoles?: number[]; // Array of allowed roles
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
   const [isChecking, setIsChecking] = useState(true);
   const [user, setUser] = useState<{ id: number; role: number } | null>(null);
   const location = useLocation();
@@ -38,7 +38,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (requiredRole !== undefined && user.role !== requiredRole) {
+  // If requiredRoles is provided, check if user's role is included
+  if (requiredRoles && !requiredRoles.includes(user.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

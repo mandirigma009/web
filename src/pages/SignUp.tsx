@@ -33,12 +33,10 @@ function SignUp() {
           credentials: "include",
         });
         if (res.ok) {
-          const data = await res.json();
-          if (data.user?.role === 1) {
-            navigate("/admin");
-          } else {
-            navigate("/student");
-          }
+        
+            navigate("/dashboard");
+        
+          
         }
       } catch {
         // not logged in, continue to signup

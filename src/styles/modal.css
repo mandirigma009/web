@@ -69,3 +69,28 @@
 #cancelBtn {
   background-color: crimson;
 }
+
+/* Overlay (background dim) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* semi-transparent black */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* above sidebar & content */
+}
+
+/* Modal Box */
+.modal-content {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px 30px;
+  max-width: 450px;
+  width: 100%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+}
