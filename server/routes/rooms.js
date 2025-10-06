@@ -3,38 +3,34 @@ import pool from "../pool.js"; // MySQL connection pool
 
 const router = express.Router();
 
-// -----------------------
-// Function to cancel expired reservations
-// -----------------------
-const cancelExpiredReservations = async () => {
+
+/// ✅ Update room status (MySQL version)
+router.put("/:id/status", async (req, res) => {
   try {
-    const now = new Date();
-    const nowStr = now.toISOString().slice(0, 19).replace("T", " "); // MySQL DATETIME format
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (![1, 2, 3, 4].includes(Number(status))) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
 
     const [result] = await pool.query(
-      `UPDATE rooms
-       SET status = 1,
-           reserved_by = NULL,
-           date_reserved = NULL,
-           reservation_start = NULL,
-           reservation_end = NULL
-       WHERE status = 2 AND reservation_end < ?`,
-      [nowStr]
+      "UPDATE rooms SET status = ? WHERE id = ?",
+      [status, id]
     );
 
-    if (result.affectedRows > 0) {
-      console.log(`✅ Cancelled ${result.affectedRows} expired reservations`);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Room not found" });
     }
+
+    // ✅ Fetch updated row to return to frontend
+    const [rows] = await pool.query("SELECT * FROM rooms WHERE id = ?", [id]);
+    res.json(rows[0]);
   } catch (err) {
-    console.error("❌ Error cancelling expired reservations:", err);
+    console.error("❌ Error updating room status:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
-};
-
-// Run cleanup every minute
-setInterval(cancelExpiredReservations, 60 * 1000);
-
-// Also run once on server start
-cancelExpiredReservations();
+});
 
 // -----------------------
 // GET all rooms
@@ -101,115 +97,64 @@ router.get("/my-bookings/:user", async (req, res) => {
   }
 });
 
+
+
+
 // -----------------------
-// Cancel a reservation manually
+// EDIT room (role 1 or 2 only) - PUT /rooms/:id
 // -----------------------
-router.post("/:id/cancel", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const roomId = Number(req.params.id);
+  if (isNaN(roomId)) return res.status(400).json({ message: "Invalid room ID" });
 
-  if (isNaN(roomId)) {
-    return res.status(400).json({ error: "Invalid room ID" });
-  }
+  const { room_number, room_name, room_description, building_name, floor_number, status } = req.body;
 
   try {
     const [result] = await pool.query(
       `UPDATE rooms
-       SET status = 1,
-           reserved_by = NULL,
-           date_reserved = NULL,
-           reservation_start = NULL,
-           reservation_end = NULL
-       WHERE id = ? AND status = 2`,
-      [roomId]
+       SET room_number = ?,
+           room_name = ?,
+           room_description = ?,
+           building_name = ?,
+           floor_number = ?,
+           status = ?
+       WHERE id = ?`,
+      [room_number, room_name, room_description, building_name, floor_number, status || 1, roomId]
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Room not found or not reserved" });
+      return res.status(404).json({ message: "Room not found or not updated" });
     }
 
-    res.json({ success: true, message: "Reservation cancelled successfully" });
+    res.json({ success: true, message: "Room updated successfully" });
   } catch (err) {
-    console.error("❌ Failed to cancel booking:", err);
-    res.status(500).json({ error: "Failed to cancel booking" });
-  }
-});
-
-// Auto-cancel expired reservations endpoint
-router.post("/auto-cancel", async (req, res) => {
-  try {
-
-const pad = (n) => n.toString().padStart(2, "0");
-
-const now = new Date();
-const nowStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-
-console.log(nowStr); // "2025-09-21 14:30:15" for example
-
-
-    const [result] = await pool.query(
-      `UPDATE rooms
-       SET status = 1,
-           reserved_by = NULL,
-           date_reserved = NULL,
-           reservation_start = NULL,
-           reservation_end = NULL
-       WHERE status = 2 AND reservation_end < ?`,
-      [nowStr]
-    );
-
-    res.json({ success: true, cancelled: result.affectedRows });
-  } catch (err) {
-    console.error("❌ Error in auto-cancel endpoint:", err);
-    res.status(500).json({ success: false, message: "Failed to cancel expired reservations" });
-  }
-});
-
-
-// -----------------------
-// Book a room
-router.post("/book", async (req, res) => {
-  try {
-    const { roomId, date, startTime, endTime, notes, reserved_by } = req.body;
-
-    if (!roomId || !date || !startTime || !endTime || !reserved_by) {
-      return res.status(400).json({ message: "Missing booking fields" });
-    }
-
-    // Combine date + time into proper DATETIME
-    const reservationStart = `${date} ${startTime}:00`;
-    const reservationEnd = `${date} ${endTime}:00`;
-
-    // Check if available
-    const [check] = await pool.query(
-      `SELECT * FROM rooms WHERE id = ? AND status = 1`,
-      [roomId]
-    );
-    if (check.length === 0) {
-      return res.status(400).json({ message: "Room not available" });
-    }
-
-    // Update row
-    const [result] = await pool.query(
-      `UPDATE rooms
-       SET status = 2,
-           reserved_by = ?,
-           date_reserved = ?,
-           reservation_start = ?,
-           reservation_end = ?
-       WHERE id = ? AND status = 1`,
-      [reserved_by, date, reservationStart, reservationEnd, roomId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(400).json({ message: "Failed to reserve room" });
-    }
-
-    res.json({ success: true, message: "Room booked successfully" });
-  } catch (err) {
-    console.error("❌ Booking error:", err);
+    console.error("❌ Error updating room:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
+// -----------------------
+// DELETE room (role 1 or 2 only) - DELETE /rooms/:id
+// -----------------------
+router.delete("/:id", async (req, res) => {
+  const roomId = Number(req.params.id);
+  if (isNaN(roomId)) return res.status(400).json({ message: "Invalid room ID" });
+
+  try {
+    const [result] = await pool.query(
+      `DELETE FROM rooms WHERE id = ?`,
+      [roomId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Room not found or already deleted" });
+    }
+
+    res.json({ success: true, message: "Room deleted successfully" });
+  } catch (err) {
+    console.error("❌ Error deleting room:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 export default router;

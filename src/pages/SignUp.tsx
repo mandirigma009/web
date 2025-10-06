@@ -92,7 +92,7 @@ function SignUp() {
       <div className="login-card">
         {/* Header with Logo */}
         <div className="login-header">
-          <img src="/logo.png" alt="School Logo" className="login-logo" />
+          <img src="/images/logo.jpg" alt="School Logo" className="login-logo" />
           <h2>Create Account</h2>
           <p className="text-gray-500 text-sm">Sign up to get started</p>
         </div>

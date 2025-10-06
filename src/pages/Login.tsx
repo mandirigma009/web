@@ -74,7 +74,7 @@ function Login() {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <img src="/logo.png" alt="School Logo" className="login-logo" />
+          <img src="/images/logo.jpg" alt="School Logo" className="login-logo" />
           <h2>Welcome Back</h2>
           <p className="text-gray-500 text-sm">Log in to your account</p>
         </div>

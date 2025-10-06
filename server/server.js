@@ -8,6 +8,10 @@ import usersRoutes from "./routes/users.js";
 import roomsRoutes from "./routes/rooms.js";
 import pool from "./pool.js"; // ✅ use pool instead of db
 import "./routes/roomsCleanup.js";
+import roomBookingsRoutes from "./routes/roomBookings.js";
+import "./routes/autoCancelBookings.js";
+
+
 
 
 dotenv.config();
@@ -29,6 +33,7 @@ app.use("/api/protected", protectedRoutes);
 app.use("/api", usersRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/rooms", roomsRoutes);
+app.use("/api/room_bookings", roomBookingsRoutes);
 
 
 // ✅ Fix booking route

@@ -17,6 +17,22 @@ router.get("/users", async (req, res) => {
   }
 });
 
+
+// DELETE /api/users/:id
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await pool.query("DELETE FROM users WHERE id = ?", [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("❌ Error deleting user:", err.message);
+    res.status(500).json({ message: "Failed to delete user", error: err.message });
+  }
+});
+
 // PUT update user role
 router.put("/:id/role", async (req, res) => {
   const userId = Number(req.params.id);

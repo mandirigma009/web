@@ -6,7 +6,7 @@
   justify-content: center;
   background: url("/bg-campus.jpg") no-repeat center center/cover;
   position: relative;
-  background-image: url("/images/onpeieceBg.jpg");
+  background-image: url("/images/bg.jpg");
   background-size: cover;
   background-position: center;
   background-color: rgba(0, 0, 0, 0.05); /* adds overlay */
@@ -20,6 +20,13 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   opacity:  75%;
+   background-color: rgba(255, 255, 255, 0.55); /* white overlay at 0.25 → image appears at 0.75 opacity */
+  pointer-events: none; /* so clicks pass through */
+}
+
+.login-container > * {
+  position: relative; /* keep content above overlay */
+  z-index: 1;
 }
 
 /* Card */
@@ -44,7 +51,7 @@
 }
 
 .login-logo {
-  width: 80px;
+  width: 150px;
   height: 80px;
   margin-bottom: 0.5rem;
 }
