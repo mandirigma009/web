@@ -1,6 +1,10 @@
+//server/routesimport dotenv from "dotenv";
+import dotenv from "dotenv";
+dotenv.config(); // <-- MUST be first
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js";
 import protectedRoutes from "./routes/protected.js";
@@ -11,10 +15,11 @@ import "./routes/roomsCleanup.js";
 import roomBookingsRoutes from "./routes/roomBookings.js";
 import "./routes/autoCancelBookings.js";
 
+console.log("SMTP_USER:", process.env.SMTP_USER);
+console.log("SMTP_PASS:", process.env.SMTP_PASS);
+console.log("port = ", process.env.PORT)
 
 
-
-dotenv.config();
 
 const app = express();
 

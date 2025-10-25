@@ -23,5 +23,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "server/routes/Protected.js"]
+  "include": ["src", "server/routes/Protected.js", "server/utils/dateUtils.ts"]
 }

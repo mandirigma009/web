@@ -1,7 +1,7 @@
 // src/components/Dashboard/AdminTab.tsx
 import { useState, useEffect, useRef } from "react";
-import type { User } from "../../types";
-import "./RoomsTab.css";
+import type { User } from "../../../types";
+import "../../../styles/modal.css";
 
 interface AdminTabProps {
   users: User[];
@@ -22,8 +22,25 @@ export default function AdminTab({
   handleSaveRole,
   setSelectedRole,
 }: AdminTabProps) {
-  const [highlightedRowId, setHighlightedRowId] = useState<number | null>(null);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
+    const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+
+
+    //outside click
+    useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    const table = document.getElementById("my-bookings-table");
+    if (table && !table.contains(event.target as Node)) {
+      setSelectedRowId(null);
+    }
+  };
+
+  document.addEventListener("click", handleClickOutside);
+  return () => document.removeEventListener("click", handleClickOutside);
+}, []);
+
+
 
   // Unhighlight row when clicking outside
   useEffect(() => {
@@ -32,7 +49,7 @@ export default function AdminTab({
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setHighlightedRowId(null);
+        setSelectedRowId(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -60,7 +77,7 @@ const handleDeleteUser = async (userId: number) => {
       users.splice(index, 1);
     }
 
-    setHighlightedRowId(null);
+    setSelectedRowId(null);
   } catch (err) {
     console.error(err);
     alert("Failed to delete user");
@@ -71,7 +88,7 @@ const handleDeleteUser = async (userId: number) => {
   return (
     <div ref={dropdownRef}>
       <h2>User Management</h2>
-      <table className="dashboard-table">
+     <table id="my-bookings-table" className="dashboard-table">
         <thead>
           <tr>
             <th>Name</th>
@@ -84,7 +101,8 @@ const handleDeleteUser = async (userId: number) => {
           {users.map((u) => (
             <tr
               key={u.id}
-              className={highlightedRowId === u.id ? "highlighted-row" : ""}
+              onClick={() => setSelectedRowId(u.id)}
+              className={selectedRowId === u.id ? "highlighted" : ""}
             >
               <td>{u.name}</td>
               <td>{u.email}</td>
@@ -107,16 +125,16 @@ const handleDeleteUser = async (userId: number) => {
               <td>
                 <select
                   className="border rounded px-2 py-1"
-                  onClick={() => setHighlightedRowId(u.id)}
+                  onClick={() => setSelectedRowId(u.id)}
                   onChange={async (e) => {
                     const action = e.target.value;
 
                     if (action === "edit") {
                       handleEditClick(u);
-                      setHighlightedRowId(u.id);
+                      setSelectedRowId(u.id);
                     } else if (action === "save") {
                       await handleSaveRole(u.id);
-                      setHighlightedRowId(null);
+                      setSelectedRowId(null);
                     } else if (action === "delete") {
                       await handleDeleteUser(u.id);
                     }

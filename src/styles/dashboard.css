@@ -1,3 +1,4 @@
+
 /* Sidebar */
 .dashboard-sidebar {
   width: 200px;
@@ -63,6 +64,11 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+}
+
+.dashboard-table tr.highlighted {
+  background-color: #2563eb;
+  color: white;
 }
 
 .dashboard-table th,
