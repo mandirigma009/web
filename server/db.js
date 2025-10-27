@@ -1,7 +1,6 @@
 import mysql from "mysql2";
 import dotenv from "dotenv";
 // server.js
-import "./jobs/archiveJob.js"; // keep at top-level so it runs automatically
 
 
 dotenv.config();

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "../../Button";
 import type { Room } from "../../../types";
+import "../../../styles/modal.css";
+import "../../../styles/dashboard.css";
 
 interface UpdateStatusModalProps {
   room: Room;

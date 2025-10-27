@@ -2,6 +2,10 @@
 import { Button } from "../../Button";
 import type { Room } from "../../../types";
 import { useState } from "react";
+import "../../../styles/modal.css";
+import "../../../styles/dashboard.css";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface EditRoomModalProps {
   room: Room;
@@ -24,6 +28,7 @@ export default function EditRoomModal({ room, onClose, onSuccess }: EditRoomModa
 
       if (!res.ok) throw new Error(await res.text());
       const updated: Room = await res.json();
+      toast.success("Reservation Updated!");
       onSuccess(updated);
       onClose();
     } catch (err) {
@@ -33,6 +38,7 @@ export default function EditRoomModal({ room, onClose, onSuccess }: EditRoomModa
       setIsSaving(false);
     }
   };
+  
 
   return (
     <div className="modal-overlay">
@@ -119,6 +125,7 @@ export default function EditRoomModal({ room, onClose, onSuccess }: EditRoomModa
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
         </div>
       </div>
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }

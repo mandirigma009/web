@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
 import { Button } from "../components/Button";
 import type { User, Room } from "../types";
+import "../styles/modal.css";
+import "../styles/dashboard.css";
 
 // Components
 import AdminTab from "../components/Dashboard/Tabs/AdminTab";
@@ -14,12 +16,19 @@ import AddRoomModal from "../components/Dashboard/Modals/AddRoomModal";
 import ForApprovalTab from "../components/Dashboard/Tabs/ForApprovalTab";
 import RejectedTab from "../components/Dashboard/Tabs/RejectedTab";
 
+
 const roleLabels: Record<number, string> = {
   1: "Admin",
   2: "Staff",
   3: "Reserver",
   4: "Viewer",
 };
+
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+
+
 
 function Dashboard() {
   const [name, setName] = useState<string>("");
@@ -323,16 +332,22 @@ useEffect(() => {
 //console.log("UserRole in AdminDashboard: ", userRole)
   // ---------- Render ----------
   return (
+
+
     <div>
       {/* Sidebar */}
       <div className="dashboard-sidebar">
         <img src="/images/logo.jpg" alt="School Logo" className="login-logo" />
+     <>
+      <ToastContainer position="top-right" autoClose={5000} />
+      {/* other components */}
+    </>
 
         {/* Admin-only menu options */}
         {userRole && (userRole === 1 || userRole === 2) && (
           <>
             <button
-              className={activeTab === "Admin" ? "active" : ""}
+               className={`sidebar-btn ${activeTab === "Admin" ? "active" : ""}`}
               onClick={() => setActiveTab("Admin")}
             >
               Admin
@@ -343,7 +358,8 @@ useEffect(() => {
         {/* For Approval menu */}
   
           <button
-            className={activeTab === "ForApproval" ? "active" : ""}
+           className={`sidebar-btn ${activeTab === "ForApproval" ? "active" : ""}`}
+          
             onClick={() => setActiveTab("ForApproval")}
           >
             For Approval
@@ -351,28 +367,28 @@ useEffect(() => {
     
 
         <button
-          className={activeTab === "Rooms" ? "active" : ""}
+           className={`sidebar-btn ${activeTab === "Rooms" ? "active" : ""}`}
           onClick={() => setActiveTab("Rooms")}
         >
           Rooms
         </button>
 
         <button
-          className={activeTab === "MyBookings" ? "active" : ""}
+           className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
           onClick={() => setActiveTab("MyBookings")}
         >
           My Bookings
         </button>
 
         <button
-          className={activeTab === "MyProfile" ? "active" : ""}
+           className={`sidebar-btn ${activeTab === "MyProfile" ? "active" : ""}`}
           onClick={() => setActiveTab("MyProfile")}
         >
           My Profile
         </button>
 
              <button
-          className={activeTab === "Rejected" ? "active" : ""}
+           className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}
           onClick={() => setActiveTab("Rejected")}
         >
           Rejected

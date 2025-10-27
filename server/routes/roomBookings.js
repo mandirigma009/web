@@ -37,11 +37,15 @@ router.get("/", async (req, res) => {
       return res.status(400).json({ message: "room_id and date are required" });
 
     const [rows] = await db.query(
-      `SELECT reservation_start, reservation_end FROM room_bookings WHERE room_id = ? AND date_reserved = ?`,
+      `SELECT reservation_start, reservation_end, reserved_by 
+      FROM room_bookings 
+            WHERE room_id = ? 
+             AND status = 'approved'
+             AND date_reserved = ?`,
       [room_id, date]
     );
 
-    res.json(rows.map((r) => ({ start: r.reservation_start, end: r.reservation_end })));
+    res.json(rows.map((r) => ({ start: r.reservation_start, end: r.reservation_end, reserved_by: r.reserved_by})));
   } catch (err) {
     console.error("Error fetching booked times:", err);
     res.status(500).json({ message: "Failed to fetch booked times." });
@@ -71,65 +75,82 @@ router.get("/reservations", async (req, res) => {
   }
 });
 
-/* ----------------------------------------
-   GET /available-times?roomId=...&date=...
----------------------------------------- */
+// Returns { available: [...], reserved: [...] } for a given room/date
+// available are continuous blocks (in HH:MM) between dayStart and dayEnd excluding reservations
+// ------------------------
 router.get("/available-times", async (req, res) => {
   try {
     const roomId = req.query.roomId || req.query.room_id;
     const date = req.query.date;
-    if (!roomId || !date)
-      return res.status(400).json({ message: "roomId and date are required" });
 
+    if (!roomId || !date) {
+      return res.status(400).json({ message: "roomId and date are required" });
+    }
+
+    // 1) fetch reservations for that room/date ordered
     const [rows] = await db.query(
-      `SELECT reservation_start, reservation_end FROM room_bookings WHERE room_id = ? AND date_reserved = ? AND status = 'approved' ORDER BY reservation_start ASC`,
+      `SELECT reservation_start, reservation_end 
+       FROM room_bookings 
+       WHERE room_id = ? AND date_reserved = ?
+       AND status = 'approved'
+       ORDER BY reservation_start ASC`,
       [roomId, date]
     );
 
-    const reservedRanges = rows.map((r) => ({
+    const reservedRanges = rows.map(r => ({
       start: r.reservation_start,
       end: r.reservation_end,
     }));
 
-    const timeToMinutes = (t) => {
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    };
-    const minutesToTime = (m) => {
-      const h = Math.floor(m / 60);
-      const mm = m % 60;
-      return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-    };
+    // 2) Define working-day bounds (adjust if you want different bounds)
+    // You can change dayStart/dayEnd to match your desired available window
+    const dayStart = timeToMinutes("08:00");
+    const dayEnd = timeToMinutes("18:00");
 
-    const dayStart = timeToMinutes("07:00");
-    const dayEnd = timeToMinutes("13:00");
-    const reservedMins = reservedRanges
-      .map((r) => ({ start: timeToMinutes(r.start), end: timeToMinutes(r.end) }))
+    // 3) Convert reserved rows into minute intervals (and merge if overlapping)
+    const reservedMins = rows
+      .map(r => ({
+        start: timeToMinutes(r.reservation_start),
+        end: timeToMinutes(r.reservation_end),
+      }))
       .sort((a, b) => a.start - b.start);
 
+    // merge overlapping reserved intervals (defensive)
     const merged = [];
-    for (const i of reservedMins) {
-      if (!merged.length) merged.push({ ...i });
-      else {
+    for (const interval of reservedMins) {
+      if (!merged.length) {
+        merged.push({ ...interval });
+      } else {
         const last = merged[merged.length - 1];
-        if (i.start <= last.end) last.end = Math.max(last.end, i.end);
-        else merged.push({ ...i });
+        if (interval.start <= last.end) {
+          // overlap -> extend end if needed
+          last.end = Math.max(last.end, interval.end);
+        } else {
+          merged.push({ ...interval });
+        }
       }
     }
 
-    const available = [];
+    // 4) compute available ranges between dayStart and dayEnd excluding merged reserved intervals
+    const availableRanges = [];
     let cursor = dayStart;
+
     for (const r of merged) {
-      if (r.start > cursor) available.push({ start: cursor, end: r.start });
+      if (r.start > cursor) {
+        availableRanges.push({ start: cursor, end: r.start });
+      }
       cursor = Math.max(cursor, r.end);
     }
-    if (cursor < dayEnd) available.push({ start: cursor, end: dayEnd });
+    if (cursor < dayEnd) availableRanges.push({ start: cursor, end: dayEnd });
+
+    // 5) format results back to HH:MM
+    const formattedAvailable = availableRanges.map(r => ({
+      start: minutesToTime(r.start),
+      end: minutesToTime(r.end),
+    }));
 
     res.json({
-      available: available.map((r) => ({
-        start: minutesToTime(r.start),
-        end: minutesToTime(r.end),
-      })),
+      available: formattedAvailable,
       reserved: reservedRanges,
     });
   } catch (err) {
@@ -137,6 +158,7 @@ router.get("/available-times", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch available times." });
   }
 });
+
 
 /* ----------------------------------------
    POST /book – single or recurring booking

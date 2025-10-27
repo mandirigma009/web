@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {useNavigate } from "react-router-dom";
 import "../styles/App.css";
 import Modal from "../components/Modal";
+import { ToastContainer } from "react-toastify";
 
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,7 +31,7 @@ const navigate = useNavigate();
 
   return (
     <div className="App">
-      
+        <ToastContainer position="top-right" autoClose={3000} />
       <p>
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas eleifend, dui ut consequat auctor, 
         dui ex consequat purus, vitae scelerisque nunc purus id lorem. Proin pellentesque et diam ac ultrices. 

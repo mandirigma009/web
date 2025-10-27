@@ -1,10 +1,12 @@
 // src/components/Dashboard/EditBookingModal.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import "../../../styles/modal.css";
+import "../../../styles/dashboard.css";
 
 interface EditBookingModalProps {
   booking: any;
   onClose: () => void;
-  onUpdateSuccess: () => void; // triggers MyBookings tab refresh
+  onUpdateSuccess: () => void; // triggers forApprovalTab tab refresh
 }
 
 // Generate start/end time slots
@@ -56,8 +58,6 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ booking, onClose, o
         .filter((r: any) => r.id !== booking.id)
         .map((r: any) => ({
           ...r,
-          start_time: r.reservation_start,
-          end_time: r.reservation_end,
         }));
       setReservations(mappedReservations);
     } catch (err) {
@@ -211,29 +211,33 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ booking, onClose, o
             </div>
 
             <div className="mb-2">
-              <label>Start Time:</label>
-              <select
-                value={startTime}
-                onChange={(e) => {
-                  setStartTime(e.target.value);
-                  setEndTime("");
-                }}
-              >
-                <option value="">-- Select Start --</option>
-                {availableStartTimes.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <label>Start Time:</label>
+                <select
+                  value={startTime}
+                  onChange={(e) => {
+                    setStartTime(e.target.value);
+                    setEndTime("");
+                  }}
+                  disabled={new Date(date) < new Date(new Date().toISOString().split("T")[0])} // disable if date is in past
+                >
+                  <option value="">-- Select Start --</option>
+                  {availableStartTimes.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
             <div className="mb-2">
               <label>End Time:</label>
               <select
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                disabled={!startTime}
+               disabled={
+                  !startTime || // no start time selected
+                  new Date(date) < new Date(new Date().toISOString().split("T")[0]) // date is in past
+                }              
               >
                 <option value="">-- Select End --</option>
                 {availableEndTimes.map((t) => (
@@ -246,12 +250,18 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ booking, onClose, o
 
             <div className="mb-2">
               <label>Notes (optional):</label>
-              <input
-                type="text"
+
+              <textarea
+                className="cancel-modal-textarea"
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(e) => {setNotes(e.target.value.slice(0, 250))}}
+                maxLength={250}
                 placeholder="Optional notes"
               />
+
+                <p style={{ fontSize: "0.8em", color: "#555", marginTop: "2px" }}>
+                  {notes.length} / Max 250 characters
+                </p>
             </div>
 
             {reservations.length > 0 && (

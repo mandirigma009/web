@@ -9,6 +9,8 @@ import {
 
 console.log("[Cron] Auto-cancel cron job started. Running every minute...");
 
+
+
 cron.schedule("* * * * *", async () => {
   try {
     const nowPH = currentPHDateTime(); // YYYY-MM-DD HH:mm:ss PH time
@@ -88,4 +90,83 @@ cron.schedule("* * * * *", async () => {
   } catch (err) {
     console.error("[Cron] Error in auto-cancel task:", err);
   }
+
+
+
+  //
+
+  // 4️⃣ Move old cancelled/rejected bookings to archive
+try {
+  const [movedRows] = await db.query(`
+    INSERT INTO room_bookings_archive (
+      id,
+      room_id,
+      reserved_by,
+      user_id,
+      email,
+      date_reserved,
+      reservation_start,
+      reservation_end,
+      notes,
+      created_at,
+      room_number,
+      room_name,
+      room_description,
+      building_name,
+      floor_number,
+      assigned_by,
+      status,
+      is_archived,
+      approved_at,
+      reject_reason,
+      rejected_at
+    )
+    SELECT
+      id,
+      room_id,
+      reserved_by,
+      user_id,
+      email,
+      date_reserved,
+      reservation_start,
+      reservation_end,
+      notes,
+      created_at,
+      room_number,
+      room_name,
+      room_description,
+      building_name,
+      floor_number,
+      assigned_by,
+      status,
+      1 AS is_archived,
+      approved_at,
+      reject_reason,
+      rejected_at
+    FROM room_bookings
+    WHERE status IN ('cancelled', 'rejected_by_admin', 'cancelled_not_approved_before_start')
+      AND rejected_at < NOW() - INTERVAL 10 DAY
+  `);
+
+  if (movedRows.affectedRows > 0) {
+    console.log(`[Cron] Moved ${movedRows.affectedRows} old cancelled/rejected bookings to archive.`);
+
+    // Delete them from the main table
+    const [deletedRows] = await db.query(`
+      DELETE FROM room_bookings
+      WHERE status IN ('cancelled', 'rejected_by_admin', 'cancelled_not_approved_before_start')
+        AND rejected_at < NOW() - INTERVAL 10 DAY
+    `);
+
+    console.log(`[Cron] Deleted ${deletedRows.affectedRows} archived bookings from main table.`);
+  } else {
+    console.log("[Cron] No old cancelled/rejected bookings to archive right now.");
+  }
+} catch (err) {
+  console.error("[Cron] Error archiving old bookings:", err);
+}
+
 });
+
+
+

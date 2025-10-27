@@ -11,7 +11,6 @@ import protectedRoutes from "./routes/protected.js";
 import usersRoutes from "./routes/users.js";
 import roomsRoutes from "./routes/rooms.js";
 import pool from "./pool.js"; // ✅ use pool instead of db
-import "./routes/roomsCleanup.js";
 import roomBookingsRoutes from "./routes/roomBookings.js";
 import "./routes/autoCancelBookings.js";
 

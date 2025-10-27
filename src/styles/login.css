@@ -107,3 +107,20 @@
   font-size: 0.9rem;
   margin-bottom: 0.75rem;
 }
+
+.password-container {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* space between input and checkbox */
+}
+
+.show-password-inline {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.show-password-inline input {
+  margin-right: 5px;
+}

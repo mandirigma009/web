@@ -6,6 +6,9 @@ import ReservationModal from "../Modals/ReservationModal";
 import EditRoomModal from "../Modals/EditRoomModal";
 import AddRoomModal from "../Modals/AddRoomModal";
 import UpdateStatusModal from "../Modals/UpdateStatusModal";
+import "../../../styles/dashboard.css";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 
 interface RoomsTabProps {
@@ -207,13 +210,18 @@ export default function RoomsTab({
                 <td className="text-black">{r.room_name}</td>
                 <td className="text-black">
                   <div>
-                    <strong className="text-black">{r.room_description || "No description"}</strong>
-                    <div style={{ fontSize: "0.9em", color: "#000" }}>
+                    <strong className="text-black">{r.room_description || "No description"}</strong><br></br>
+                   <span
+                            style={{
+                              fontSize: "0.9em",
+                              color: selectedRowId === r.id ? "#fff" : "#000",
+                            }}
+                          >
                       {r.chairs ? `${r.chairs} Chair${r.chairs > 1 ? "s" : ""}` : "No Chairs"},
                       TV: {r.has_tv ? "Yes" : "No"} |{" "}
                       Tables: {r.has_table ? "Yes" : "No"} |{" "}
                       Projector: {r.has_projector ? "Yes" : "No"}
-                    </div>
+                    </span>
                   </div>
                 </td>
                 <td className="text-black">{r.floor_number}</td>
@@ -346,6 +354,7 @@ export default function RoomsTab({
           onAddRoomSuccess={handleAddRoomSuccess}
         />
       )}
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }

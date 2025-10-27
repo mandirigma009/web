@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { User } from "../../../types";
 import "../../../styles/modal.css";
+import "../../../styles/dashboard.css";
 
 interface AdminTabProps {
   users: User[];

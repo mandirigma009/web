@@ -98,7 +98,7 @@ export const sendStatusEmail = async (reservation, type) => {
       subject = "🚫 Reservation Cancelled";
       body = `<p>Hi ${reserved_by},</p>
               <p>You have <b>cancelled</b> your Approved reservation for <b>${room_name}</b> on <b>${date_reserved}</b> 
-              from <b>${reservation_start}</b> to <b>${reservation_end}</b>.</p>`;
+              from <b>${reservation_start}</b> to <b>${reservation_end}</b> .</p>`;
       break;
 
     case "cancelled_not_approved_before_start":

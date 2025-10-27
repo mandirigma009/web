@@ -1,5 +1,7 @@
 import { useState } from "react";
 import "../../../styles/modal.css";
+import "../../../styles/dashboard.css";
+
 
 interface CancelReasonModalProps {
   bookingId: number;
@@ -36,11 +38,16 @@ export default function CancelReasonModal({
           rows={4}
           value={reason}
           onChange={(e) => {
-            setReason(e.target.value);
+           
+           setReason (e.target.value.slice(0, 250)); // truncate to 250 chars
             setError("");
           }}
+          maxLength={250}
           placeholder="Enter your cancellation reason..."
         />
+                <p style={{ fontSize: "0.8em", color: "#555", marginTop: "2px" }}>
+                  {reason.length} / Max 250 characters
+                </p>
 
         {error && <p className="cancel-modal-error">{error}</p>}
 
