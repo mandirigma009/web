@@ -3,6 +3,12 @@ import { formatToPhilippineDate } from "../../../../server/utils/dateUtils";
 import type { Room } from "../../../types.tsx";
 import "../../../styles/modal.css";
 import "../../../styles/dashboard.css";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface CalendarEventsModalProps {
   booking: Room;
@@ -10,12 +16,12 @@ interface CalendarEventsModalProps {
   formatTimePH: (start: string, end: string, dateStr?: string) => string;
   userRole: "admin" | "teacher" | "user";
   activeTab: string; // "pending" | "approved" | "rejected"
-  onApprove?: (id: number) => void;
+   onApprove?: (id: number) => void;
   onReject?: (id: number) => void;
   onCancel?: (id: number) => void;
-  onViewReason?: (id: number) => void;
   onEdit?: (booking: Room) => void; // opens EditBookingModal
   refreshViews?: () => void; // refresh calendar/table if needed
+  onDelete?: (id: number) => void;
 }
 
 export default function CalendarEventsModal({
@@ -24,46 +30,29 @@ export default function CalendarEventsModal({
   formatTimePH,
   userRole,
   activeTab,
-  onEdit,
   onApprove,
   onReject,
+  onDelete,
   onCancel,
-  onViewReason,
-  refreshViews,
+  onEdit,
 }: CalendarEventsModalProps) {
-  // --- Handler: Approve ---
-  const handleApprove = () => {
-    if (onApprove) {
-      onApprove(booking.id);
-      if (refreshViews) refreshViews();
+  const isCancelable = (booking: Room) => {
+    if (userRole === "admin") return true;
+    if (userRole === "teacher") {
+      const nowPH = dayjs().tz("Asia/Manila");
+      const dateUTC = dayjs.utc(booking.date_reserved);
+      const datePH = dateUTC.tz("Asia/Manila");
+      const startTime =
+        booking.reservation_start.length === 5
+          ? `${booking.reservation_start}:00`
+          : booking.reservation_start;
+      const combinedPH = dayjs.tz(
+        `${datePH.format("YYYY-MM-DD")}T${startTime}`,
+        "Asia/Manila"
+      );
+      return combinedPH.diff(nowPH, "minute") >= 30;
     }
-    onClose();
-  };
-
-  // --- Handler: Reject ---
-  const handleReject = () => {
-    if (onReject) {
-      onReject(booking.id);
-      if (refreshViews) refreshViews();
-    }
-    onClose();
-  };
-
-  // --- Handler: Cancel ---
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel(booking.id);
-      if (refreshViews) refreshViews();
-    }
-    onClose();
-  };
-
-  // --- Handler: Edit ---
-  const handleEdit = () => {
-    if (onEdit) {
-      onEdit(booking); // opens EditBookingModal
-    }
-    onClose(); // only close modal, refresh happens after successful edit
+    return false;
   };
 
   return (
@@ -71,7 +60,7 @@ export default function CalendarEventsModal({
       <div className="modal-content">
         <h4 className="flex items-center justify-center">Reservation Details</h4>
 
-        {/* Room details */}
+        {/* Room & Booking details */}
         <p><strong>Room Number:</strong> {booking.room_number}</p>
         <p><strong>Room Name:</strong> {booking.room_name}</p>
         <p><strong>Building:</strong> {booking.building_name}</p>
@@ -85,13 +74,10 @@ export default function CalendarEventsModal({
           </span>
         </p>
 
-        {/* Reservation info */}
         <p><strong>Reserved By:</strong> {booking.reserved_by}</p>
         <p><strong>Status:</strong> {booking.status}</p>
         <p><strong>Date:</strong> {formatToPhilippineDate(booking.date_reserved)}</p>
-        <p>
-          <strong>Time:</strong> {formatTimePH(booking.reservation_start, booking.reservation_end, booking.date_reserved)}
-        </p>
+        <p><strong>Time:</strong> {formatTimePH(booking.reservation_start, booking.reservation_end, booking.date_reserved)}</p>
 
         {booking.notes && <p><strong>Notes:</strong> {booking.notes}</p>}
         {booking.reject_reason && <p><strong>Reason:</strong> {booking.reject_reason}</p>}
@@ -101,22 +87,28 @@ export default function CalendarEventsModal({
           {/* Admin Buttons for Pending */}
           {userRole === "admin" && activeTab === "pending" && (
             <>
-              <button className="btn btn-success btn-sm" onClick={handleApprove}>
-                Approve
-              </button>
-              <button className="btn btn-danger btn-sm" onClick={handleReject}>
-                Reject
-              </button>
+              <button className="btn btn-success btn-sm"   onClick={async () => {
+                        if (onApprove) await onApprove(booking.id);
+                        onClose();
+                        }}>Approve</button>
+              <button className="btn btn-danger btn-sm" onClick={async () => { if (onReject) await onReject( booking.id);  onClose() }}>Reject</button>
             </>
           )}
 
           {/* Teacher Buttons for Pending */}
           {userRole === "teacher" && activeTab === "pending" && (
             <>
-              <button className="btn btn-success btn-sm" onClick={handleEdit}>
-                Edit
-              </button>
-              <button className="btn btn-danger btn-sm" onClick={handleCancel}>
+              <button className="btn btn-success btn-sm" onClick= { async () => { if (onEdit) await onEdit( booking);  onClose() }}>Edit</button>
+              <button
+                className="btn btn-outline-danger btn-sm"
+                disabled={!isCancelable(booking)}
+                title={
+                  isCancelable(booking)
+                    ? "Cancel this booking"
+                    : "You can only cancel at least 30 minutes before start time."
+                }
+                onClick= { async () => { if (onDelete) await onDelete( booking.id);  onClose() }}
+              >
                 Cancel
               </button>
             </>
@@ -124,25 +116,11 @@ export default function CalendarEventsModal({
 
           {/* Cancel for Approved */}
           {activeTab === "approved" && (
-            <button className="btn btn-warning btn-sm" onClick={handleCancel}>
-              Cancel Reservation
-            </button>
-          )}
-
-          {/* View Reason for Rejected */}
-          {activeTab === "rejected" && (
-            <button
-              className="btn btn-info btn-sm"
-              onClick={() => onViewReason && onViewReason(booking.id)}
-            >
-              View Reason
-            </button>
+            <button className="btn btn-warning btn-sm" onClick= { async () => { if (onCancel) await onCancel( booking.id);  onClose() }}>Cancel Reservation</button>
           )}
 
           {/* Always show Close */}
-          <button className="btn btn-secondary btn-sm" onClick={onClose}>
-            Close
-          </button>
+          <button className="btn btn-secondary btn-sm" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>

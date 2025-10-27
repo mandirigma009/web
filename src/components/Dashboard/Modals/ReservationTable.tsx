@@ -1,22 +1,20 @@
-// src/components/Dashboard/ReservationTable
-import { useState, useRef } from "react";
-import { formatToPhilippineDate } from "../../../../server/utils/dateUtils.ts";
+// src/components/Dashboard/ReservationTable.tsx
+import { useState, useRef, useEffect } from "react";
+import { formatToPhilippineDate } from "../../../../server/utils/dateUtils";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import bootstrap5Plugin from "@fullcalendar/bootstrap5";
 import type { Room } from "../../../types.tsx";
-import EditBookingModal from "./EditBookingModal.tsx";
+import EditBookingModal from "./EditBookingModal";
 import "../../../styles/modal.css";
+import "../../../styles/dashboard.css";
 import CancelReasonModal from "./CancelReasonModal";
+import CalendarEventsModal from "../Modals/calendarEventsModal";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import CalendarEventsModal from "../Modals/calendarEventsModal.tsx";
-import "../../../styles/modal.css";
-import "../../../styles/dashboard.css";
-import "react-toastify/dist/ReactToastify.css";
 import { toast, ToastContainer } from "react-toastify";
 
 dayjs.extend(utc);
@@ -25,47 +23,44 @@ dayjs.extend(timezone);
 interface ReservationTableProps {
   reservations: Room[];
   userRole: number;
-  cancelReservation?: (id: number) => void;
+  deleteReservation?: (id: number) => void;
   editBooking?: (booking: Room) => void;
   approveBooking?: (id: number) => void;
   rejectBooking?: (id: number) => void;
-  formatTime: (start: string, end: string, dateStr: string) => string;
+  formatTime: (start: string, end: string, dateStr?: string) => string;
   isForApproval?: boolean;
   isMyBookings?: boolean;
   refreshMyBookings: () => void;
+  openCalendar?: (booking: Room) => void;
 }
 
 export default function ReservationTable({
   reservations,
   userRole,
-  cancelReservation,
+  deleteReservation,
   editBooking,
   approveBooking,
   rejectBooking,
   isForApproval,
   isMyBookings,
   refreshMyBookings,
+  openCalendar,
 }: ReservationTableProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [editingBooking, setEditingBooking] = useState<Room | null>(null);
-  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
+  const [cancelReasonModal, setCancelReasonModal] = useState<{ id: number | null } | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  
+
+
   const calendarRef = useRef<FullCalendar>(null);
 
-  const [cancelReasonModal, setCancelReasonModal] = useState<{ id: number | null } | null>(null);
 
-  const formatTimePH = (start: string, end: string) => `${start} - ${end}`;
-
-
-  // ✅ Cancel modal logic
-  const openCancelModal = (id: number) => {
-    setCancelReasonModal({ id });
-  };
-
-  const handleEditOpen = (booking: Room) => {
-  setEditingBooking(booking); // Opens EditBookingModal
-  setSelectedBooking(null);   // Just in case — ensures calendar modal closes
-};
+  
+  // ----------------------------
+  // Cancel logic
+  const openCancelModal = (id: number) => setCancelReasonModal({ id });
 
 
   const handleCancelWithReason = async (bookingId: number, reason: string) => {
@@ -75,25 +70,21 @@ export default function ReservationTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reject_reason: reason }),
       });
-
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("❌ Cancel failed:", errorData);
-        alert("Failed to cancel reservation. Please try again.");
-        return;
+        const err = await response.json().catch(() => ({}));
+        return alert(err.message || "Failed to cancel reservation.");
       }
-
       toast.success("Reservation cancelled successfully!");
       setCancelReasonModal(null);
-      refreshMyBookings();
+      refreshMyBookings(); // refresh table & calendar immediately
     } catch (err) {
-      console.error("⚠️ Error during cancel:", err);
-      alert("An error occurred while canceling.");
+      console.error(err);
+      alert("Error during cancellation.");
     }
   };
 
-  // -----------------------------
-  // Calendar events
+  // ----------------------------
+  // Calendar events mapping
   const events = reservations
     .map((b) => {
       try {
@@ -101,10 +92,8 @@ export default function ReservationTable({
         const datePH = dateUTC.tz("Asia/Manila");
         const startTime = b.reservation_start.length === 5 ? `${b.reservation_start}:00` : b.reservation_start;
         const endTime = b.reservation_end.length === 5 ? `${b.reservation_end}:00` : b.reservation_end;
-
         const startPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
         const endPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila");
-
         return {
           id: String(b.id),
           title: `${startTime}-${endTime}`,
@@ -113,14 +102,13 @@ export default function ReservationTable({
           backgroundColor: "#007bff",
           borderColor: "#007bff",
         };
-      } catch (err) {
-        console.error("⚠️ Failed to parse reservation for calendar:", b, err);
+      } catch {
         return null;
       }
     })
     .filter(Boolean);
 
-  // -----------------------------
+  // ----------------------------
   const isCancelable = (booking: Room) => {
     if (userRole === 1) return true;
     if (userRole === 3) {
@@ -130,55 +118,83 @@ export default function ReservationTable({
       const startTime = booking.reservation_start.length === 5 ? `${booking.reservation_start}:00` : booking.reservation_start;
       const combinedPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
       if (!combinedPH.isValid()) return false;
-      const diffMinutes = combinedPH.diff(nowPH, "minute");
-      return diffMinutes >= 30;
+      
+      console.log("combinedPH.diff >= 30", combinedPH.diff(nowPH, "minute") >= 30)
+      return combinedPH.diff(nowPH, "minute") >= 30;
     }
     return false;
   };
 
-  // -----------------------------
-  const handleAction = (action: string, booking: Room) => {
-    if (action === "edit" && editBooking) editBooking(booking);
-    if (action === "approve" && approveBooking) approveBooking(booking.id);
-    if (action === "reject" && rejectBooking) rejectBooking(booking.id);
-    if (action === "delete" && cancelReservation && isCancelable(booking)) {
-      const confirmed = window.confirm("Are you sure you want to cancel this reservation?");
-      if (confirmed) cancelReservation(booking.id);
+  const handleAction = async (action: string, booking: Room) => {
+  try {
+    switch (action) {
+      case "edit":
+        if (editBooking) editBooking(booking);
+        break;
+
+      case "approve":
+        if (approveBooking) await approveBooking(booking.id);
+        break;
+
+      case "reject":
+        if (rejectBooking) await rejectBooking(booking.id);
+        break;
+
+      case "cancel":
+        if (isCancelable(booking)) {
+          if (isMyBookings) openCancelModal(booking.id); // ✅ Only here
+        }
+        break;
+
+      case "delete":
+        if (deleteReservation && isCancelable(booking)) {
+          const confirmed = window.confirm(
+            "Are you sure you want to cancel this reservation?"
+          );
+          if (confirmed) await deleteReservation(booking.id);
+        }
+        break;
+
+      default:
+        console.warn("Unhandled action:", action);
+        break;
     }
-  };
+  } catch (err) {
+    console.error("Error in handleAction:", err);
+  } finally {
+    refreshMyBookings();
+  }
+};
 
-  // ✅ Detect current active tab for modal (based on flags)
-  const activeTab = isForApproval ? "pending" : isMyBookings ? "approved" : "rejected"; // adjust as needed
 
+  const activeTab = isForApproval ? "pending" : isMyBookings ? "approved" : "rejected";
+
+  // ----------------------------
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="flex justify-between items-center">
         <h2>
           {isMyBookings
             ? "My Schedules"
             : isForApproval
             ? userRole === 3
               ? "My Pending Reservations"
-              : userRole === 1 || userRole === 2
-              ? "All Pending Reservations"
-              : "Reservations"
+              : "All Pending Reservations"
             : "Reservations"}
         </h2>
 
-        <button
-          className="btn btn-outline-primary btn-sm"
-          onClick={() => setViewMode(viewMode === "table" ? "calendar" : "table")}
-        >
+        <button className="btn btn-outline-primary btn-sm" onClick={() => setViewMode(viewMode === "table" ? "calendar" : "table")}>
           {viewMode === "table" ? "📅 Calendar View" : "📋 Table View"}
         </button>
       </div>
 
+      {/* ---------- TABLE VIEW ---------- */}
       {viewMode === "table" && (
         <>
           {reservations.length === 0 ? (
             <p>No reservations.</p>
           ) : (
-            <table className="dashboard-table" id="reservations-table">
+            <table className="dashboard-table">
               <thead>
                 <tr>
                   <th>Room #</th>
@@ -194,37 +210,21 @@ export default function ReservationTable({
               </thead>
               <tbody>
                 {reservations.map((booking) => (
-                  <tr
-                    key={booking.id}
-                    className={selectedRowId === booking.id ? "highlighted" : ""}
-                    onClick={() => setSelectedRowId(booking.id)}
-                  >
+                  <tr key={booking.id} className={selectedRowId === booking.id ? "highlighted" : ""} onClick={() => setSelectedRowId(booking.id)}>
                     <td>{booking.room_number}</td>
                     <td>{booking.room_name}</td>
-                    <td className="text-black">
-                      <strong className="text-black">
-                        {booking.room_description || "No description"}
-                      </strong>
+                    <td>
+                      <strong>{booking.room_description || "No description"}</strong>
                       <br />
-                      <span
-                        style={{
-                          fontSize: "0.9em",
-                          color: selectedRowId === booking.id ? "#fff" : "#000",
-                        }}
-                      >
+                      <span style={{ fontSize: "0.9em", color: selectedRowId === booking.id ? "#fff" : "#000" }}>
                         {booking.chairs ? `${booking.chairs} Chair${booking.chairs > 1 ? "s" : ""}` : "No Chairs"},
-                        TV: {booking.has_tv ? "Yes" : "No"} | Tables: {booking.has_table ? "Yes" : "No"} |
-                        Projector: {booking.has_projector ? "Yes" : "No"}
+                        TV: {booking.has_tv ? "Yes" : "No"} | Tables: {booking.has_table ? "Yes" : "No"} | Projector: {booking.has_projector ? "Yes" : "No"}
                       </span>
                     </td>
                     <td>{booking.building_name}</td>
                     <td>{booking.floor_number}</td>
                     <td>{booking.date_reserved ? formatToPhilippineDate(booking.date_reserved) : "—"}</td>
-                    <td>
-                      {booking.reservation_start && booking.reservation_end
-                        ? formatTimePH(booking.reservation_start, booking.reservation_end)
-                        : "—"}
-                    </td>
+                    <td>{booking.reservation_start && booking.reservation_end ? `${booking.reservation_start}-${booking.reservation_end}` : "—"}</td>
                     <td>{booking.notes || "—"}</td>
                     <td>
                       {isForApproval ? (
@@ -232,8 +232,10 @@ export default function ReservationTable({
                           {userRole === 1 || userRole === 2 ? (
                             <select
                               className="border rounded px-2 py-1"
-                              onChange={(e) => {
-                                handleAction(e.target.value, booking);
+                              onChange={async (e) => {
+                                const action = e.target.value;
+                                if (!action) return;
+                                await handleAction(action, booking);
                                 e.target.value = "";
                               }}
                               defaultValue=""
@@ -245,8 +247,10 @@ export default function ReservationTable({
                           ) : userRole === 3 ? (
                             <select
                               className="border rounded px-2 py-1"
-                              onChange={(e) => {
-                                handleAction(e.target.value, booking);
+                              onChange={async (e) => {
+                                const action = e.target.value;
+                                if (!action) return;
+                                await handleAction(action, booking);
                                 e.target.value = "";
                               }}
                               defaultValue=""
@@ -265,12 +269,11 @@ export default function ReservationTable({
                                 {isCancelable(booking) ? "Cancel" : "Cancel (Disabled)"}
                               </option>
                             </select>
-                          ) : (
-                            <span>—</span>
-                          )}
+                          ) : (<span>—</span>)
+                        }
                         </>
                       ) : isMyBookings ? (
-                        <button
+                          <button
                           className="btn btn-danger btn-sm"
                           disabled={!isCancelable(booking)}
                           title={
@@ -278,7 +281,7 @@ export default function ReservationTable({
                               ? "Cancel this booking"
                               : "You can only cancel at least 30 minutes before start time."
                           }
-                          onClick={() => openCancelModal(booking.id)}
+                          onClick={async () => await handleAction("cancel", booking)}
                         >
                           Cancel
                         </button>
@@ -294,6 +297,7 @@ export default function ReservationTable({
         </>
       )}
 
+      {/* ---------- CALENDAR VIEW ---------- */}
       {viewMode === "calendar" && (
         <div style={{ marginTop: "20px" }}>
           <FullCalendar
@@ -311,14 +315,15 @@ export default function ReservationTable({
             eventClick={(info) => {
               const bookingId = Number(info.event.id);
               const booking = reservations.find((b) => b.id === bookingId);
-              if (booking) setSelectedBooking(booking);
+              //if (booking && openCalendar) setSelectedBooking(booking);
+              if (booking) setSelectedBooking(booking); // ✅ open modal
             }}
           />
         </div>
       )}
 
-      {/* ✅ Cancel Reason Modal */}
-      {cancelReasonModal && cancelReasonModal.id !== null && (
+      {/* Cancel modal */}
+      {cancelReasonModal && cancelReasonModal.id && (
         <CancelReasonModal
           bookingId={cancelReasonModal.id}
           onClose={() => setCancelReasonModal(null)}
@@ -326,36 +331,36 @@ export default function ReservationTable({
         />
       )}
 
-      {/* ✅ Calendar Events Modal */}
+
+
+      {/* Calendar event modal */}
       {selectedBooking && (
         <CalendarEventsModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
-          formatTimePH={formatTimePH}
-          userRole={
-              userRole === 1 || userRole === 2
-                ? "admin"
-                : userRole === 3
-                ? "teacher"
-                : "user"
-            }
+          formatTimePH={(s, e) => `${s} - ${e}`}
+          userRole={userRole === 1 || userRole === 2 ? "admin" : "teacher"}
           activeTab={activeTab}
-          onApprove={approveBooking}
-          onReject={rejectBooking}
-          onCancel={openCancelModal}
-          onEdit={handleEditOpen} 
-          onViewReason={() => alert(selectedBooking.reject_reason || "No reason provided.")}
+         onApprove={() => handleAction("approve", selectedBooking)}
+          onReject={() => handleAction("reject", selectedBooking)}
+          onCancel={() => handleAction("cancel", selectedBooking)}
+          onEdit={() => handleAction("edit", selectedBooking)}
+          onDelete={() => handleAction("delete", selectedBooking)}
         />
       )}
 
-      {editingBooking && editBooking && (
+
+      {/* Edit booking modal */}
+      {editingBooking && (
         <EditBookingModal
           booking={editingBooking}
           onClose={() => setEditingBooking(null)}
-          onUpdateSuccess={() => setEditingBooking(null)}
+          onUpdateSuccess={() => {
+            setEditingBooking(null);
+            refreshMyBookings(); // refresh table & calendar automatically
+          }}
         />
       )}
-
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );

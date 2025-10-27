@@ -238,7 +238,7 @@ router.post("/book", async (req, res) => {
         ]
       );
 
-      if (b.status === "approved") {
+      if if (b.status === "approved" && role !== "admin") {
         const [pendingOverlap] = await db.query(
           `SELECT id, reserved_by, email FROM room_bookings 
            WHERE room_id = ? AND date_reserved = ? AND status = 'pending'

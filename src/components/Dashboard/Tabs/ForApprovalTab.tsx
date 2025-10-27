@@ -1,8 +1,8 @@
-// src/components/Dashboard/ForApprovalTab.tsx
 import { useState } from "react";
 import type { Room } from "../../../types.tsx";
 import EditBookingModal from "../Modals/EditBookingModal.tsx";
 import ReservationTable from "../Modals/ReservationTable.tsx";
+import CalendarEventsModal from "../Modals/calendarEventsModal.tsx";
 import { formatToPhilippineDate } from "../../../../server/utils/dateUtils.ts";
 import "../../../styles/dashboard.css";
 import { toast, ToastContainer } from "react-toastify";
@@ -10,100 +10,78 @@ import "react-toastify/dist/ReactToastify.css";
 
 interface ForApprovalTabProps {
   pendingBookings: Room[];
-  refreshPendingBookings: () => void;
+  refreshPendingBookings: () => void; // parent fetch function
   userRole: number;
 }
 
-export default function ForApprovalTab({
-  pendingBookings,
-  refreshPendingBookings,
-  userRole,
-}: ForApprovalTabProps) {
+export default function ForApprovalTab({ pendingBookings, refreshPendingBookings, userRole }: ForApprovalTabProps) {
   const [editingBooking, setEditingBooking] = useState<Room | null>(null);
+  const [calendarBooking, setCalendarBooking] = useState<Room | null>(null);
 
-  const handleApprove = async (bookingId: number) => {
-    try {
-      toast.success("Please wait!");
-      const res = await fetch(
-        `http://localhost:5000/api/room_bookings/approve/${bookingId}`,
-        { method: "PUT" }
-      );
-      console.log("res : ", res)
-      if (!res.ok) throw new Error("Failed to approve booking");
-      toast.success("Reservation approved successfully!");
-      refreshPendingBookings();
-    } catch (err) {
-      console.error("Approve error:", err);
-      alert("Failed to approve booking.");
-    }
+  const handleApprove = async (id: number) => {
+    toast.success("Please wait!");
+    await fetch(`http://localhost:5000/api/room_bookings/approve/${id}`, { method: "PUT" });
+    refreshPendingBookings();
   };
 
-  const handleReject = async (bookingId: number) => {
-    try {
-      toast.success("Please wait!");
-      
-      const res = await fetch(
-        `http://localhost:5000/api/room_bookings/reject/${bookingId}`,
-        { method: "PUT" }
-      );
-      if (!res.ok) throw new Error("Failed to reject booking");
-      toast.success("Reservation Rejected!");
-      refreshPendingBookings();
-    } catch (err) {
-      console.error("Reject error:", err);
-      alert("Failed to reject booking.");
-    }
+  const handleReject = async (id: number) => {
+    toast.success("Please wait!");
+    await fetch(`http://localhost:5000/api/room_bookings/reject/${id}`, { method: "PUT" });
+    refreshPendingBookings();
   };
 
-
-  // ✅ Cancel booking (delete permanently)
-  const handleCancel = async (bookingId: number) => {
-  
-toast.success("Please wait!");
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/room_bookings/${bookingId}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) throw new Error("Failed to delete booking");
-      //alert("Reservation has been permanently deleted.");
-      toast.success("Reservation has been permanently deleted!");
-      refreshPendingBookings();
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("Failed to delete reservation.");
-    }
+  const handleCancel = async (id: number) => {
+    toast.success("Please wait!");
+    await fetch(`http://localhost:5000/api/room_bookings/${id}`, { method: "DELETE" });
+    refreshPendingBookings();
   };
-
 
   return (
     <>
+      <div className="flex justify-between items-center mb-3">
+        <h2>Pending Reservations</h2>
+        <button className="btn btn-outline-primary btn-sm" onClick={refreshPendingBookings}>🔄 Refresh</button>
+      </div>
+
       <ReservationTable
         reservations={pendingBookings}
         userRole={userRole}
         editBooking={setEditingBooking}
         approveBooking={handleApprove}
-        cancelReservation={handleCancel}
+        deleteReservation={handleCancel}
         rejectBooking={handleReject}
-        isForApproval={true} 
-        formatDate={(d) => formatToPhilippineDate(d)} // ✅ use PH date formatting
-        formatTime={(s, e, d) =>
-          `${s} - ${e} (${formatToPhilippineDate(d)})` // optional: show PH date
-        }
+        isForApproval
+        formatTime={(s, e) => `${s} - ${e}`}
+        refreshMyBookings={refreshPendingBookings}
+        openCalendar={setCalendarBooking}
       />
 
-      {/* EDIT MODAL */}
       {editingBooking && (
         <EditBookingModal
           booking={editingBooking}
           onClose={() => setEditingBooking(null)}
           onUpdateSuccess={() => {
             setEditingBooking(null);
-            refreshPendingBookings();
+            refreshPendingBookings(); // refresh table + calendar
           }}
         />
       )}
-        <ToastContainer position="top-right" autoClose={3000} />
+
+      {calendarBooking && (
+        <CalendarEventsModal
+          booking={calendarBooking}
+          onClose={() => setCalendarBooking(null)}
+          formatTimePH={(s, e) => `${s} - ${e}`}
+          userRole={userRole === 1 || userRole === 2 ? "admin" : "teacher"}
+          activeTab="pending"
+          onApprove={handleApprove}
+          onReject={handleReject}
+          onCancel={handleCancel}
+          onEdit={setEditingBooking}
+        />
+      )}
+
+      <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
 }

@@ -322,6 +322,7 @@ const submitReservation = async () => {
       status,
       email,
     };
+console.log("Submitting reservation bodyData:", bodyData);
 
     const res = await fetch("http://localhost:5000/api/room_bookings/book", {
       method: "POST",
