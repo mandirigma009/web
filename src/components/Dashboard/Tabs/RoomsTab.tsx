@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import type { Room } from "../../../types";
 import { Button } from "../../Button";
 import ReservationModal from "../Modals/ReservationModal";
-import EditRoomModal from "../Modals/EditRoomModal";
+import ReservationTable from "../Modals/ReservationTable";
 import AddRoomModal from "../Modals/AddRoomModal";
 import UpdateStatusModal from "../Modals/UpdateStatusModal";
 import "../../../styles/dashboard.css";
@@ -83,7 +83,7 @@ export default function RoomsTab({
   const handleAddRoomSuccess = (addedRoom: Room) => {
     setRoomList((prev) => [...prev, addedRoom]);
   };
-
+console.log("currentUserId:", id)
   return (
     <div className="text-black">
       {/* Header */}
@@ -350,13 +350,7 @@ export default function RoomsTab({
         />
       )}
 
-      {showEditModal && editRoom && (
-        <EditRoomModal
-          room={editRoom}
-          onClose={() => setShowEditModal(false)}
-          onSuccess={handleEditSuccess}
-        />
-      )}
+
 
       {showAddRoomModal && (
         <AddRoomModal
@@ -364,6 +358,7 @@ export default function RoomsTab({
           onAddRoomSuccess={handleAddRoomSuccess}
         />
       )}
+      
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );

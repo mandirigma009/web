@@ -32,6 +32,7 @@ interface ReservationTableProps {
   isMyBookings?: boolean;
   refreshMyBookings: () => void;
   openCalendar?: (booking: Room) => void;
+  currentUserId: number | null;
 }
 
 export default function ReservationTable({
@@ -43,6 +44,7 @@ export default function ReservationTable({
   rejectBooking,
   isForApproval,
   isMyBookings,
+  currentUserId,
   refreshMyBookings,
   openCalendar,
 }: ReservationTableProps) {
@@ -51,10 +53,22 @@ export default function ReservationTable({
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
   const [cancelReasonModal, setCancelReasonModal] = useState<{ id: number | null } | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
-  
-
-
   const calendarRef = useRef<FullCalendar>(null);
+// Sorting state
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
+      key: "",
+      direction: "asc",
+    });
+
+const handleSort = (key: string) => {
+  setSortConfig((prev) => {
+    if (prev.key === key) {
+      return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+    } else {
+      return { key, direction: "asc" };
+    }
+  });
+};
 
 
   
@@ -83,10 +97,35 @@ export default function ReservationTable({
     }
   };
 
+console.log("current user role : ", userRole)
+console.log("currentUserId:", currentUserId)
+
+const visibleReservations = (reservations || []).filter((b) => {
+  if (isMyBookings) {
+    if (userRole === 1) return true; // admin sees everything
+    if (userRole === 3 && currentUserId) return b.user_id === currentUserId;
+  }
+  return true;
+});
+
+//Filter reservations depending on role
+const sortedReservations = [...visibleReservations].sort((a, b) => {
+  const { key, direction } = sortConfig;
+  if (!key) return 0;
+
+  const valA = (a as any)[key];
+  const valB = (b as any)[key];
+
+  if (valA < valB) return direction === "asc" ? -1 : 1;
+  if (valA > valB) return direction === "asc" ? 1 : -1;
+  return 0;
+});
+
+
   // ----------------------------
   // Calendar events mapping
-  const events = reservations
-    .map((b) => {
+  const events = visibleReservations
+  .map((b) => {
       try {
         const dateUTC = dayjs.utc(b.date_reserved);
         const datePH = dateUTC.tz("Asia/Manila");
@@ -119,7 +158,7 @@ export default function ReservationTable({
       const combinedPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
       if (!combinedPH.isValid()) return false;
       
-      console.log("combinedPH.diff >= 30", combinedPH.diff(nowPH, "minute") >= 30)
+  //    console.log("combinedPH.diff >= 30", combinedPH.diff(nowPH, "minute") >= 30)
       return combinedPH.diff(nowPH, "minute") >= 30;
     }
     return false;
@@ -169,31 +208,36 @@ export default function ReservationTable({
 
   const activeTab = isForApproval ? "pending" : isMyBookings ? "approved" : "rejected";
 
-  // ----------------------------
-  return (
-    <div>
-      <div className="flex justify-between items-center">
-        <h2>
-          {isMyBookings
-            ? "My Schedules"
-            : isForApproval
-            ? userRole === 3
-              ? "My Pending Reservations"
-              : "All Pending Reservations"
-            : "Reservations"}
-        </h2>
+  
 
-        <button className="btn btn-outline-primary btn-sm" onClick={() => setViewMode(viewMode === "table" ? "calendar" : "table")}>
-          {viewMode === "table" ? "📅 Calendar View" : "📋 Table View"}
-        </button>
-      </div>
- <div style={{ overflowX: "auto", marginTop: "10px", maxHeight: "500px" }}>
-      {/* ---------- TABLE VIEW ---------- */}
-      {viewMode === "table" && (
-        <>
-          {reservations.length === 0 ? (
-            <p>No reservations.</p>
-          ) : (
+              // ----------------------------
+              return (
+                <div>
+                  <div className="flex justify-between items-center">
+                  <h2>
+              {isMyBookings
+                ? userRole === 1 || userRole === 2
+                  ? "All Bookings"
+                  : "My Bookings"
+                : isForApproval
+                ? userRole === 3
+                  ? "My Pending Reservations"
+                  : "All Pending Reservations"
+                : "Reservations"}
+            </h2>
+
+
+                    <button className="btn btn-outline-primary btn-sm" onClick={() => setViewMode(viewMode === "table" ? "calendar" : "table")}>
+                      {viewMode === "table" ? "📅 Calendar View" : "📋 Table View"}
+                    </button>
+                  </div>
+            <div style={{ overflowX: "auto", marginTop: "10px", maxHeight: "500px" }}>
+                  {/* ---------- TABLE VIEW ---------- */}
+                  {viewMode === "table" && (
+                    <>
+                      {(!reservations || reservations.length === 0) ? (
+              <p>No reservations.</p>
+            ) : (
               
               <table
                 id="my-bookings-table"
@@ -202,19 +246,49 @@ export default function ReservationTable({
               >
               <thead>
                 <tr>
-                  <th>Room #</th>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Building</th>
-                  <th>Floor</th>
-                  <th>Date Reserved</th>
-                  <th>Time</th>
-                  <th>Notes</th>
+                  {[
+                    { key: "room_number", label: "Room #" },
+                    { key: "room_name", label: "Name" },
+                    { key: "room_description", label: "Description" },
+                    { key: "building_name", label: "Building" },
+                    { key: "floor_number", label: "Floor" },
+                    { key: "date_reserved", label: "Date Reserved" },
+                    { key: "reservation_start", label: "Time" },
+                    { key: "notes", label: "Notes" },
+                  ].map(({ key, label }) => (
+                    <th key={key} style={{ whiteSpace: "nowrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <span>{label}</span>
+                        <div style={{ display: "flex", flexDirection: "column", cursor: "pointer", lineHeight: "0.7" }}>
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              opacity: sortConfig.key === key && sortConfig.direction === "asc" ? 1 : 0.3,
+                            }}
+                            onClick={() => handleSort(key)}
+                          >
+                            ▲
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              opacity: sortConfig.key === key && sortConfig.direction === "desc" ? 1 : 0.3,
+                            }}
+                            onClick={() => handleSort(key)}
+                          >
+                            ▼
+                          </span>
+                        </div>
+                      </div>
+                    </th>
+                  ))}
                   <th>Actions</th>
                 </tr>
               </thead>
+
+
               <tbody>
-                {reservations.map((booking) => (
+                {sortedReservations.map((booking) => (
                   <tr key={booking.id} className={selectedRowId === booking.id ? "highlighted" : ""} onClick={() => setSelectedRowId(booking.id)}>
                     <td>{booking.room_number}</td>
                     <td>{booking.room_name}</td>
@@ -232,67 +306,74 @@ export default function ReservationTable({
                     <td>{booking.reservation_start && booking.reservation_end ? `${booking.reservation_start}-${booking.reservation_end}` : "—"}</td>
                     <td>{booking.notes || "—"}</td>
                     <td>
-                      {isForApproval ? (
-                        <>
-                          {userRole === 1 || userRole === 2 ? (
-                            <select
-                              className="border rounded px-2 py-1"
-                              onChange={async (e) => {
-                                const action = e.target.value;
-                                if (!action) return;
-                                await handleAction(action, booking);
-                                e.target.value = "";
-                              }}
-                              defaultValue=""
-                            >
-                              <option value="">---select action---</option>
-                              <option value="approve">Approve</option>
-                              <option value="reject">Reject</option>
-                            </select>
-                          ) : userRole === 3 ? (
-                            <select
-                              className="border rounded px-2 py-1"
-                              onChange={async (e) => {
-                                const action = e.target.value;
-                                if (!action) return;
-                                await handleAction(action, booking);
-                                e.target.value = "";
-                              }}
-                              defaultValue=""
-                            >
-                              <option value="">---select action---</option>
-                              <option value="edit">Edit</option>
-                              <option
-                                value="delete"
-                                disabled={!isCancelable(booking)}
-                                title={
-                                  isCancelable(booking)
-                                    ? "Cancel this booking"
-                                    : "You can only cancel at least 30 minutes before start time."
-                                }
+                     {isForApproval ? (
+                          // approval actions stay same
+                          <>
+                            {userRole === 1 || userRole === 2 ? (
+                              <select
+                                className="border rounded px-2 py-1"
+                                onChange={async (e) => {
+                                  const action = e.target.value;
+                                  if (!action) return;
+                                  await handleAction(action, booking);
+                                  e.target.value = "";
+                                }}
+                                defaultValue=""
                               >
-                                {isCancelable(booking) ? "Cancel" : "Cancel (Disabled)"}
-                              </option>
-                            </select>
-                          ) : (<span>—</span>)
-                        }
-                        </>
-                      ) : isMyBookings ? (
-                          <button
-                          className="btn btn-danger btn-sm"
-                          disabled={!isCancelable(booking)}
-                          title={
-                            isCancelable(booking)
-                              ? "Cancel this booking"
-                              : "You can only cancel at least 30 minutes before start time."
-                          }
-                          onClick={async () => await handleAction("cancel", booking)}
-                        >
-                          Cancel
-                        </button>
-                      ) : (
-                        <span>—</span>
-                      )}
+                                <option value="">---select action---</option>
+                                <option value="approve">Approve</option>
+                                <option value="reject">Reject</option>
+                              </select>
+                            ) : userRole === 3 ? (
+                              <select
+                                className="border rounded px-2 py-1"
+                                onChange={async (e) => {
+                                  const action = e.target.value;
+                                  if (!action) return;
+                                  await handleAction(action, booking);
+                                  e.target.value = "";
+                                }}
+                                defaultValue=""
+                              >
+                                <option value="">---select action---</option>
+                                <option value="edit">Edit</option>
+                                <option
+                                  value="delete"
+                                  disabled={!isCancelable(booking)}
+                                  title={
+                                    isCancelable(booking)
+                                      ? "Cancel this booking"
+                                      : "You can only cancel at least 30 minutes before start time."
+                                  }
+                                >
+                                  {isCancelable(booking) ? "Cancel" : "Cancel (Disabled)"}
+                                </option>
+                              </select>
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </>
+                        ) : isMyBookings ? (
+                          userRole === 1 || userRole === 2 ? (
+                            <span>—</span> // ✅ Admin sees no actions in “All Bookings”
+                          ) : (
+                            <button
+                              className="btn btn-danger btn-sm"
+                              disabled={!isCancelable(booking)}
+                              title={
+                                isCancelable(booking)
+                                  ? "Cancel this booking"
+                                  : "You can only cancel at least 30 minutes before start time."
+                              }
+                              onClick={async () => await handleAction("cancel", booking)}
+                            >
+                              Cancel
+                            </button>
+                          )
+                        ) : (
+                          <span>—</span>
+                        )}
+
                     </td>
                   </tr>
                 ))}

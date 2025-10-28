@@ -29,6 +29,35 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
 
   // -----------------------------
+  // Sorting setup
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
+    key: "",
+    direction: "asc",
+  });
+
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      } else {
+        return { key, direction: "asc" };
+      }
+    });
+  };
+
+  const sortedBookings = [...rejectedBookings].sort((a, b) => {
+    const { key, direction } = sortConfig;
+    if (!key) return 0;
+
+    const valA = (a as any)[key];
+    const valB = (b as any)[key];
+
+    if (valA < valB) return direction === "asc" ? -1 : 1;
+    if (valA > valB) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  // -----------------------------
   // Format time for table/calendar
   const formatTimePH = (start: string, end: string) => {
     const s = start.length === 5 ? `${start}:00` : start;
@@ -84,6 +113,23 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  // -----------------------------
+  // Table headers with arrows
+  const headers = [
+    { key: "room_number", label: "Room #" },
+    { key: "room_name", label: "Name" },
+    { key: "room_description", label: "Description" },
+    { key: "building_name", label: "Building" },
+    { key: "floor_number", label: "Floor" },
+    { key: "date_reserved", label: "Date Reserved" },
+    { key: "reservation_start", label: "Time" },
+    { key: "notes", label: "Notes" },
+    { key: "reserved_by", label: "Reserved By" },
+    { key: "status", label: "Status" },
+    { key: "reject_reason", label: "Reason" },
+    { key: "rejected_at", label: "Rejected / Canceled At" },
+  ];
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -108,23 +154,50 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
                 style={{ width: "100%", marginTop: "10px", minWidth: "1200px" }}
               >
                 <thead>
+                   
                   <tr>
-                    <th>Room #</th>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Building</th>
-                    <th>Floor</th>
-                    <th>Date Reserved</th>
-                    <th>Time</th>
-                    <th>Notes</th>
-                    <th>Reserved By</th>
-                    <th>Status</th>
-                    <th>Reason</th>
-                    <th>Rejected / Canceled At</th>
+                    {headers.map(({ key, label }) => (
+                     
+                      <th key={key} style={{ whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                          <span>{label}</span>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              cursor: "pointer",
+                              lineHeight: "0.7",
+                            }}
+                          >
+                            
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                opacity: sortConfig.key === key && sortConfig.direction === "asc" ? 1 : 0.3,
+                              }}
+                              onClick={() => handleSort(key)}
+                            >
+                              ▲
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                opacity: sortConfig.key === key && sortConfig.direction === "desc" ? 1 : 0.3,
+                              }}
+                              onClick={() => handleSort(key)}
+                            >
+                              ▼
+                            </span>
+                          </div>
+                        </div>
+                      </th>
+                    ))}
                   </tr>
+                  
                 </thead>
+                
                 <tbody>
-                  {rejectedBookings.map((booking) => (
+                  {sortedBookings.map((booking) => (
                     <tr
                       key={booking.id}
                       onClick={() => setSelectedBooking(booking)}
@@ -150,9 +223,7 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
                       </td>
                       <td>{booking.building_name}</td>
                       <td>{booking.floor_number}</td>
-                      <td>
-                        {booking.date_reserved ? formatToPhilippineDate(booking.date_reserved) : "—"}
-                      </td>
+                      <td>{booking.date_reserved ? formatToPhilippineDate(booking.date_reserved) : "—"}</td>
                       <td>
                         {booking.reservation_start && booking.reservation_end
                           ? formatTimePH(booking.reservation_start, booking.reservation_end)
@@ -205,7 +276,6 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
           formatTimePH={formatTimePH}
-          // Rejected tab → only Close button, so no extra props needed
         />
       )}
     </div>

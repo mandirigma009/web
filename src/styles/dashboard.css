@@ -310,3 +310,39 @@ button:hover {
   background-color: rgba(0,0,0,0.3);
   border-radius: 3px;
 }
+
+th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+th:hover {
+  color: #007bff;
+}
+
+/* --- Sorting Header Styles --- */
+.th-sort {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centers both text & arrows */
+  gap: 6px; /* space between text and arrows */
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-icons {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.8;
+  font-size: 0.7em;
+}
+
+.arrow {
+  color: #aaa;
+  transition: color 0.2s;
+}
+
+.arrow.active {
+  color: #000; /* darker when active */
+}

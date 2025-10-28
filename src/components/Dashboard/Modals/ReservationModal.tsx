@@ -98,6 +98,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
 
   const today = dayjs().format("YYYY-MM-DD");
 
+  //console.log("currentUserId:", currentUserId)
   // Fetch teachers (admin only)
   useEffect(() => {
     if (!isAdmin) return;
@@ -607,7 +608,11 @@ console.log("Submitting reservation bodyData:", bodyData);
       </div>
             <ToastContainer position="top-right" autoClose={3000} />
     </div>
+    
   );
+  <ReservationTable
+  currentUserId={currentUserId}
+/>
 };
 
 export default ReservationModal;

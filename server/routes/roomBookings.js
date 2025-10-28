@@ -291,25 +291,41 @@ router.post("/book", async (req, res) => {
 });
 
 
-router.get("/my-bookings/:userId", async (req, res) => {
+/* ----------------------------------------
+   GET /my-bookings/:id
+---------------------------------------- */
+router.get("/my-bookings/:id", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { id } = req.params; // user ID from URL
+    const { role } = req.query; // or get from auth middleware if available
 
-    const [bookings] = await db.query(
-      `SELECT b.*, r.chairs, r.has_tv, r.has_table, r.has_projector
-       FROM room_bookings b
-       JOIN rooms r ON r.id = b.room_id
-       WHERE b.user_id = ? AND b.status = 'approved'
-       ORDER BY b.date_reserved, b.reservation_start`,
-      [userId]
-    );
+    let query = `
+      SELECT 
+        b.*, 
+        r.chairs, r.has_tv, r.has_table, r.has_projector
+      FROM room_bookings b
+      JOIN rooms r ON r.id = b.room_id
+      WHERE b.status = 'approved'
+    `;
+    const params = [];
+
+    if (role === 3) {
+      // Non-admin users can only see their own bookings
+      query += " AND b.user_id = ?";
+      params.push(id);
+    }
+
+    query += " ORDER BY b.date_reserved, b.reservation_start";
+
+    const [bookings] = await db.query(query, params);
 
     res.json({ bookings });
   } catch (err) {
-    console.error("Error fetching user bookings:", err);
-    res.status(500).json({ message: "Failed to fetch bookings." });
+    console.error("Error fetching my bookings:", err);
+    res.status(500).json({ error: "Server error fetching bookings" });
   }
 });
+
 
 
 

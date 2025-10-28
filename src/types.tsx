@@ -15,6 +15,7 @@ export interface Room {
   room_number: string;
   room_name: string;
   room_description: string;
+  user_id: number;
   building_name: string;
   floor_number: number;
   status: number;

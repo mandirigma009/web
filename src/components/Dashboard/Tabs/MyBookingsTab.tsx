@@ -14,6 +14,7 @@ interface MyBookingsTabProps {
   formatTime: (start: string, end: string, dateStr: string) => string;
   refreshMyBookings: () => void;
   userRole: number; // add userRole prop
+  currentUserId: number;
 }
 
 export default function MyBookingsTab({
@@ -22,7 +23,7 @@ export default function MyBookingsTab({
   formatTime,
   refreshMyBookings,
   userRole,
-
+currentUserId
 }: 
 
 MyBookingsTabProps) {
@@ -63,6 +64,7 @@ MyBookingsTabProps) {
         formatTime={formatTime}
         refreshMyBookings = {refreshMyBookings}
         isMyBookings={true}
+        currentUserId={currentUserId}
       />
       <ToastContainer position="top-right" autoClose={3000} />
     </>

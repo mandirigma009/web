@@ -91,7 +91,7 @@ function Dashboard() {
     };
     fetchUser();
   }, [navigate]);
-
+//console.log("userID in admin dashboard: ", id)
   // ---------- Fetch users (admin only) ----------
   useEffect(() => {
     const fetchUsers = async () => {
@@ -373,20 +373,21 @@ useEffect(() => {
           Rooms
         </button>
 
-        <button
-           className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
-          onClick={() => setActiveTab("MyBookings")}
-        >
-          My Bookings
-        </button>
+          <button
+            className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
+            onClick={() => setActiveTab("MyBookings")}
+          >
+            {userRole === 1 || userRole === 2 ? "All Bookings" : "My Bookings"}
+          </button>
 
+{/*
         <button
            className={`sidebar-btn ${activeTab === "MyProfile" ? "active" : ""}`}
           onClick={() => setActiveTab("MyProfile")}
         >
           My Profile
         </button>
-
+*/}
              <button
            className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}
           onClick={() => setActiveTab("Rejected")}
@@ -459,6 +460,7 @@ useEffect(() => {
             formatTime={formatTime}
             userRole={userRole}
             refreshMyBookings={fetchMyBookings}
+            currentUserId = {id}
           />
         )}
 
