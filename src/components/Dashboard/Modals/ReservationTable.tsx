@@ -314,18 +314,30 @@ export default function ReservationTable({
             initialView="dayGridMonth"
             ref={calendarRef}
             height="auto"
+            eventDidMount={(info) => {
+                info.el.style.cursor = "pointer";
+              }}
             events={events}
             headerToolbar={{
-              left: "prev,next today",
+              right: "prev,next today",
               center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
+              left: "dayGridMonth,timeGridWeek,timeGridDay",
             }}
-            eventClick={(info) => {
+           eventClick={(info) => {
+              info.jsEvent.preventDefault(); // Prevent FullCalendar from triggering navigation
+              info.jsEvent.stopPropagation(); // Prevent bubbling issues
+
               const bookingId = Number(info.event.id);
               const booking = reservations.find((b) => b.id === bookingId);
-              //if (booking && openCalendar) setSelectedBooking(booking);
-              if (booking) setSelectedBooking(booking); // ✅ open modal
+              
+              if (booking) {
+                // Add a small delay to ensure React state stabilizes before opening modal
+                setTimeout(() => {
+                  setSelectedBooking(booking);
+                }, 100);
+              }
             }}
+
           />
         </div>
       )}

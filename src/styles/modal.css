@@ -100,16 +100,16 @@
 */
 /* Modal Box */
 .modal-content {
-  background: #fff;
-  border-radius: 10px;
-  padding: 20px 30px;
-  max-width: 450px;
-  width: 100%;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   z-index: 1001;
+  animation: fadeIn 0.2s ease-in-out;
+  background: white;
+  border-radius: 8px;
+  padding: 20px 20px 30px 20px; /* extra bottom padding */
+  position: relative;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
 }
-
-
 
 
 .modal-title {
@@ -144,3 +144,66 @@
   transition: background-color 0.3s;
 }
 
+.modal-footer {
+  display: flex;
+  justify-content: space-between; /* pushes left/right buttons to edges */
+  align-items: center;
+} 
+
+.left-buttons,
+.right-buttons {
+  display: flex;
+  gap: 10px; /* space between buttons */
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+}
+
+.close-button:hover {
+  color: #000;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto; /* pushes footer to bottom */
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+}

@@ -57,7 +57,34 @@ export default function CalendarEventsModal({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+        
+      <div className="modal-content" >
+        <button
+            onClick={onClose}
+            className="close-button"
+            style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                background: "transparent",
+                border: "none",
+                fontSize: "1.5rem",
+                fontWeight: "bold",
+                cursor: "pointer",
+                color: "#555",
+            }}
+            title="Close"
+            >
+            ×
+            </button>
+<div
+    className="modal-body"
+    style={{
+      maxHeight: "600px",
+      overflowY: "auto",
+      marginBottom: "60px", // space for footer
+    }}
+  >
         <h4 className="flex items-center justify-center">Reservation Details</h4>
 
         {/* Room & Booking details */}
@@ -81,7 +108,7 @@ export default function CalendarEventsModal({
 
         {booking.notes && <p><strong>Notes:</strong> {booking.notes}</p>}
         {booking.reject_reason && <p><strong>Reason:</strong> {booking.reject_reason}</p>}
-
+</div>
         {/* --- ACTION BUTTONS --- */}
         <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
           {/* Admin Buttons for Pending */}
@@ -97,21 +124,51 @@ export default function CalendarEventsModal({
 
           {/* Teacher Buttons for Pending */}
           {userRole === "teacher" && activeTab === "pending" && (
-            <>
-              <button className="btn btn-success btn-sm" onClick= { async () => { if (onEdit) await onEdit( booking);  onClose() }}>Edit</button>
-              <button
-                className="btn btn-outline-danger btn-sm"
-                disabled={!isCancelable(booking)}
-                title={
-                  isCancelable(booking)
-                    ? "Cancel this booking"
-                    : "You can only cancel at least 30 minutes before start time."
-                }
-                onClick= { async () => { if (onDelete) await onDelete( booking.id);  onClose() }}
-              >
-                Cancel
-              </button>
-            </>
+          
+ <div
+    className="modal-footer"
+    style={{
+      position: "absolute",
+      bottom: "15px",
+      left: "0",
+      width: "100%",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "0 30px", // add side space
+      boxSizing: "border-box",
+    }}
+  >
+    {/* Left: Cancel Button */}
+    <button
+      className="btn btn-outline-danger btn-sm"
+      disabled={!isCancelable(booking)}
+      title={
+        isCancelable(booking)
+          ? "Cancel this booking"
+          : "You can only cancel at least 30 minutes before start time."
+      }
+      onClick={async () => {
+        if (onDelete) await onDelete(booking.id);
+        onClose();
+      }}
+    >
+      Cancel
+    </button>
+
+    {/* Right: Edit Button */}
+    <button
+      className="btn btn-success btn-sm"
+      onClick={async () => {
+        if (onEdit) await onEdit(booking);
+        onClose();
+      }}
+    >
+      Edit
+    </button>
+  </div>
+
+           
           )}
 
           {/* Cancel for Approved */}
@@ -119,8 +176,9 @@ export default function CalendarEventsModal({
             <button className="btn btn-warning btn-sm" onClick= { async () => { if (onCancel) await onCancel( booking.id);  onClose() }}>Cancel Reservation</button>
           )}
 
-          {/* Always show Close */}
+          {/* Always show Close
           <button className="btn btn-secondary btn-sm" onClick={onClose}>Close</button>
+           */}
         </div>
       </div>
     </div>

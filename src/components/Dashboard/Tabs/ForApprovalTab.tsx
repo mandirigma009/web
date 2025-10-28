@@ -40,7 +40,7 @@ export default function ForApprovalTab({ pendingBookings, refreshPendingBookings
     <>
       <div className="flex justify-between items-center mb-3">
         <h2>Pending Reservations</h2>
-        <button className="btn btn-outline-primary btn-sm" onClick={refreshPendingBookings}>🔄 Refresh</button>
+      
       </div>
 
       <ReservationTable

@@ -160,9 +160,15 @@ const isSlotAvailable = (time: string) => {
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <h3>Edit Booking</h3>
-        <p><strong>Room:</strong> {booking.room_name} · <strong>Floor:</strong> {booking.floor_number}</p>
-
+        <h3 className="flex items-center justify-center">update pending Reservation on Room: {booking.room_number}</h3>
+        <p>
+          <strong>Room Name:</strong> {booking.room_name}<br></br> <strong>Floor:</strong> {booking.floor_number} <br></br><strong>Building:</strong> {booking.building_name} · <br></br>
+       <strong>Description: {booking.room_description}</strong> <br></br>
+          ·  Chairs: {booking.chairs ?? 0},<br></br>
+          · TV: {booking.has_tv ? "Yes" : "No"},<br></br>
+          · Tables: {booking.has_table ? "Yes" : "No"},<br></br>
+          · Projector: {booking.has_projector ? "Yes" : "No"}·
+        </p>
         {showForm && (
           <form onSubmit={handleSubmit}>
             <label>Date:</label>
@@ -179,25 +185,26 @@ const isSlotAvailable = (time: string) => {
             </select>
             <label>Notes:</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value.slice(0,250))} maxLength={250}></textarea>
-
+ <p style={{ fontSize: "0.8em", color: "#555", marginTop: "2px" }}>
+  {notes.length} / Max 250 characters </p>
             {reservations.length > 0 && (
               <div className="mb-2">
-                <strong>Already booked (approved):</strong>
+                <br></br><strong>Already booked (approved):</strong>
                 <ul>
-  {reservations.map(i => (
-    <li key={i.id}>
-      {i.reservation_start || i.start_time} - {i.reservation_end || i.end_time} ({i.reserved_by})
-    </li>
-  ))}
-</ul>
+            {reservations.map(i => (
+              <li key={i.id}>
+                {i.reservation_start || i.start_time} - {i.reservation_end || i.end_time} ({i.reserved_by})
+              </li>
+            ))}
+          </ul>
               </div>
             )}
 
-
-            <div className="modal-actions">
-              <button type="button" onClick={onClose}>Cancel</button>
-              <button type="submit">Submit</button>
-            </div>
+      <div className="modal-footer" style={{ display: "flex", justifyContent: "space-between" }}>
+              <div  className="left-buttons" ><button type="button" onClick={onClose}>Cancel</button></div>
+              <div className="right-buttons"><button type="submit">Submit</button></div>
+        </div>
+  
           
           </form>
         )}
@@ -207,8 +214,10 @@ const isSlotAvailable = (time: string) => {
             <h4>Confirm Update</h4>
             <p>{date} · {startTime}-{endTime}</p>
             <p>Notes: {notes || "None"}</p>
-            <button onClick={() => { setShowConfirm(false); setShowForm(true); }}>Back</button>
-            <button onClick={handleUpdate}>Update</button>
+            <div className="modal-footer" style={{ display: "flex", justifyContent: "space-between" }}>
+            <div  className="left-buttons" ><button className="left-buttons" onClick={() => { setShowConfirm(false); setShowForm(true); }}>Back</button></div>
+            <div className="right-buttons"><button className="right-buttons" onClick={handleUpdate}>Update</button></div>
+            </div>
           </div>
         )}
       </div>

@@ -332,6 +332,10 @@ export default function RoomsTab({
           roomDesc={room?.room_description || ""}
           reservedBy={name}
           userRole={userRole!} 
+           chairs={room.chairs}
+          has_tv={room.has_tv}
+          has_table={room.has_table}
+          has_projector={room.has_projector}
           onClose={() => setShowReservationModal(false)}
           onSuccess={() => {
             setSelectedBuilding("");

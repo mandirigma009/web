@@ -69,8 +69,11 @@ router.get("/reservations", async (req, res) => {
       return res.status(400).json({ message: "roomId and date are required" });
 
     const [rows] = await db.query(
-      `SELECT id, room_id, reserved_by, user_id, assigned_by, date_reserved, reservation_start AS start_time, reservation_end AS end_time, notes, status 
-       FROM room_bookings WHERE room_id = ? AND date_reserved = ? ORDER BY reservation_start`,
+        `SELECT b.*, r.chairs, r.has_tv, r.has_table, r.has_projector
+       FROM room_bookings b
+       JOIN rooms r ON r.id = b.room_id
+       WHERE b.room_id = ? AND b.date_reserved = ?
+       ORDER BY b.reservation_start`,
       [roomId, date]
     );
 
@@ -288,22 +291,26 @@ router.post("/book", async (req, res) => {
 });
 
 
-/* ----------------------------------------
-   GET /my-bookings/:id
----------------------------------------- */
-router.get("/my-bookings/:id", async (req, res) => {
+router.get("/my-bookings/:userId", async (req, res) => {
   try {
-    const { id } = req.params;
+    const { userId } = req.params;
+
     const [bookings] = await db.query(
-      `SELECT * FROM room_bookings WHERE user_id = ? AND status = 'approved' ORDER BY date_reserved, reservation_start`, 
-      [id]
+      `SELECT b.*, r.chairs, r.has_tv, r.has_table, r.has_projector
+       FROM room_bookings b
+       JOIN rooms r ON r.id = b.room_id
+       WHERE b.user_id = ? AND b.status = 'approved'
+       ORDER BY b.date_reserved, b.reservation_start`,
+      [userId]
     );
+
     res.json({ bookings });
   } catch (err) {
     console.error("Error fetching user bookings:", err);
     res.status(500).json({ message: "Failed to fetch bookings." });
   }
 });
+
 
 
 
@@ -448,7 +455,10 @@ router.get("/pending", async (req, res) => {
   try {
     const { userRole, userId } = req.query; // pass these from frontend
 
-    let query = "SELECT * FROM room_bookings WHERE status = 'pending'";
+    let query = `SELECT b.*, r.chairs, r.has_tv, r.has_table, r.has_projector
+                 FROM room_bookings b
+                 JOIN rooms r ON r.id = b.room_id
+                 WHERE b.status = 'pending'`;;
     const params = [];
 
     if (userRole == 3 && userId) {
@@ -473,7 +483,10 @@ router.get("/rejected", async (req, res) => {
   try {
     const { userRole, userId } = req.query; // pass these from frontend
 
-    let query = "SELECT * FROM room_bookings WHERE status IN ('cancelled_not_approved_before_start', 'rejected_by_admin', 'cancelled')";
+    let query = `SELECT b.*, r.chairs, r.has_tv, r.has_table, r.has_projector
+                 FROM room_bookings b
+                 JOIN rooms r ON r.id = b.room_id
+                 WHERE b.status IN ('cancelled_not_approved_before_start', 'rejected_by_admin', 'cancelled')`;
     const params = [];
 
     if (userRole == 3 && userId) {

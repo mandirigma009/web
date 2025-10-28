@@ -24,6 +24,10 @@ interface ReservationModalProps {
   onBookingSuccess?: () => void;
   refreshPendingBookings: () => void;
   refreshMyBookings: () => void;
+   chairs?: number;
+  has_tv?: boolean;
+  has_table?: boolean;
+  has_projector?: boolean;
 }
 
 // --- Generate all 15-min start/end slots ---
@@ -65,6 +69,10 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   onSuccess,
   onBookingSuccess,
   refreshPendingBookings,
+   chairs,
+  has_tv,
+  has_table,
+  has_projector,
 }) => {
   const isAdmin = userRole === 1 || userRole === 2;
   const canUseRecurrence = isAdmin;
@@ -406,9 +414,14 @@ console.log("Submitting reservation bodyData:", bodyData);
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <h3 className="flex items-center justify-center">Book Room</h3>
+        <h3 className="flex items-center justify-center">Book Room {roomNumber}</h3>
         <p>
-          <strong>Building:</strong> {building} · <strong>Floor:</strong> {floor} · <strong>Room:</strong> {roomName}
+          <strong>Room Name:</strong> {roomName}<br></br> <strong>Floor:</strong> {floor} <br></br><strong>Building:</strong> {building} · <br></br>
+       <strong>Description: {roomDesc}</strong> <br></br>
+          ·  Chairs: {chairs ?? 0},<br></br>
+          · TV: {has_tv ? "Yes" : "No"},<br></br>
+          · Tables: {has_table ? "Yes" : "No"},<br></br>
+          · Projector: {has_projector ? "Yes" : "No"}·
         </p>
 
         {!showConfirm && (
@@ -519,8 +532,13 @@ console.log("Submitting reservation bodyData:", bodyData);
             </select>
 
             <label>Notes:</label>
-            <input type="text" value={notes} onChange={e => setNotes(e.target.value)} maxLength={250} placeholder="Optional notes" />
+            <textarea value={notes} 
+            onChange={e => setNotes(e.target.value.slice(0, 250))
+          } maxLength={250} placeholder="Optional notes" />
 
+                <p style={{ fontSize: "0.8em", color: "#555", marginTop: "2px" }}>
+                  {notes.length} / Max 250 characters
+                </p>
                     {reservations.length > 0 && (
                       <div className="mb-2">
                         <strong>Already booked (approved):</strong>
