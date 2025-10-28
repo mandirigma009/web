@@ -3,6 +3,9 @@ import dotenv from "dotenv";
 dotenv.config(); // Force load .env immediately
 import nodemailer from "nodemailer";
 import { toPH } from "../../server/utils/dateUtils.ts"; // make sure path is correct
+import dayjs from "dayjs";
+
+
 
 // Debug environment variables
 console.log("SMTP_USER:", process.env.SMTP_USER);
@@ -53,19 +56,9 @@ export const sendEmail = async (to, subject, html) => {
 export const sendStatusEmail = async (reservation, type) => {
   const { reserved_by, email, room_name, date_reserved, reservation_start, reservation_end } = reservation;
 
-  // Convert date_reserved + reservation_start to PH timezone
-  const startPH = toPH(`${new Date(date_reserved).toISOString().split("T")[0]}T${reservation_start}`);
-  const endPH = reservation_end
-    ? toPH(`${new Date(date_reserved).toISOString().split("T")[0]}T${reservation_end}`)
-    : null;
-
-  const formattedReservation = {
-    date: startPH.format("MM-DD-YYYY"),
-   
-    reserved_by,
-    email,
-    room_name,
-  };
+// Example
+const formatted = dayjs(date_reserved).format("ddd, MMM, DD YYYY");
+console.log(formatted);
 
   let subject = "";
   let body = "";
@@ -74,14 +67,14 @@ export const sendStatusEmail = async (reservation, type) => {
     case "approved":
       subject = "✅ Reservation Approved";
       body = `<p>Hi ${reserved_by},</p>
-              <p>Your reservation for <b>${room_name}</b> on <b>${date_reserved}</b>
+              <p>Your reservation for <b>${room_name}</b> on <b>${formatted}</b>
               from <b>${reservation_start}</b> to <b>${reservation_end}</b> has been <b>approved</b>.</p>`;
       break;
 
     case "rejected":
       subject = "❌ Reservation Rejected";
       body = `<p>Hi ${reserved_by},</p>
-              <p>Your reservation for <b>${room_name}</b> on <b>${date_reserved}</b> 
+              <p>Your reservation for <b>${room_name}</b> on <b>${formatted}</b> 
                from <b>${reservation_start}</b> to <b>${reservation_end}</b>
               was <b>rejected</b> by the admin.</p>`;
       break;
@@ -89,7 +82,7 @@ export const sendStatusEmail = async (reservation, type) => {
     case "autoRejected":
       subject = "⚠️ Reservation Auto-Rejected (Overlap)";
       body = `<p>Hi ${reserved_by},</p>
-              <p>Your reservation for <b>${room_name}</b> on <b>${date_reserved}</b> 
+              <p>Your reservation for <b>${room_name}</b> on <b>${formatted}</b> 
               from <b>${reservation_start}</b> to <b>${reservation_end}</b> overlapped 
               with another approved booking and was <b>auto-rejected</b>.</p>`;
       break;
@@ -97,14 +90,14 @@ export const sendStatusEmail = async (reservation, type) => {
     case "cancelled":
       subject = "🚫 Reservation Cancelled";
       body = `<p>Hi ${reserved_by},</p>
-              <p>You have <b>cancelled</b> your Approved reservation for <b>${room_name}</b> on <b>${date_reserved}</b> 
+              <p>You have <b>cancelled</b> your Approved reservation for <b>${room_name}</b> on <b>${formatted}</b> 
               from <b>${reservation_start}</b> to <b>${reservation_end}</b> .</p>`;
       break;
 
     case "cancelled_not_approved_before_start":
       subject = "⚠️ Reservation Cancelled (Not Approved Before Start)";
       body = `<p>Hi ${reserved_by},</p>
-              <p>Your reservation for <b>${room_name}</b> on <b>${date_reserved}</b> 
+              <p>Your reservation for <b>${room_name}</b> on <b>${formatted}</b> 
               starting at <b>${reservation_start}</b> was <b>cancelled</b> because it was not approved before the start time.</p>`;
       break;
 

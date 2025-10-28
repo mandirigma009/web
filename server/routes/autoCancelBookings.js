@@ -14,12 +14,12 @@ console.log("[Cron] Auto-cancel cron job started. Running every minute...");
 cron.schedule("* * * * *", async () => {
   try {
     const nowPH = currentPHDateTime(); // YYYY-MM-DD HH:mm:ss PH time
-    console.log("\n[Cron] Current PH time:", nowPH);
+   //------ console.log("\n[Cron] Current PH time:", nowPH);
 
     // 0️⃣ Get last processed time
     const [rows] = await db.query(`SELECT last_processed FROM cron_last_run WHERE id = 1`);
     const lastProcessed = rows[0].last_processed;
-    console.log("[Cron] Last processed timestamp:", lastProcessed);
+   //-------- console.log("[Cron] Last processed timestamp:", lastProcessed);
 
     // 1️⃣ Pending bookings to auto-cancel
     const [pendingToCancel] = await db.query(
@@ -57,11 +57,13 @@ cron.schedule("* * * * *", async () => {
       await sendStatusEmail(formattedBooking, "cancelled_not_approved_before_start");
     }
 
+    /*
     if (pendingToCancel.length > 0) {
       console.log(`[Cron] Processed ${pendingToCancel.length} pending bookings.`);
     } else {
       console.log("[Cron] No pending bookings to auto-cancel right now.");
     }
+      */
 
     // 2️⃣ Approved bookings to delete if passed
     const [approvedToDelete] = await db.query(
@@ -79,11 +81,13 @@ cron.schedule("* * * * *", async () => {
       await db.query(`DELETE FROM room_bookings WHERE id = ?`, [b.id]);
     }
 
+    /*
     if (approvedToDelete.length > 0) {
       console.log(`[Cron] Deleted ${approvedToDelete.length} approved bookings.`);
     } else {
       console.log("[Cron] No approved bookings to auto-delete right now.");
     }
+      */
 
     // 3️⃣ Update last_processed timestamp
     await db.query(`UPDATE cron_last_run SET last_processed = ? WHERE id = 1`, [nowPH]);
@@ -158,9 +162,10 @@ try {
         AND rejected_at < NOW() - INTERVAL 10 DAY
     `);
 
-    console.log(`[Cron] Deleted ${deletedRows.affectedRows} archived bookings from main table.`);
-  } else {
-    console.log("[Cron] No old cancelled/rejected bookings to archive right now.");
+   //----------- console.log(`[Cron] Deleted ${deletedRows.affectedRows} archived bookings from main table.`);
+ /* } else {
+    //---console.log("[Cron] No old cancelled/rejected bookings to archive right now.");
+    */
   }
 } catch (err) {
   console.error("[Cron] Error archiving old bookings:", err);

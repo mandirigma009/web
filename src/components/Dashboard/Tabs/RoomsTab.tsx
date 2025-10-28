@@ -180,7 +180,13 @@ export default function RoomsTab({
       </div>
 
       {/* Table */}
-      <table id="my-bookings-table" className="dashboard-table text-black">
+
+          <div style={{ overflowX: "auto", marginTop: "10px", maxHeight: "500px" }}>
+              <table
+                id="my-bookings-table"
+                className="dashboard-table"
+                style={{ width: "100%", marginTop: "10px", minWidth: "1200px" }}
+              >
         <thead>
           <tr>
             <th className="text-black">Room Number</th>
@@ -301,7 +307,7 @@ export default function RoomsTab({
             ))}
         </tbody>
       </table>
-
+</div>
       {/* Modals */}
       {showStatusModal && statusRoom && (
         <UpdateStatusModal

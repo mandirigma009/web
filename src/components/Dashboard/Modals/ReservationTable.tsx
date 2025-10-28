@@ -187,14 +187,19 @@ export default function ReservationTable({
           {viewMode === "table" ? "📅 Calendar View" : "📋 Table View"}
         </button>
       </div>
-
+ <div style={{ overflowX: "auto", marginTop: "10px", maxHeight: "500px" }}>
       {/* ---------- TABLE VIEW ---------- */}
       {viewMode === "table" && (
         <>
           {reservations.length === 0 ? (
             <p>No reservations.</p>
           ) : (
-            <table className="dashboard-table">
+              
+              <table
+                id="my-bookings-table"
+                className="dashboard-table"
+                style={{ width: "100%", marginTop: "10px", minWidth: "1200px" }}
+              >
               <thead>
                 <tr>
                   <th>Room #</th>
@@ -293,9 +298,12 @@ export default function ReservationTable({
                 ))}
               </tbody>
             </table>
+          
           )}
         </>
+        
       )}
+      </div>
 
       {/* ---------- CALENDAR VIEW ---------- */}
       {viewMode === "calendar" && (

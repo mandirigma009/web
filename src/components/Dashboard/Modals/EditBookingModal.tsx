@@ -46,34 +46,80 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ booking, onClose, o
       url.searchParams.append("date", date);
       const res = await fetch(url.toString());
       const data = await res.json();
+      
+      
       setReservations((data.reservations || []).filter((r: any) => r.id !== booking.id));
     } catch (err) {
       console.error(err);
     }
+    
   };
 
   useEffect(() => { fetchReservationsForDay(); }, [booking.room_id, date]);
 
   const timeToMinutes = (t?: string) => { if (!t) return 0; const [h,m] = t.split(":").map(Number); return h*60+m; };
-  const isSlotAvailable = (time: string) => {
-    const t = timeToMinutes(time);
-    for (const r of reservations) if (t >= timeToMinutes(r.start_time) && t < timeToMinutes(r.end_time)) return false;
+
+const isSlotAvailable = (time: string) => {
+  const t = timeToMinutes(time);
+
+  for (const r of reservations) {
+    // skip pending reservations
+    if (r.status !== "approved") continue;
+
+    if (t >= timeToMinutes(r.start_time) && t < timeToMinutes(r.end_time)) return false;
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+  if (date === today) {
+    const now = new Date();
+    const [h, m] = time.split(":").map(Number);
+    const slot = new Date(); slot.setHours(h, m, 0, 0);
+    if (slot <= now) return false;
+  }
+
+  return true;
+};
+
+
+  const availableStartTimes = useMemo(() => ALL_START_SLOTS.filter(isSlotAvailable), [reservations, date]);
+  
+  const availableEndTimes = useMemo(() => {
+  if (!startTime) return ALL_END_SLOTS.filter(isSlotAvailable);
+
+  const sMin = timeToMinutes(startTime);
+
+  return ALL_END_SLOTS.filter((t) => {
+    const tMin = timeToMinutes(t);
+
+    // Must be after start time
+    if (tMin <= sMin) return false;
+
+    // Only block if overlapping an approved reservation
+    for (const r of reservations) {
+      if (r.status !== "approved") continue;
+
+      const rStart = timeToMinutes(r.start_time);
+      const rEnd = timeToMinutes(r.end_time);
+
+      // Overlap check: end time must not fall inside another reservation
+      if (sMin < rEnd && tMin > rStart) return false;
+    }
+
+    // Optional: prevent past times if date is today
     const today = new Date().toISOString().split("T")[0];
     if (date === today) {
       const now = new Date();
-      const [h,m] = time.split(":").map(Number);
-      const slot = new Date(); slot.setHours(h,m,0,0);
-      if (slot <= now) return false;
+      const [h, m] = t.split(":").map(Number);
+      const slotTime = new Date();
+      slotTime.setHours(h, m, 0, 0);
+      if (slotTime <= now) return false;
     }
-    return true;
-  };
 
-  const availableStartTimes = useMemo(() => ALL_START_SLOTS.filter(isSlotAvailable), [reservations, date]);
-  const availableEndTimes = useMemo(() => {
-    if (!startTime) return ALL_END_SLOTS.filter(isSlotAvailable);
-    const sMin = timeToMinutes(startTime);
-    return ALL_END_SLOTS.filter((t) => timeToMinutes(t) > sMin && reservations.every((r) => !(sMin < timeToMinutes(r.end_time) && timeToMinutes(t) > timeToMinutes(r.start_time))));
-  }, [startTime, reservations, date]);
+    return true;
+  });
+}, [startTime, reservations, date]);
+
+//----------------
 
   const handleUpdate = async () => {
     try {
@@ -133,10 +179,26 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ booking, onClose, o
             </select>
             <label>Notes:</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value.slice(0,250))} maxLength={250}></textarea>
+
+            {reservations.length > 0 && (
+              <div className="mb-2">
+                <strong>Already booked (approved):</strong>
+                <ul>
+  {reservations.map(i => (
+    <li key={i.id}>
+      {i.reservation_start || i.start_time} - {i.reservation_end || i.end_time} ({i.reserved_by})
+    </li>
+  ))}
+</ul>
+              </div>
+            )}
+
+
             <div className="modal-actions">
               <button type="button" onClick={onClose}>Cancel</button>
               <button type="submit">Submit</button>
             </div>
+          
           </form>
         )}
 

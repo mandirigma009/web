@@ -142,7 +142,7 @@ function Dashboard() {
     );
     if (!res.ok) throw new Error("Failed to fetch bookings");
     const data = await res.json();
-    console.log("Fetched approved bookings:", data.bookings); // debug
+    //console.log("Fetched approved bookings:", data.bookings); // debug
     setMyBookings(data.bookings || []);
   } catch (err) {
     console.error("Error fetching my bookings:", err);
@@ -167,7 +167,7 @@ const fetchPendingBookings = async () => {
     );
     if (!res.ok) throw new Error("Failed to fetch pending bookings");
     const data = await res.json();
-    console.log("Pending bookings:", data.bookings);
+    //console.log("Pending bookings:", data.bookings);
     setPendingBookings(data.bookings || []);
   } catch (err) {
     console.error("Error fetching pending bookings:", err);
@@ -190,7 +190,7 @@ const fetchRejectedBookings = async () => {
     );
     if (!res.ok) throw new Error("Failed to fetch cancelled_not_approved_before_start bookings");
     const data = await res.json();
-    console.log("Pending bookings:", data.bookings);
+    //console.log("Pending bookings:", data.bookings);
     setRejectedBookings(data.bookings || []);
   } catch (err) {
     console.error("Error fetching pending bookings:", err);

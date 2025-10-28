@@ -5,30 +5,27 @@ import { sendStatusEmail } from "../../src/utils/emailService.js";
 
 const router = express.Router();
 
-/* ----------------------------------------
-   Helper: get recurring dates
----------------------------------------- */
-const getRecurringDates = (startDate, endDate, selectedDays) => {
-  const daysMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const dates = [];
-  let current = new Date(start);
 
-  while (current <= end) {
-    const dayNum = current.getDay();
-    const currentDay = Object.keys(daysMap).find((k) => daysMap[k] === dayNum);
-    if (selectedDays.includes(currentDay)) {
-      dates.push(current.toISOString().split("T")[0]);
-    }
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-};
+/* ----------------------------------------
+   Utility helpers used by /available-times
+---------------------------------------- */
+function timeToMinutes(t) {
+  // accepts "HH:MM" or "HH:MM:SS"
+  const parts = (t || "00:00").split(":").map(Number);
+  const h = parts[0] || 0;
+  const m = parts[1] || 0;
+  return h * 60 + m;
+}
+
+function minutesToTime(mins) {
+  const h = Math.floor(mins / 60);
+  const m = Math.floor(mins % 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
 
 /* ----------------------------------------
    GET /?room_id=...&date=...
-   Returns booked time ranges
+   Returns booked time ranges (formatted HH:MM)
 ---------------------------------------- */
 router.get("/", async (req, res) => {
   try {
@@ -36,21 +33,30 @@ router.get("/", async (req, res) => {
     if (!room_id || !date)
       return res.status(400).json({ message: "room_id and date are required" });
 
+    // Format reservation_start / reservation_end to HH:MM so frontend slot times match exactly
     const [rows] = await db.query(
-      `SELECT reservation_start, reservation_end, reserved_by 
-      FROM room_bookings 
-            WHERE room_id = ? 
-             AND status = 'approved'
-             AND date_reserved = ?`,
+      `SELECT 
+         TIME_FORMAT(reservation_start, '%H:%i') AS reservation_start,
+         TIME_FORMAT(reservation_end, '%H:%i') AS reservation_end,
+         reserved_by
+       FROM room_bookings
+       WHERE room_id = ?
+         AND status = 'approved'
+         AND date_reserved = ?`,
       [room_id, date]
     );
 
-    res.json(rows.map((r) => ({ start: r.reservation_start, end: r.reservation_end, reserved_by: r.reserved_by})));
+    res.json(rows.map((r) => ({
+      start: r.reservation_start,
+      end: r.reservation_end,
+      reserved_by: r.reserved_by,
+    })));
   } catch (err) {
     console.error("Error fetching booked times:", err);
     res.status(500).json({ message: "Failed to fetch booked times." });
   }
 });
+
 
 /* ----------------------------------------
    GET /reservations?roomId=...&date=...
@@ -87,7 +93,7 @@ router.get("/available-times", async (req, res) => {
       return res.status(400).json({ message: "roomId and date are required" });
     }
 
-    // 1) fetch reservations for that room/date ordered
+    // Fetch approved reservations for that room/date
     const [rows] = await db.query(
       `SELECT reservation_start, reservation_end 
        FROM room_bookings 
@@ -97,68 +103,43 @@ router.get("/available-times", async (req, res) => {
       [roomId, date]
     );
 
+    // Map reserved ranges
     const reservedRanges = rows.map(r => ({
       start: r.reservation_start,
       end: r.reservation_end,
     }));
 
-    // 2) Define working-day bounds (adjust if you want different bounds)
-    // You can change dayStart/dayEnd to match your desired available window
-    const dayStart = timeToMinutes("08:00");
-    const dayEnd = timeToMinutes("18:00");
-
-    // 3) Convert reserved rows into minute intervals (and merge if overlapping)
-    const reservedMins = rows
-      .map(r => ({
-        start: timeToMinutes(r.reservation_start),
-        end: timeToMinutes(r.reservation_end),
-      }))
-      .sort((a, b) => a.start - b.start);
-
-    // merge overlapping reserved intervals (defensive)
-    const merged = [];
-    for (const interval of reservedMins) {
-      if (!merged.length) {
-        merged.push({ ...interval });
-      } else {
-        const last = merged[merged.length - 1];
-        if (interval.start <= last.end) {
-          // overlap -> extend end if needed
-          last.end = Math.max(last.end, interval.end);
-        } else {
-          merged.push({ ...interval });
-        }
-      }
-    }
-
-    // 4) compute available ranges between dayStart and dayEnd excluding merged reserved intervals
-    const availableRanges = [];
-    let cursor = dayStart;
-
-    for (const r of merged) {
-      if (r.start > cursor) {
-        availableRanges.push({ start: cursor, end: r.start });
-      }
-      cursor = Math.max(cursor, r.end);
-    }
-    if (cursor < dayEnd) availableRanges.push({ start: cursor, end: dayEnd });
-
-    // 5) format results back to HH:MM
-    const formattedAvailable = availableRanges.map(r => ({
-      start: minutesToTime(r.start),
-      end: minutesToTime(r.end),
-    }));
-
+    // Return reserved ranges only (no "available" calculation)
     res.json({
-      available: formattedAvailable,
       reserved: reservedRanges,
     });
   } catch (err) {
     console.error("Error fetching available times:", err);
-    res.status(500).json({ message: "Failed to fetch available times." });
+    res.status(500).json({ message: "Failed to fetch reserved times." });
   }
 });
 
+
+/* ----------------------------------------
+   Helper: get recurring dates
+---------------------------------------- */
+const getRecurringDates = (startDate, endDate, selectedDays) => {
+  const daysMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const dates = [];
+  let current = new Date(start);
+
+  while (current <= end) {
+    const dayNum = current.getDay();
+    const currentDay = Object.keys(daysMap).find((k) => daysMap[k] === dayNum);
+    if (selectedDays.includes(currentDay)) {
+      dates.push(current.toISOString().split("T")[0]);
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+};
 
 /* ----------------------------------------
    POST /book – single or recurring booking
@@ -181,7 +162,7 @@ router.post("/book", async (req, res) => {
       floor,
       building,
       recurrence,
-      status,
+      status, // now fully respected from frontend
     } = req.body;
 
     if (!startTime || !endTime || !date)
@@ -189,36 +170,45 @@ router.post("/book", async (req, res) => {
 
     const bookingsToSave = [];
 
+    // Handle single or recurring bookings
     if (!recurrence || recurrence.type === "once") {
       bookingsToSave.push({ date_reserved: date, status });
     } else {
       const { start_date, end_date, days } = recurrence;
       if (!days || days.length === 0)
         return res.status(400).json({ message: "Recurring days required." });
+
       getRecurringDates(start_date, end_date, days).forEach((d) =>
         bookingsToSave.push({ date_reserved: d, status })
       );
     }
 
+    // Process each booking
     for (const b of bookingsToSave) {
-      if (status === "approved") {
+      // Conflict check only if status is approved
+      if (b.status === "approved") {
         const [existing] = await db.query(
-          `SELECT * FROM room_bookings WHERE room_id = ? AND date_reserved = ? 
-           AND status = 'approved' AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
+          `SELECT * FROM room_bookings
+           WHERE room_id = ? AND date_reserved = ?
+           AND status = 'approved'
+           AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
           [roomId, b.date_reserved, startTime, endTime]
         );
-        if (existing.length > 0)
+
+        if (existing.length > 0) {
           return res.status(409).json({
             message: `Conflict: another approved booking exists on ${b.date_reserved}`,
           });
+        }
       }
 
-      const [insert] = await db.query(
+      // Insert new booking
+      await db.query(
         `INSERT INTO room_bookings
          (room_id, reserved_by, user_id, email, assigned_by, date_reserved,
           reservation_start, reservation_end, notes, room_number, room_description,
-          room_name, floor_number, building_name, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          room_name, floor_number, building_name, status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           roomId,
           reserved_by,
@@ -238,9 +228,11 @@ router.post("/book", async (req, res) => {
         ]
       );
 
-      if if (b.status === "approved" && role !== "admin") {
+      // Auto reject overlapping pending bookings if approved
+      if (b.status === "approved") {
         const [pendingOverlap] = await db.query(
-          `SELECT id, reserved_by, email FROM room_bookings 
+          `SELECT id, reserved_by, email, date_reserved, reservation_start, reservation_end
+           FROM room_bookings
            WHERE room_id = ? AND date_reserved = ? AND status = 'pending'
            AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
           [roomId, b.date_reserved, startTime, endTime]
@@ -248,42 +240,53 @@ router.post("/book", async (req, res) => {
 
         for (const p of pendingOverlap) {
           await db.query(
-            `UPDATE room_bookings SET status='rejected_by_admin', rejected_at=NOW() WHERE id=?`,
+            `UPDATE room_bookings
+             SET status='rejected_by_admin', rejected_at=NOW(),
+                 reject_reason='overlapped_with_approved_reservation'
+             WHERE id=?`,
             [p.id]
           );
 
+          // Send auto-reject email
           await sendStatusEmail(
             {
-              ...p,
+              reserved_by: p.reserved_by,
+              email: p.email,
               room_name: roomName,
-              date: b.date_reserved,
-              start_time: startTime,
-              end_time: endTime,
+              date_reserved: p.date_reserved,
+              reservation_start: p.reservation_start,
+              reservation_end: p.reservation_end,
             },
             "autoRejected"
           );
         }
+      }
 
+      // Email logic
+      // - skip sending email if created as "approved"
+      // - only send for "pending" (normal user) or auto rejections
+      if (b.status === "pending") {
         await sendStatusEmail(
           {
             reserved_by,
             email,
             room_name: roomName,
-            date: b.date_reserved,
-            start_time: startTime,
-            end_time: endTime,
+            date_reserved: b.date_reserved,
+            reservation_start: startTime,
+            reservation_end: endTime,
           },
-          "approved"
+          "pending"
         );
       }
     }
 
     res.json({ message: "Reservation(s) saved successfully!" });
   } catch (err) {
-    console.error("Error saving reservation:", err);
+    console.error("❌ Error saving reservation:", err);
     res.status(500).json({ message: "Failed to save reservation." });
   }
 });
+
 
 /* ----------------------------------------
    GET /my-bookings/:id
@@ -573,98 +576,5 @@ router.put("/cancel/:id", async (req, res) => {
   }
 });
 
-
-/**
- * POST /reservations/approve/:id
- * Approve a reservation, reject overlaps, and send emails
- */
-/**
-
-router.post("/approve/:id", async (req, res) => {
-  const { id } = req.params;
-  const { approverName } = req.body;
-
-  try {
-    // 1️⃣ Get reservation to approve
-    const [[booking]] = await db.query("SELECT * FROM room_bookings WHERE id = ?", [id]);
-    if (!booking) return res.status(404).json({ message: "Reservation not found" });
-
-    // 2️⃣ Approve it
-    await db.query(
-      "UPDATE room_bookings SET status = 'approved', reject_reason = 'approved', approved_at = NOW() WHERE id = ?",
-      [approverName, id]
-    );
-
-    // Send email to approver (user who made the booking)
-    await sendStatusEmail(booking, "approved");
-
-    // 3️⃣ Find overlapping pending bookings (same room, same date)
-    const [conflicts] = await db.query(
-      `
-      SELECT * FROM room_bookings
-      WHERE room_id = ?
-        AND status = 'pending'
-        AND DATE(date_reserved) = DATE(?)
-        AND (
-          (reservation_start < ? AND reservation_end > ?) OR
-          (reservation_start >= ? AND reservation_start < ?)
-        )
-    `,
-      [
-        booking.room_id,
-        booking.date_reserved,
-        booking.reservation_end,
-        booking.reservation_start,
-        booking.reservation_start,
-        booking.reservation_end,
-      ]
-    );
-
-    // 4️⃣ Reject conflicts if any
-    if (conflicts.length > 0) {
-      const ids = conflicts.map((r) => r.id);
-      const placeholders = ids.map(() => "?").join(",");
-      const rejectReason = "Overlapping with another approved reservation";
-
-      // 🧩 Debug log — print what will be rejected
-      console.log("🔍 Auto-rejecting conflicts:", ids);
-      console.log("📝 Reject reason:", rejectReason);
-
-      const [result] = await db.query(
-        `UPDATE room_bookings 
-         SET 
-           status = 'rejected_by_admin',
-           reject_reason = ?,
-           rejected_at = NOW()
-         WHERE id IN (${placeholders})`,
-        [rejectReason, ...ids]
-      );
-
-      console.log("✅ MySQL Update Result:", result);
-
-      // Verify data immediately after update
-      const [check] = await db.query(
-        `SELECT id, status, reject_reason, rejected_at FROM room_bookings WHERE id IN (${placeholders})`,
-        ids
-      );
-      console.log("📦 Updated Rows:", check);
-
-      // Send emails to rejected users
-      for (const conflict of conflicts) {
-        await sendStatusEmail(conflict, "autoRejected");
-      }
-    }
-
-    res.json({
-      message: `Reservation approved. ${conflicts.length} overlapping bookings were auto-rejected.`,
-      rejectedCount: conflicts.length,
-    });
-  } catch (err) {
-    console.error("❌ Error in approving reservation:", err);
-    res.status(500).json({ message: "Internal server error while approving reservation" });
-  }
-});
-
- */
 
 export default router;

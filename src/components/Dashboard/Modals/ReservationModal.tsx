@@ -27,19 +27,26 @@ interface ReservationModalProps {
 }
 
 // --- Generate all 15-min start/end slots ---
-const generateStartSlots = () =>
-  Array.from({ length: 24 * 4 }, (_, i) =>
-    `${String(Math.floor(i / 4)).padStart(2, "0")}:${String((i % 4) * 15 + 1).padStart(2, "0")}`
-  );
+// FIXED: produce exact 00,15,30,45 slots (no +1 minute offset)
+const generateStartSlots = () => {
+  const ts: string[] = [];
+  for (let h = 0; h < 24; h++)
+    [1, 16, 31, 46].forEach((m) =>
+      ts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
+    );
+  return ts;
+};
 
-const generateEndSlots = () =>
-  Array.from({ length: 24 * 4 }, (_, i) => {
-    const h = Math.floor(i / 4);
-    const m = (i % 4) * 15 + 15;
-    if (m === 60 && h < 23) return `${String(h + 1).padStart(2, "0")}:00`;
-    if (m < 60) return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-    return null;
-  }).filter(Boolean) as string[];
+const generateEndSlots = () => {
+  const ts: string[] = [];
+  for (let h = 0; h < 24; h++)
+    [15, 30, 45, 60].forEach((m) => {
+      if (m === 60 && h < 23) ts.push(`${String(h + 1).padStart(2, "0")}:00`);
+      else if (m < 60)
+        ts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    });
+  return ts;
+};
 
 const ALL_START_SLOTS = generateStartSlots();
 const ALL_END_SLOTS = generateEndSlots();
@@ -125,7 +132,36 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
     try {
       const res = await fetch(`http://localhost:5000/api/room_bookings?room_id=${roomId}&date=${date}`);
       const data = await res.json();
-      setReservations(Array.isArray(data) ? data : []);
+
+      // backend returns rows with reservation_start/reservation_end but mapped to start/end in route,
+      // ensure we have start/end keys and trim seconds if present
+      const normalized = (Array.isArray(data) ? data : []).map((r: any) => {
+        // r.start or r.reservation_start may exist; prefer r.start
+        const rawStart = r.start || r.reservation_start || r.start_time || "";
+        const rawEnd = r.end || r.reservation_end || r.end_time || "";
+
+        // Normalize to "HH:MM" (strip seconds if present)
+        const startParts = String(rawStart).split(":");
+        const endParts = String(rawEnd).split(":");
+        const start = startParts.length >= 2 ? `${startParts[0].padStart(2, "0")}:${startParts[1].padStart(2, "0")}` : rawStart;
+        const end = endParts.length >= 2 ? `${endParts[0].padStart(2, "0")}:${endParts[1].padStart(2, "0")}` : rawEnd;
+
+        return {
+          ...r,
+          start,
+          end,
+        };
+      });
+
+      // Keep only approved/reserved (backend already filters, but double-check)
+      const filtered = normalized.filter((r: any) => {
+        // if status present, only accept approved/reserved
+        if (r.status) return r.status == "approved" ;
+        // otherwise backend returned only approved so accept
+        return true;
+      });
+
+      setReservations(filtered);
       
     } catch (err) {
       console.error(err);
@@ -138,51 +174,58 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   }, [roomId, date]);
 
   // --- Time helpers ---
-  const timeToMinutes = (t: string) => t.split(":").map(Number).reduce((a, b) => a * 60 + b);
-  const minutesToTime = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  // Accepts "HH:MM" or "HH:MM:SS"
+  const timeToMinutes = (t: string) => {
+    const parts = (t || "00:00").split(":").map(Number);
+    const h = parts[0] || 0;
+    const m = parts[1] || 0;
+    return h * 60 + m;
+  };
 
-  // Available start/end times
+
+  // Available start times (remove any start that falls into an approved reservation)
+  // --- Available time generation ---
   const availableStartTimes = useMemo(() => {
-    return ALL_START_SLOTS.filter(slot => {
+    return ALL_START_SLOTS.filter((slot) => {
       const slotMin = timeToMinutes(slot);
-      return !reservations.some(r => {
+      // exclude if slot is within a booked time
+      for (const r of reservations) {
         const start = timeToMinutes(r.start);
         const end = timeToMinutes(r.end);
-        return slotMin >= start && slotMin < end;
-      });
+        if (slotMin >= start && slotMin < end) return false;
+      }
+      return true;
     });
   }, [reservations]);
 
   const availableEndTimes = useMemo(() => {
     if (!startTime) return [];
     const startMin = timeToMinutes(startTime);
+
+    // Find the next booked start after our start time
     const nextBooking = reservations
-      .map(r => timeToMinutes(r.start))
-      .filter(s => s > startMin)
+      .map((r) => timeToMinutes(r.start))
+      .filter((s) => s > startMin)
       .sort((a, b) => a - b)[0];
+
     const limit = nextBooking ? nextBooking - 1 : 24 * 60;
 
-    return ALL_END_SLOTS.filter(slot => {
+    return ALL_END_SLOTS.filter((slot) => {
       const slotMin = timeToMinutes(slot);
       if (slotMin <= startMin || slotMin > limit) return false;
-      return !reservations.some(r => {
+
+      // Prevent ending inside another reservation
+      for (const r of reservations) {
         const rStart = timeToMinutes(r.start);
         const rEnd = timeToMinutes(r.end);
-        return slotMin > rStart && slotMin <= rEnd;
-      });
+        if (slotMin > rStart && slotMin <= rEnd) return false;
+      }
+      return true;
     });
   }, [startTime, reservations]);
 
-  // --- Validation ---
-  const conflictsWithExisting = (s: string, e: string) => {
-    const startMin = timeToMinutes(s);
-    const endMin = timeToMinutes(e);
-    return reservations.some(r => {
-      const rStart = timeToMinutes(r.start);
-      const rEnd = timeToMinutes(r.end);
-      return startMin < rEnd && endMin > rStart;
-    });
-  };
+
+  
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -478,12 +521,39 @@ console.log("Submitting reservation bodyData:", bodyData);
             <label>Notes:</label>
             <input type="text" value={notes} onChange={e => setNotes(e.target.value)} maxLength={250} placeholder="Optional notes" />
 
-            {reservations.length > 0 && (
-              <div className="mb-2">
-                <strong>Already booked (approved):</strong>
-                <ul>{reservations.map(i => <li key={i.start + i.end}>{i.start} - {i.end} ({i.reserved_by})</li>)}</ul>
-              </div>
-            )}
+                    {reservations.length > 0 && (
+                      <div className="mb-2">
+                        <strong>Already booked (approved):</strong>
+                        <div
+                          style={{
+                            maxHeight: "100px",   // ~5 items
+                            overflowY: "auto",
+                            border: "1px solid #ccc",
+                            padding: "5px",
+                            borderRadius: "4px",
+                          }}
+                        >
+                          <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                            {reservations
+                              .slice() // copy array
+                              .sort((a, b) => {
+                                const toMinutes = (t: string) => {
+                                  const [h, m] = t.split(":").map(Number);
+                                  return h * 60 + m;
+                                };
+                                return toMinutes(a.start) - toMinutes(b.start);
+                              })
+                              .map((i) => (
+                                <li key={i.start + i.end + i.reserved_by} style={{ padding: "2px 0" }}>
+                                  {i.start} - {i.end} ({i.reserved_by})
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+
 
             <div style={{ marginTop: "15px", display: "flex", justifyContent: "space-between" }}>
               <button type="button" onClick={onClose}>Cancel</button>

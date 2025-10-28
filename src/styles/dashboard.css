@@ -294,3 +294,19 @@ button:hover {
 .fc-daygrid-week:nth-child(even) .fc-daygrid-day {
   background-color: #efbfbf !important;
 }
+
+/* Scrollable events per day */
+.fc-daygrid-day-events,
+.fc-timegrid-event-harness {
+  max-height: 100px; /* adjust as needed */
+  overflow-y: auto;
+}
+
+/* Optional: add a thin scrollbar */
+.fc-daygrid-day-events::-webkit-scrollbar {
+  width: 12px;
+}
+.fc-daygrid-day-events::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.3);
+  border-radius: 3px;
+}
