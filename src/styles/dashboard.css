@@ -346,3 +346,36 @@ th:hover {
 .arrow.active {
   color: #000; /* darker when active */
 }
+
+/* Make table headers sticky */
+/* Sticky table headers */
+.dashboard-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa; /* match your header bg */
+  z-index: 2;
+  text-align: center; /* center header text */
+  padding: 8px 12px;
+}
+
+/* Flex container for text + arrows */
+.dashboard-table thead th .th-sort {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centers text + arrows */
+  gap: 6px; /* space between text and arrows */
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Arrow styles */
+.dashboard-table thead th .th-sort .arrow {
+  font-size: 0.7em;
+  line-height: 1;
+}
+
+/* Highlight selected day */
+.selected-day {
+  background-color: #ffeeba !important; /* yellow highlight */
+  border-radius: 4px;
+}

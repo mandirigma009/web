@@ -245,7 +245,7 @@ const sortedReservations = [...visibleReservations].sort((a, b) => {
                 style={{ width: "100%", marginTop: "10px", minWidth: "1200px" }}
               >
               <thead>
-                <tr>
+                <tr >
                   {[
                     { key: "room_number", label: "Room #" },
                     { key: "room_name", label: "Name" },
@@ -257,9 +257,9 @@ const sortedReservations = [...visibleReservations].sort((a, b) => {
                     { key: "notes", label: "Notes" },
                   ].map(({ key, label }) => (
                     <th key={key} style={{ whiteSpace: "nowrap" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <span>{label}</span>
-                        <div style={{ display: "flex", flexDirection: "column", cursor: "pointer", lineHeight: "0.7" }}>
+                      <div >
+                        <span>{label} {"   "}</span>
+                       
                           <span
                             style={{
                               fontSize: "10px",
@@ -278,7 +278,7 @@ const sortedReservations = [...visibleReservations].sort((a, b) => {
                           >
                             ▼
                           </span>
-                        </div>
+                       
                       </div>
                     </th>
                   ))}

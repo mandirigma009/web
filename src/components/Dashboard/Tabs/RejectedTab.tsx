@@ -27,6 +27,8 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
 
   // -----------------------------
   // Sorting setup
@@ -156,20 +158,12 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
                 <thead>
                    
                   <tr>
-                    {headers.map(({ key, label }) => (
+                    {headers.map(({ key, label } ) => (
                      
                       <th key={key} style={{ whiteSpace: "nowrap" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <span>{label}</span>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              cursor: "pointer",
-                              lineHeight: "0.7",
-                            }}
-                          >
-                            
+                        <div >
+                          <span>{label}   {"    "}</span>
+  
                             <span
                               style={{
                                 fontSize: "10px",
@@ -188,7 +182,7 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
                             >
                               ▼
                             </span>
-                          </div>
+                        
                         </div>
                       </th>
                     ))}
@@ -267,6 +261,15 @@ export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabP
               const booking = rejectedBookings.find((b) => b.id === bookingId);
               if (booking) setSelectedBooking(booking);
             }}
+            dateClick={(info) => {
+            setSelectedDate(info.dateStr); // store selected day (YYYY-MM-DD)
+          }}
+          dayCellClassNames={(arg) => {
+            // arg.date is a Date object
+            const dateStr = dayjs(arg.date).format("YYYY-MM-DD");
+            if (dateStr === selectedDate) return ["selected-day"];
+            return [];
+          }}
           />
         </div>
       )}

@@ -377,7 +377,7 @@ useEffect(() => {
             className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
             onClick={() => setActiveTab("MyBookings")}
           >
-            {userRole === 1 || userRole === 2 ? "All Bookings" : "My Bookings"}
+            {userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}
           </button>
 
 {/*

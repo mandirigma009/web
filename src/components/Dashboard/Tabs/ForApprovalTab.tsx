@@ -39,7 +39,7 @@ export default function ForApprovalTab({ pendingBookings, refreshPendingBookings
   return (
     <>
       <div className="flex justify-between items-center mb-3">
-        <h2>Pending Reservations</h2>
+      
       
       </div>
 
