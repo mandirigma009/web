@@ -167,6 +167,13 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   };
 
 //-----------------------
+// Convert HH:mm to minutes
+
+
+// Maximum start time allowed today
+const LATEST_START_TODAY = 23 * 60 + 15; // 23:15
+
+// Available start times
 const availableStartTimes = useMemo(() => {
   const now = dayjs();
   const isToday = dayjs(date).isSame(now, "day");
@@ -174,35 +181,43 @@ const availableStartTimes = useMemo(() => {
   return ALL_START_SLOTS.filter((slot) => {
     const slotMin = timeToMinutes(slot);
 
-    // 1️⃣ Exclude past times if today
+    // 1️⃣ Cannot pick past times if today
     if (isToday) {
-      const [h, m] = slot.split(":").map(Number);
-      if (h < now.hour() || (h === now.hour() && m <= now.minute())) return false;
+      if (slotMin <= now.hour() * 60 + now.minute()) return false;
+
+      // 2️⃣ Cannot pick start time past 23:15 today
+      if (slotMin > LATEST_START_TODAY) return false;
     }
 
-    // 2️⃣ Exclude reserved ranges
+    // 3️⃣ Exclude slots overlapping existing reservations
     for (const r of reservations) {
-      const start = timeToMinutes(r.start);
-      const end = timeToMinutes(r.end);
-      if (slotMin >= start && slotMin < end) return false;
+      const rStart = timeToMinutes(r.start);
+      const rEnd = timeToMinutes(r.end);
+      if (slotMin >= rStart && slotMin < rEnd) return false;
     }
 
     return true;
   });
 }, [reservations, date]);
 
-
-//-----------------------------------------
-
-
+// Available end times
 const availableEndTimes = useMemo(() => {
   if (!startTime) return [];
 
+  const startMin = timeToMinutes(startTime);
   const now = dayjs();
   const isToday = dayjs(date).isSame(now, "day");
-  const startMin = timeToMinutes(startTime);
 
-  // Find the next booking after startTime
+  // If today and start time is after 23:15, move to next day
+  if (isToday && startMin > LATEST_START_TODAY) {
+    const nextDay = dayjs(date).add(1, "day").format("YYYY-MM-DD");
+    setDate(nextDay);   // move to next day
+    setStartTime("");   // clear start
+    setEndTime("");     // clear end
+    return [];
+  }
+
+  // Determine next booking after start time
   const nextBooking = reservations
     .map((r) => timeToMinutes(r.start))
     .filter((s) => s > startMin)
@@ -213,12 +228,13 @@ const availableEndTimes = useMemo(() => {
   return ALL_END_SLOTS.filter((slot) => {
     const slotMin = timeToMinutes(slot);
 
+    // End must be after start and before next reservation or end of day
     if (slotMin <= startMin || slotMin > limit) return false;
 
     // Exclude past times if today
     if (isToday && slotMin <= now.hour() * 60 + now.minute()) return false;
 
-    // Exclude ending inside another reservation
+    // Exclude overlapping other reservations
     for (const r of reservations) {
       const rStart = timeToMinutes(r.start);
       const rEnd = timeToMinutes(r.end);
