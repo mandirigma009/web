@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Button } from "../Button";
-import type { Room } from "../../types";
+import { Button } from "../../Button";
+import type { Room } from "../../../types";
+import "../../../styles/modal.css";
+import "../../../styles/dashboard.css";
 
 interface UpdateStatusModalProps {
   room: Room;
@@ -17,7 +19,7 @@ export default function UpdateStatusModal({
 
   const handleSave = async () => {
     try {
-      const res = await fetch(`/api/rooms/${room.id}/status`, {
+      const res = await fetch(`http://localhost:5000/api/rooms/${room.id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),

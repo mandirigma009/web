@@ -1,18 +1,15 @@
-import mysql from "mysql2/promise";
-import dotenv from "dotenv";
-import "./routes/autoCancelBookings.js";
+// server/pool.js
+const mysql = require("mysql2/promise");
+require("dotenv").config();
 
-
-dotenv.config();
-
-// ✅ Create MySQL connection
 const pool = mysql.createPool({
-   host: "localhost",
-  user: "root",        // ✅ your DB username
-  password: "",// ✅ your DB password
+  host: "localhost",
+  user: "root",
+  password: "",
   database: "myapp",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-
-
-export default pool;
+module.exports = pool; // ✅ Use CommonJS export

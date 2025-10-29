@@ -1,7 +1,8 @@
+
 /* Sidebar */
 .dashboard-sidebar {
   width: 200px;
-  background-color: rgb(219, 26, 26);
+  background-color: rgb(51, 232, 99);
   color: white;
   padding: 20px;
   display: flex;
@@ -31,11 +32,16 @@
   text-align: left;
   font-size: 1rem;
   transition: background-color 0.3s ease;
+  border: 1px solid #333;
+  
 }
 
 .dashboard-sidebar button.active,
 .dashboard-sidebar button:hover {
   background-color: #2563eb;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 /* Main Content */
@@ -56,6 +62,11 @@
   right: 20;
   margin-bottom: 20px;
   z-index: 10;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 6px 12px;
+  background-color: transparent;
+  cursor: pointer;
 }
 
 /* Tables */
@@ -63,6 +74,11 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+}
+
+.dashboard-table tr.highlighted {
+  background-color: #2563eb;
+  color: white;
 }
 
 .dashboard-table th,
@@ -136,15 +152,20 @@
   display: flex;
  justify-content: center;
   margin-top: 15px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 6px 12px;
+  background-color: transparent;
+  cursor: pointer;
 }
 
 .btn-confirm {
   background: #3b82f6;
-  border: none;
   color: white;
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
+  border: 1px solid #333;
 }
 
 .btn-cancel {
@@ -213,4 +234,148 @@
 
 @keyframes fadeOut {
   to { opacity: 0; transform: translateY(-20px); }
+}
+
+button {
+  border: 1px solid #333 !important;
+  border-radius: 4px;
+  color: rgb(14, 13, 13) !important;
+  padding: 6px 12px;
+  background-color: transparent !important;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #d92623 !important;
+  color: rgb(239, 236, 236) !important;
+}
+
+.fc-button, .rbc-btn { /* FullCalendar & react-big-calendar */
+  border: 1px solid #333 !important;
+  border-radius: 4px;
+  background-color: transparent !important;
+}
+
+
+.dashboard-sidebar button.sidebar-btn.active {
+  background-color: #db2c09 !important; /* active background color */
+  color: white !important; /* active text color */
+}
+
+/* Grid lines for month view */
+.fc-daygrid-day {
+  border: 1px solid #0a0a0a!important; /* Light gray grid lines */
+}
+
+/* Optional: bold grid between weeks */
+.fc-scrollgrid {
+  border-collapse: collapse;
+  border: 1px solid #060606!important;
+}
+
+/* Grid lines for week/day time slots */
+.fc-timegrid-slot {
+  border-bottom: 1px solid #0b0b0b !important;
+}
+
+.fc-timegrid-slot-label {
+  border-right: 1px solid #070707 !important;
+}
+
+/* Optional: make current day stand out */
+.fc-day-today {
+  background-color: rgba(103, 171, 244, 0.05) !important;
+}
+
+.fc-daygrid-day:nth-child(even) {
+  background-color: #e6d2d2 !important; 
+}
+
+.fc-daygrid-week:nth-child(even) .fc-daygrid-day {
+  background-color: #efbfbf !important;
+}
+
+/* Scrollable events per day */
+.fc-daygrid-day-events,
+.fc-timegrid-event-harness {
+  max-height: 100px; /* adjust as needed */
+  overflow-y: auto;
+}
+
+/* Optional: add a thin scrollbar */
+.fc-daygrid-day-events::-webkit-scrollbar {
+  width: 12px;
+}
+.fc-daygrid-day-events::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.3);
+  border-radius: 3px;
+}
+
+th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+th:hover {
+  color: #007bff;
+}
+
+/* --- Sorting Header Styles --- */
+.th-sort {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centers both text & arrows */
+  gap: 6px; /* space between text and arrows */
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-icons {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.8;
+  font-size: 0.7em;
+}
+
+.arrow {
+  color: #aaa;
+  transition: color 0.2s;
+}
+
+.arrow.active {
+  color: #000; /* darker when active */
+}
+
+/* Make table headers sticky */
+/* Sticky table headers */
+.dashboard-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa; /* match your header bg */
+  z-index: 2;
+  text-align: center; /* center header text */
+  padding: 8px 12px;
+}
+
+/* Flex container for text + arrows */
+.dashboard-table thead th .th-sort {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centers text + arrows */
+  gap: 6px; /* space between text and arrows */
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Arrow styles */
+.dashboard-table thead th .th-sort .arrow {
+  font-size: 0.7em;
+  line-height: 1;
+}
+
+/* Highlight selected day */
+.selected-day {
+  background-color: #ffeeba !important; /* yellow highlight */
+  border-radius: 4px;
 }

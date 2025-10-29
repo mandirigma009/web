@@ -1,3 +1,6 @@
+
+
+
 /* Container */
 .app-container {
   display: flex;
@@ -61,7 +64,7 @@
 
 .btn.primary {
   background: #6a0dad;
-  color: #fff;
+  color: #080808;
 }
 
 .btn.primary:hover {
@@ -76,6 +79,8 @@
 .btn.secondary:hover {
   background: #ddd;
 }
+
+
 
 /* App Title */
 .app-title {

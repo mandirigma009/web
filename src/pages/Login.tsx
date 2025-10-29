@@ -9,6 +9,7 @@ import "../styles/login.css";
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // new state
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
@@ -21,13 +22,11 @@ function Login() {
           credentials: "include",
         });
         if (res.ok) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const data = await res.json();
-          // Everyone goes to /dashboard
           navigate("/dashboard");
         }
       } catch {
-        // not logged in, continue to login
+        // not logged in
       }
     };
     checkAuth();
@@ -62,9 +61,7 @@ function Login() {
       setEmail("");
       setPassword("");
 
-      // Everyone goes to dashboard
       navigate("/dashboard");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setErrors({ password: err.message });
     }
@@ -95,7 +92,7 @@ function Login() {
           />
 
           <Input
-            type="password"
+            type={showPassword ? "text" : "password"} // toggle type
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
@@ -105,6 +102,17 @@ function Login() {
             required
             error={errors.password}
           />
+
+          <div className="show-password">
+            <label>
+              <input
+                type="checkbox"
+                checked={showPassword}
+                onChange={() => setShowPassword((prev) => !prev)}
+              />{" "}
+              Show Password
+            </label>
+          </div>
 
           <SubmitButton variant="primary" className="login-btn">Log In</SubmitButton>
 
