@@ -18,19 +18,18 @@ cron.schedule("* * * * *", async () => {
 
     // 0️⃣ Get last processed time
     const [rows] = await db.query(`SELECT last_processed FROM cron_last_run WHERE id = 1`);
-    const lastProcessed = rows[0].last_processed;
+  //  const lastProcessed = rows[0].last_processed;
    //-------- console.log("[Cron] Last processed timestamp:", lastProcessed);
 
     // 1️⃣ Pending bookings to auto-cancel
     const [pendingToCancel] = await db.query(
-      `
-      SELECT id, room_name, reserved_by, email, date_reserved, reservation_start, status
-      FROM room_bookings
-      WHERE status = 'pending'
-      AND STR_TO_DATE(CONCAT(date_reserved, ' ', reservation_start), '%Y-%m-%d %H:%i:%s') > ?
-      AND STR_TO_DATE(CONCAT(date_reserved, ' ', reservation_start), '%Y-%m-%d %H:%i:%s') <= ?
-      `,
-      [lastProcessed, nowPH]
+    `
+  SELECT id, room_name, reserved_by, email, date_reserved, reservation_start, status
+  FROM room_bookings
+  WHERE status = 'pending'
+    AND STR_TO_DATE(CONCAT(date_reserved, ' ', reservation_start), '%Y-%m-%d %H:%i:%s') <= ?
+  `,
+  [nowPH]
     );
 
     for (const b of pendingToCancel) {

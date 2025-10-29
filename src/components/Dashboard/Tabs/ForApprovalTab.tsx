@@ -3,7 +3,6 @@ import type { Room } from "../../../types.tsx";
 import EditBookingModal from "../Modals/EditBookingModal.tsx";
 import ReservationTable from "../Modals/ReservationTable.tsx";
 import CalendarEventsModal from "../Modals/calendarEventsModal.tsx";
-import { formatToPhilippineDate } from "../../../../server/utils/dateUtils.ts";
 import "../../../styles/dashboard.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";

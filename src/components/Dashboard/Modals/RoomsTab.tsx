@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import type { Room } from "../../../types";
 import { Button } from "../../Button";
 import ReservationModal from "../Modals/ReservationModal";
+import EditRoomModal from "../Modals/EditRoomModal";
 import AddRoomModal from "../Modals/AddRoomModal";
 import UpdateStatusModal from "../Modals/UpdateStatusModal";
 import "../../../styles/dashboard.css";
@@ -46,8 +47,8 @@ export default function RoomsTab({
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusRoom, setStatusRoom] = useState<Room | null>(null);
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
-
-
+  const [editRoom, setEditRoom] = useState<Room | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
 
   const room = roomList.find((r) => r.id === Number(selectedRoom));
@@ -57,7 +58,12 @@ export default function RoomsTab({
     setRoomList(rooms);
   }, [rooms]);
 
-
+  const handleEditSuccess = (updatedRoom: Room) => {
+    setRoomList((prev) =>
+      prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r))
+    );
+    setShowEditModal(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -77,7 +83,7 @@ export default function RoomsTab({
   const handleAddRoomSuccess = (addedRoom: Room) => {
     setRoomList((prev) => [...prev, addedRoom]);
   };
-console.log("currentUserId roomsTab:", id)
+
   return (
     <div className="text-black">
       {/* Header */}
@@ -174,13 +180,7 @@ console.log("currentUserId roomsTab:", id)
       </div>
 
       {/* Table */}
-
-          <div style={{ overflowX: "auto", marginTop: "10px", maxHeight: "500px" }}>
-              <table
-                id="my-bookings-table"
-                className="dashboard-table"
-                style={{ width: "100%", marginTop: "10px", minWidth: "1200px" }}
-              >
+      <table id="my-bookings-table" className="dashboard-table text-black">
         <thead>
           <tr>
             <th className="text-black">Room Number</th>
@@ -301,7 +301,7 @@ console.log("currentUserId roomsTab:", id)
             ))}
         </tbody>
       </table>
-</div>
+
       {/* Modals */}
       {showStatusModal && statusRoom && (
         <UpdateStatusModal
@@ -326,10 +326,6 @@ console.log("currentUserId roomsTab:", id)
           roomDesc={room?.room_description || ""}
           reservedBy={name}
           userRole={userRole!} 
-           chairs={room.chairs}
-          has_tv={room.has_tv}
-          has_table={room.has_table}
-          has_projector={room.has_projector}
           onClose={() => setShowReservationModal(false)}
           onSuccess={() => {
             setSelectedBuilding("");
@@ -344,7 +340,13 @@ console.log("currentUserId roomsTab:", id)
         />
       )}
 
-
+      {showEditModal && editRoom && (
+        <EditRoomModal
+          room={editRoom}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
 
       {showAddRoomModal && (
         <AddRoomModal
@@ -352,7 +354,6 @@ console.log("currentUserId roomsTab:", id)
           onAddRoomSuccess={handleAddRoomSuccess}
         />
       )}
-      
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );

@@ -350,7 +350,7 @@ useEffect(() => {
                className={`sidebar-btn ${activeTab === "Admin" ? "active" : ""}`}
               onClick={() => setActiveTab("Admin")}
             >
-              Admin
+              Management Users
             </button>
           </>
         )}

@@ -2,14 +2,10 @@
 import dotenv from "dotenv";
 dotenv.config(); // Force load .env immediately
 import nodemailer from "nodemailer";
-import { toPH } from "../../server/utils/dateUtils.ts"; // make sure path is correct
 import dayjs from "dayjs";
 
 
 
-// Debug environment variables
-console.log("SMTP_USER:", process.env.SMTP_USER);
-console.log("SMTP_PASS:", process.env.SMTP_PASS);
 
 if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
   console.error("❌ SMTP credentials are missing. Check your .env file.");
@@ -54,6 +50,9 @@ export const sendEmail = async (to, subject, html) => {
 };
 
 export const sendStatusEmail = async (reservation, type) => {
+
+   if (type === "pending") return;
+   
   const { reserved_by, email, room_name, date_reserved, reservation_start, reservation_end } = reservation;
 
 // Example
@@ -100,6 +99,8 @@ console.log(formatted);
               <p>Your reservation for <b>${room_name}</b> on <b>${formatted}</b> 
               starting at <b>${reservation_start}</b> was <b>cancelled</b> because it was not approved before the start time.</p>`;
       break;
+
+
 
     default:
       console.warn("⚠️ Unknown email type:", type);

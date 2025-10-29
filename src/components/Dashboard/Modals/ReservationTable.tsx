@@ -1,5 +1,5 @@
 // src/components/Dashboard/ReservationTable.tsx
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef} from "react";
 import { formatToPhilippineDate } from "../../../../server/utils/dateUtils";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -46,7 +46,7 @@ export default function ReservationTable({
   isMyBookings,
   currentUserId,
   refreshMyBookings,
-  openCalendar,
+
 }: ReservationTableProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [editingBooking, setEditingBooking] = useState<Room | null>(null);

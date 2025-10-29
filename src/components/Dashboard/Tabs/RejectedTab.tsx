@@ -23,7 +23,7 @@ interface RejectedTabProps {
   userRole: number;
 }
 
-export default function RejectedTab({ rejectedBookings, userRole }: RejectedTabProps) {
+export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
