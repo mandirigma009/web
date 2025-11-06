@@ -80,7 +80,7 @@ router.get("/reservations", async (req, res) => {
     res.json({ reservations: rows });
   } catch (err) {
     console.error("Error fetching reservations:", err);
-    res.status(500).json({ message: "Failed to fetch reservations." });
+    res.status(500).json({ message: "Failed to fetch reservations." });``
   }
 });
 

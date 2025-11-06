@@ -46,6 +46,8 @@ export default function RoomsTab({
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusRoom, setStatusRoom] = useState<Room | null>(null);
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+  const [editRoom, setEditRoom] = useState<Room | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
 
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
@@ -77,7 +79,7 @@ export default function RoomsTab({
   const handleAddRoomSuccess = (addedRoom: Room) => {
     setRoomList((prev) => [...prev, addedRoom]);
   };
-console.log("currentUserId roomsTab:", id)
+//console.log("currentUserId roomsTab:", id)
   return (
     <div className="text-black">
       {/* Header */}
@@ -326,10 +328,10 @@ console.log("currentUserId roomsTab:", id)
           roomDesc={room?.room_description || ""}
           reservedBy={name}
           userRole={userRole!} 
-           chairs={room.chairs}
-          has_tv={room.has_tv}
-          has_table={room.has_table}
-          has_projector={room.has_projector}
+          chairs={room?.chairs}
+          has_tv={room?.has_tv}
+          has_table={room?.has_table}
+          has_projector={room?.has_projector}
           onClose={() => setShowReservationModal(false)}
           onSuccess={() => {
             setSelectedBuilding("");

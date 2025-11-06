@@ -18,7 +18,7 @@ import RejectedTab from "../components/Dashboard/Tabs/RejectedTab";
 
 
 const roleLabels: Record<number, string> = {
-  1: "Admin",
+
   2: "Staff",
   3: "Reserver",
   4: "Viewer",
