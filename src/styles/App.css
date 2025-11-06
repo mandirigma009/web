@@ -1,139 +1,255 @@
+/* App Css */
 
 
-
-/* Container */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  font-family: Arial, sans-serif;
-  background: #f9f9f9;
-  padding: 20px;
+ /* ==========================
+   GLOBAL LAYOUT
+========================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Privacy Banner */
-.privacy-banner {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 25px;
-  max-width: 600px;
-  text-align: center;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
 }
-
-.privacy-banner h2 {
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.privacy-banner p {
-  margin: 10px 0;
-  color: #555;
-  line-height: 1.5;
-}
-
-.privacy-banner a {
-  color: #6a0dad;
-  text-decoration: none;
-  font-weight: bold;
-}
-.privacy-banner a:hover {
-  text-decoration: underline;
-}
-
-/* Buttons */
-.button-group {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-  justify-content: center;
-}
-
-.btn {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s ease;
-}
-
-.btn.primary {
-  background: #6a0dad;
-  color: #080808;
-}
-
-.btn.primary:hover {
-  background: #580a9c;
-}
-
-.btn.secondary {
-  background: #eee;
-  color: #333;
-}
-
-.btn.secondary:hover {
-  background: #ddd;
-}
-
-
-
-/* App Title */
-.app-title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #222;
-}
-
 
 .App {
-  width: 100vw;
-  height: 100vh;
+  font-family: "Poppins", sans-serif;
+  text-align: center;
+  min-height: 100vh;
   display: flex;
-  align-items: center;
   flex-direction: column;
-  font-family: "Nunito", sans-serif;
-   min-height: 100vh;
-   background-image: url("/images/bg.jpg");
-  background-size: cover;
-    position: relative; /* for overlay */
-  background-position: center;
-  background-color: rgba(0, 0, 0, 0.15); /* adds overlay */
-  background-blend-mode: multiply;       /* blends overlay */
- 
+  background: url("/images/bg.jpg") no-repeat center center/cover;
+  position: relative;
 }
 
+/* dark overlay */
 .App::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.45); /* white overlay at 0.25 → image appears at 0.75 opacity */
-  pointer-events: none; /* so clicks pass through */
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 0;
 }
 
 .App > * {
-  position: relative; /* keep content above overlay */
+  position: relative;
   z-index: 1;
 }
 
-.App .openModalBtn {
-  width: 200px;
-  height: 40px;
-  border: none;
-  border-radius: 6px;
-  background-color: rgb(8, 32, 77);
-  color: white;
-  cursor: pointer;
- 
+/* ==========================
+   HEADER
+========================== */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 91, 50, 0.97);
+  padding: 12px 40px;
+  color: #fff;
+  width: 100%;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-body {
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-logo {
+  height: 55px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  transition: transform 0.3s ease;
+}
+
+.header-logo:hover {
+  transform: scale(1.05);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+/* LOGIN BUTTON */
+.header-login-btn {
+  background: linear-gradient(135deg, #00c853, #009c44);
+  color: #fff;
+  border: none;
+  padding: 10px 35px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.6px;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  box-shadow: 0 3px 10px rgba(0, 200, 120, 0.35);
+}
+
+.header-login-btn:hover {
+  background: linear-gradient(135deg, #00e676, #00b050);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 255, 160, 0.45);
+}
+
+.header-login-btn:active {
+  transform: scale(0.97);
+}
+
+/* ==========================
+   MAIN CONTENT
+========================== */
+.main-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 0;
-  margin: 0;
+}
+
+.overlay-content {
+  background: rgba(0, 0, 0, 0.55);
+  padding: 70px 90px;
+  border-radius: 18px;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  max-width: 800px;
+  width: 90%;
+  text-align: center;
+}
+
+.main-logo {
+  width: 130px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.4));
+}
+
+.dept-title {
+  font-size: 30px;
+  font-weight: 800;
+  margin: 8px 0;
+  color: #fcbf49;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.sub-title {
+  font-size: 21px;
+  font-weight: 500;
+  margin-bottom: 30px;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+/* Get Started Button */
+.get-started-btn {
+  background: linear-gradient(135deg, #00c853, #00b050);
+  border: none;
+  padding: 15px 60px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 17px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.get-started-btn:hover {
+  background: linear-gradient(135deg, #00e676, #00c853);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 255, 160, 0.45);
+}
+
+.get-started-btn:active {
+  transform: scale(0.97);
+}
+
+/* ==========================
+   FOOTER
+========================== */
+.app-footer {
+  background: rgba(0, 91, 50, 0.97);
+  color: #fff;
+  padding: 14px 0;
+  font-size: 13px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* ==========================
+   LOADER
+========================== */
+.loader {
+  color: #005b32;
+  font-size: 22px;
+  margin-top: 100px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ==========================
+   RESPONSIVENESS
+========================== */
+@media (max-width: 1024px) {
+  .app-header {
+    padding: 10px 25px;
+  }
+
+  .overlay-content {
+    padding: 50px 60px;
+  }
+
+  .dept-title {
+    font-size: 26px;
+  }
+
+  .sub-title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-left {
+    gap: 12px;
+  }
+
+  .header-logo {
+    height: 45px;
+  }
+
+  .overlay-content {
+    padding: 40px 25px;
+  }
+
+  .main-logo {
+    width: 100px;
+  }
+
+  .dept-title {
+    font-size: 22px;
+  }
+
+  .sub-title {
+    font-size: 16px;
+  }
+
+  .get-started-btn {
+    padding: 12px 40px;
+    font-size: 15px;
+  }
 }

@@ -337,7 +337,7 @@ useEffect(() => {
     <div>
       {/* Sidebar */}
       <div className="dashboard-sidebar">
-        <img src="/images/logo.jpg" alt="School Logo" className="login-logo" />
+        <img src="/images/logo.png" alt="School Logo" className="login-logo" />
      <>
       <ToastContainer position="top-right" autoClose={5000} />
       {/* other components */}

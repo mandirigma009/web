@@ -1,126 +1,212 @@
-/* Background setup */
-.login-container {
-  min-height: 100vh;
+/* login css */
+
+/* =========================================================
+   LOGIN PAGE BACKGROUND (MATCHES App.tsx)
+   ========================================================= */
+.login-page {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  background: url("/images/bg.jpg") no-repeat center center/cover;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: url("/bg-campus.jpg") no-repeat center center/cover;
-  position: relative;
-  background-image: url("/images/bg.jpg");
-  background-size: cover;
-  background-position: center;
-  background-color: rgba(0, 0, 0, 0.05); /* adds overlay */
-  background-blend-mode: multiply;       /* blends overlay */
+  overflow: hidden;
+  animation: fadeIn 1s ease-in-out;
 }
 
-/* Dark overlay */
-.login-container::before {
-  content: "";
+.login-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  opacity:  75%;
-   background-color: rgba(255, 255, 255, 0.55); /* white overlay at 0.25 → image appears at 0.75 opacity */
-  pointer-events: none; /* so clicks pass through */
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.login-container > * {
-  position: relative; /* keep content above overlay */
-  z-index: 1;
-}
-
-/* Card */
+/* =========================================================
+   GLASS CARD DESIGN
+   ========================================================= */
 .login-card {
   position: relative;
-  z-index: 1;
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  width: 400px;
+  padding: 40px 35px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
   text-align: center;
+  color: #fff;
+  z-index: 2;
+  transform: translateY(20px);
+  opacity: 0;
+  animation: cardAppear 0.8s ease-out forwards;
 }
 
-/* Header */
-.login-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
+/* =========================================================
+   HEADER
+   ========================================================= */
 .login-logo {
-  width: 150px;
-  height: 80px;
-  margin-bottom: 0.5rem;
+  width: 90px;
+  margin-bottom: 10px;
 }
 
 .login-header h2 {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #222;
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+  font-weight: 700;
+  color: #fff;
 }
 
-/* Button */
+.text-gray {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  margin-bottom: 15px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.25s ease;
+}
+
+input:focus {
+  border: 2px solid #00c853;
+  background: #fff;
+}
+
+/* =========================================================
+   SIMPLIFIED BUTTON (NO SHADOW ANIMATIONS)
+   ========================================================= */
 .login-btn {
   width: 100%;
-  margin-top: 1rem;
-  background: #28a745;
-  color: white;
-  padding: 0.75rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background 0.3s;
+  background: linear-gradient(135deg, #00e676, #00c853);
+  color: #fff;
+  border: none;
+  padding: 12px 0;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
 }
 
 .login-btn:hover {
-  background: #218838;
+  background: linear-gradient(135deg, #00ffa6, #00e676);
+  transform: translateY(-2px);
 }
 
-/* Footer */
+.login-btn:active {
+  transform: scale(0.98);
+}
+
+/* =========================================================
+   SHOW PASSWORD & FOOTER
+   ========================================================= */
+.show-password {
+  text-align: left;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .login-footer {
-  margin-top: 1rem;
-  font-size: 0.85rem;
-  color: #555;
-}
-
-.signup-link {
-  margin-top: 0.75rem;
+  margin-top: 15px;
   font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.signup-link a {
-  color: #007bff;
-  font-weight: 500;
+.login-footer a {
+  color: #00ffb2;
+  font-weight: 600;
   text-decoration: none;
+  transition: 0.3s;
 }
 
-.signup-link a:hover {
+.login-footer a:hover {
   text-decoration: underline;
+  color: #00ffa6;
 }
 
-/* Success/Error messages */
+/* =========================================================
+   SUCCESS MESSAGE
+   ========================================================= */
 .success-message {
-  color: green;
+  color: #d4ffd8;
+  background: rgba(0, 128, 64, 0.4);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
   font-size: 0.9rem;
-  margin-bottom: 0.75rem;
+  animation: fadeIn 0.6s ease-in-out;
 }
 
-.password-container {
-  display: flex;
-  align-items: center;
-  gap: 10px; /* space between input and checkbox */
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 600px) {
+  .login-card {
+    width: 90%;
+    padding: 30px 20px;
+  }
+  .login-logo {
+    width: 70px;
+  }
+  .login-header h2 {
+    font-size: 1.5rem;
+  }
 }
 
-.show-password-inline {
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cardAppear {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.show-forgot-container {
   display: flex;
-  align-items: center;
+  align-items: center;      /*  center vertical alignment */
+  justify-content: space-between; /*  one left, one right */
+  margin-top: 20px;         /* adjust spacing above */
+  margin-bottom: 20px;      /* adjust spacing below */
+  width: 100%;
+  height: auto;             /*  remove fixed height */
+}
+
+.show-password {
   font-size: 0.9rem;
-  color: #555;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;       /*  align checkbox and text properly */
+  gap: 5px;
 }
 
-.show-password-inline input {
-  margin-right: 5px;
+.forgot-password-label {
+  font-size: 0.9rem;
+  color: #007bff;
+  cursor: pointer;
+  margin: 0;
+  display: flex;
+  align-items: center;       /*  align vertically with checkbox text */
 }
+
+
+

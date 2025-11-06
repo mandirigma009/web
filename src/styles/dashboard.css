@@ -1,10 +1,19 @@
+/* === GLOBAL === */
+body {
+  margin: 0;
+  padding: 0;
+  background: #d9fdd3; /* light minty green */
+  color: #064e3b;
+  font-family: "Poppins", sans-serif;
+  overflow-x: hidden;
+}
 
-/* Sidebar */
+/* === SIDEBAR === */
 .dashboard-sidebar {
-  width: 200px;
-  background-color: rgb(51, 232, 99);
-  color: white;
-  padding: 20px;
+  width: 230px;
+  background: linear-gradient(180deg, #15803d 0%, #22c55e 100%);
+  color: #f0fdf4;
+  padding: 25px 20px;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -12,370 +21,178 @@
   top: 0;
   left: 0;
   overflow-y: auto;
-  box-sizing: border-box;
+  box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+.dashboard-sidebar img.login-logo {
+  width: 90px;
+  margin: 0 auto 25px auto;
+  display: block;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 10px;
 }
 
 .dashboard-sidebar h2 {
-  font-size: 1.25rem;
-  font-weight: bold;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ecfdf5;
   margin-bottom: 1.5rem;
 }
 
 .dashboard-sidebar button {
   margin-bottom: 10px;
-  padding: 10px;
-  border-radius: 6px;
-  background-color: transparent;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: white;
+  color: #ffffff;
   cursor: pointer;
   text-align: left;
   font-size: 1rem;
-  transition: background-color 0.3s ease;
-  border: 1px solid #333;
-  
+  transition: all 0.25s ease;
 }
 
 .dashboard-sidebar button.active,
 .dashboard-sidebar button:hover {
-  background-color: #2563eb;
-  border: 1px solid #333;
-  border-radius: 4px;
-  cursor: pointer;
+  background: #86efac;
+  color: #064e3b;
+  font-weight: 600;
+  transform: translateX(4px);
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
 }
 
-/* Main Content */
+/* === MAIN CONTENT === */
 .dashboard-main {
-  margin-left: 220px; /* space for sidebar */
-  padding: 40px 30px 30px 30px;
-  height: 100vh;
-  overflow-y: auto;
-  scroll-behavior: smooth; /* smooth scroll */
+  margin-left: 250px;
+  padding: 40px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #e8fbe8 0%, #bbf7d0 100%);
+  color: #064e3b;
   box-sizing: border-box;
-  position: relative;
 }
 
-/* Logout button */
+.dashboard-main h1 {
+  font-size: 1.9rem;
+  font-weight: 700;
+  text-align: center;
+  color: #065f46;
+  margin-bottom: 25px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* === BUTTONS === */
+button {
+  border: none !important;
+  border-radius: 6px;
+  color: #ffffff !important;
+  padding: 9px 14px;
+  background-color: #16a34a !important;
+  transition: all 0.25s ease;
+}
+
+button:hover {
+  background-color: #22c55e !important;
+  box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);
+}
+
+/* === LOGOUT BUTTON === */
 .dashboard-logout {
-  position: sticky;
-  top: 0;
-  right: 20;
-  margin-bottom: 20px;
-  z-index: 10;
-  border: 1px solid #333;
-  border-radius: 4px;
-  padding: 6px 12px;
-  background-color: transparent;
-  cursor: pointer;
+  margin-top: auto;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.25);
+  color: #064e3b;
+  font-weight: 600;
+  transition: all 0.25s ease;
 }
 
-/* Tables */
+.dashboard-logout:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+/* === TABLE === */
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  overflow: hidden;
   margin-top: 20px;
-}
-
-.dashboard-table tr.highlighted {
-  background-color: #2563eb;
-  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .dashboard-table th,
 .dashboard-table td {
-  border: 1px solid #ccc;
-  padding: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 12px;
   text-align: center;
+  font-size: 0.95rem;
+  color: #064e3b;
 }
 
 .dashboard-table th {
-  background-color: #f3f4f6;
+  background-color: #86efac;
+  color: #064e3b;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-/* Headings */
-.dashboard-main h1 {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 20px;
+.dashboard-table tr:nth-child(even) {
+  background-color: #f0fdf4;
 }
 
-.dashboard-main h2 {
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-top: 30px;
-  margin-bottom: 15px;
+.dashboard-table tr:hover {
+  background-color: #bbf7d0;
+  transition: background 0.25s ease;
 }
 
-/* Modal overlay */
+/* === MODAL === */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  background: rgba(0, 0, 0, 0.4);
 }
 
-/* Modal box */
 .modal-content {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  max-width: 400px;
-  width: 100%;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(180deg, #d1fae5 0%, #bbf7d0 100%);
+  border-radius: 14px;
+  padding: 25px;
+  width: 420px;
+  color: #064e3b;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
 }
 
-.modal-content h2 {
-  margin-bottom: 15px;
+/* === FULLCALENDAR === */
+.fc-toolbar-chunk button {
+  background: #22c55e !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 6px !important;
 }
 
-.modal-content label {
-  display: block;
-  margin-bottom: 10px;
+.fc-toolbar-chunk button:hover {
+  background: #16a34a !important;
 }
 
-.modal-content input,
-.modal-content textarea {
-  width: 100%;
-  padding: 8px;
-  margin-top: 4px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.modal-buttons {
-  display: flex;
- justify-content: center;
-  margin-top: 15px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  padding: 6px 12px;
-  background-color: transparent;
-  cursor: pointer;
-}
-
-.btn-confirm {
-  background: #3b82f6;
-  color: white;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 1px solid #333;
-}
-
-.btn-cancel {
-  background: #ef4444;
-  border: none;
-  color: white;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* Full screen dark overlay */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-/* Centered modal box */
-.modal-content {
-  background: #fff;
-  border-radius: 10px;
-  padding: 20px;
-  width: 400px;
-  max-width: 95%;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-  animation: fadeInScale 0.3s ease-in-out;
-}
-
-/* Toast success message */
-.toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #4caf50;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 6px;
-  z-index: 1100;
-  animation: fadeIn 0.5s, fadeOut 0.5s 3s forwards;
-}
-
-/* Animations */
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeOut {
-  to { opacity: 0; transform: translateY(-20px); }
-}
-
-button {
-  border: 1px solid #333 !important;
-  border-radius: 4px;
-  color: rgb(14, 13, 13) !important;
-  padding: 6px 12px;
-  background-color: transparent !important;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #d92623 !important;
-  color: rgb(239, 236, 236) !important;
-}
-
-.fc-button, .rbc-btn { /* FullCalendar & react-big-calendar */
-  border: 1px solid #333 !important;
-  border-radius: 4px;
-  background-color: transparent !important;
-}
-
-
-.dashboard-sidebar button.sidebar-btn.active {
-  background-color: #db2c09 !important; /* active background color */
-  color: white !important; /* active text color */
-}
-
-/* Grid lines for month view */
 .fc-daygrid-day {
-  border: 1px solid #0a0a0a!important; /* Light gray grid lines */
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  background-color: #ecfdf5 !important;
+  color: #064e3b !important;
 }
 
-/* Optional: bold grid between weeks */
-.fc-scrollgrid {
-  border-collapse: collapse;
-  border: 1px solid #060606!important;
-}
-
-/* Grid lines for week/day time slots */
-.fc-timegrid-slot {
-  border-bottom: 1px solid #0b0b0b !important;
-}
-
-.fc-timegrid-slot-label {
-  border-right: 1px solid #070707 !important;
-}
-
-/* Optional: make current day stand out */
 .fc-day-today {
-  background-color: rgba(103, 171, 244, 0.05) !important;
+  background-color: #bbf7d0 !important;
+  border: 2px solid #16a34a !important;
 }
 
-.fc-daygrid-day:nth-child(even) {
-  background-color: #e6d2d2 !important; 
-}
-
-.fc-daygrid-week:nth-child(even) .fc-daygrid-day {
-  background-color: #efbfbf !important;
-}
-
-/* Scrollable events per day */
-.fc-daygrid-day-events,
-.fc-timegrid-event-harness {
-  max-height: 100px; /* adjust as needed */
-  overflow-y: auto;
-}
-
-/* Optional: add a thin scrollbar */
-.fc-daygrid-day-events::-webkit-scrollbar {
-  width: 12px;
-}
-.fc-daygrid-day-events::-webkit-scrollbar-thumb {
-  background-color: rgba(0,0,0,0.3);
-  border-radius: 3px;
-}
-
-th {
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-}
-
-th:hover {
-  color: #007bff;
-}
-
-/* --- Sorting Header Styles --- */
-.th-sort {
-  display: flex;
-  align-items: center;
-  justify-content: center; /* centers both text & arrows */
-  gap: 6px; /* space between text and arrows */
-  cursor: pointer;
-  user-select: none;
-}
-
-.sort-icons {
-  display: flex;
-  flex-direction: column;
-  line-height: 0.8;
-  font-size: 0.7em;
-}
-
-.arrow {
-  color: #aaa;
-  transition: color 0.2s;
-}
-
-.arrow.active {
-  color: #000; /* darker when active */
-}
-
-/* Make table headers sticky */
-/* Sticky table headers */
-.dashboard-table thead th {
-  position: sticky;
-  top: 0;
-  background-color: #f8f9fa; /* match your header bg */
-  z-index: 2;
-  text-align: center; /* center header text */
-  padding: 8px 12px;
-}
-
-/* Flex container for text + arrows */
-.dashboard-table thead th .th-sort {
-  display: flex;
-  align-items: center;
-  justify-content: center; /* centers text + arrows */
-  gap: 6px; /* space between text and arrows */
-  cursor: pointer;
-  user-select: none;
-}
-
-/* Arrow styles */
-.dashboard-table thead th .th-sort .arrow {
-  font-size: 0.7em;
-  line-height: 1;
-}
-
-/* Highlight selected day */
-.selected-day {
-  background-color: #ffeeba !important; /* yellow highlight */
-  border-radius: 4px;
+/* === TOAST === */
+.toast {
+  background: #22c55e;
+  color: #fff;
+  padding: 14px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
 }
