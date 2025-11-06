@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import type { Room } from "../../../types";
 import { Button } from "../../Button";
 import ReservationModal from "../Modals/ReservationModal";
+import EditRoomModal from "../Modals/EditRoomModal";
 import AddRoomModal from "../Modals/AddRoomModal";
 import UpdateStatusModal from "../Modals/UpdateStatusModal";
 import "../../../styles/dashboard.css";
@@ -48,8 +49,6 @@ export default function RoomsTab({
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
   const [editRoom, setEditRoom] = useState<Room | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-
-
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
 
   const room = roomList.find((r) => r.id === Number(selectedRoom));
@@ -59,7 +58,12 @@ export default function RoomsTab({
     setRoomList(rooms);
   }, [rooms]);
 
-
+ const handleEditSuccess = (updatedRoom: Room) => {
+    setRoomList((prev) =>
+      prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r))
+    );
+    setShowEditModal(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -343,6 +347,14 @@ export default function RoomsTab({
           }}
            refreshPendingBookings={refreshPendingBookings}
     refreshMyBookings={refreshMyBookings}
+        />
+      )}
+
+            {showEditModal && editRoom && (
+        <EditRoomModal
+          room={editRoom}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={handleEditSuccess}
         />
       )}
 
