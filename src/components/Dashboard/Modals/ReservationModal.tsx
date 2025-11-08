@@ -1,11 +1,10 @@
-// src/components/Dashboard/ReservationModal.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { toPH } from "../../../../server/utils/dateUtils.ts";
 import dayjs from "dayjs";
 import "../../../styles/modal.css";
 import "../../../styles/dashboard.css";
 import "react-toastify/dist/ReactToastify.css";
-import { toast} from "react-toastify";
+import { toast } from "react-toastify";
 
 interface ReservationModalProps {
   roomId: number;
@@ -24,12 +23,11 @@ interface ReservationModalProps {
   onBookingSuccess?: () => void;
   refreshPendingBookings: () => void;
   chairs?: number;
-  has_tv?: boolean;
-  has_table?: boolean;
-  has_projector?: boolean;
+  has_tv?: number;
+  has_table?: number;
+  has_projector?: number;
 }
 
-// --- Generate all 15-min start/end slots ---
 const generateStartSlots = () => {
   const ts: string[] = [];
   for (let h = 0; h < 24; h++)
@@ -52,26 +50,27 @@ const generateEndSlots = () => {
 const ALL_START_SLOTS = generateStartSlots();
 const ALL_END_SLOTS = generateEndSlots();
 
-const ReservationModal: React.FC<ReservationModalProps> = ({
-  roomId,
-  building,
-  floor,
-  currentUserId,
-  roomNumber,
-  roomDesc,
-  roomName,
-  reservedBy,
-  userRole,
-  onClose,
-  onSuccess,
-  onBookingSuccess,
-  refreshPendingBookings,
-  chairs,
-  has_tv,
-  has_table,
-  has_projector,
-  refreshMyBookings,
-}) => {
+const ReservationModal: React.FC<ReservationModalProps> = (props) => {
+  const {
+    roomId,
+    building,
+    floor,
+    currentUserId,
+    roomNumber,
+    roomDesc,
+    roomName,
+    reservedBy,
+    userRole,
+    onClose,
+    onSuccess,
+    onBookingSuccess,
+    refreshPendingBookings,
+    chairs,
+    has_tv,
+    has_table,
+    has_projector,
+  } = props;
+
   const isAdmin = userRole === 1 || userRole === 2;
   const canUseRecurrence = isAdmin;
 
@@ -87,7 +86,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   const [showConfirm, setShowConfirm] = useState(false);
   const [email, setEmail] = useState("");
 
-  // Recurrence states
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceType, setRecurrenceType] = useState<"once" | "daily">("once");
   const [recurrenceDays, setRecurrenceDays] = useState<string[]>([]);
@@ -96,156 +94,115 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
 
   const today = dayjs().format("YYYY-MM-DD");
 
-  // Fetch teachers (admin only)
+  // ✅ CHANGED: Unified date used for time slot logic
+  const effectiveDate = isRecurring ? (startDate || date) : date;
+
   useEffect(() => {
     if (!isAdmin) return;
-    const fetchTeachers = async () => {
+    (async () => {
       try {
         const res = await fetch("http://localhost:5000/api/users");
         const data = await res.json();
-        if (Array.isArray(data.users)) setTeachers(data.users.filter(u => u.role === 3));
+        if (Array.isArray(data.users))
+          setTeachers(data.users.filter((u) => u.role === 3));
       } catch (err) {
-        console.error("Error fetching teachers:", err);
+        console.error(err);
       }
-    };
-    fetchTeachers();
+    })();
   }, [isAdmin]);
 
-  // Fetch email
-  const fetchEmail = async () => {
-    try {
-      const userId = isAdmin && selectedTeacherId ? selectedTeacherId : currentUserId;
-      if (!userId) return;
-      const res = await fetch(`http://localhost:5000/api/users/getEmail/${userId}`);
-      if (!res.ok) throw new Error("Failed to fetch email");
-      const data = await res.json();
-      setEmail(data.email || "");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   useEffect(() => {
-    fetchEmail();
-  }, [currentUserId, selectedTeacherId]);
+    (async () => {
+      try {
+        const userId = isAdmin && selectedTeacherId ? selectedTeacherId : currentUserId;
+        if (!userId) return;
+        const res = await fetch(`http://localhost:5000/api/users/getEmail/${userId}`);
+        const data = await res.json();
+        setEmail(data.email || "");
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  }, [selectedTeacherId, currentUserId]);
 
   const handleDayToggle = (day: string) =>
-    setRecurrenceDays(prev => (prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]));
+    setRecurrenceDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
 
-  // Fetch reservations for this room/date
+  // ✅ CHANGED: fetch using effectiveDate
   const fetchBookedTimes = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/room_bookings?room_id=${roomId}&date=${date}`);
+      const res = await fetch(
+        `http://localhost:5000/api/room_bookings?room_id=${roomId}&date=${effectiveDate}`
+      );
       const data = await res.json();
       const normalized = (Array.isArray(data) ? data : []).map((r: any) => {
-        const rawStart = r.start || r.reservation_start || r.start_time || "";
-        const rawEnd = r.end || r.reservation_end || r.end_time || "";
-
-        const startParts = String(rawStart).split(":");
-        const endParts = String(rawEnd).split(":");
-        const start = startParts.length >= 2 ? `${startParts[0].padStart(2, "0")}:${startParts[1].padStart(2, "0")}` : rawStart;
-        const end = endParts.length >= 2 ? `${endParts[0].padStart(2, "0")}:${endParts[1].padStart(2, "0")}` : rawEnd;
-
+        const start = r.start?.slice(0, 5);
+        const end = r.end?.slice(0, 5);
         return { ...r, start, end };
       });
-
-      const filtered = normalized.filter((r: any) => r.status ? r.status === "approved" : true);
+      const filtered = normalized.filter((r) =>
+        r.status ? r.status === "approved" : true
+      );
       setReservations(filtered);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setReservations([]);
     }
   };
 
+  // ✅ CHANGED dependency
   useEffect(() => {
     fetchBookedTimes();
-  }, [roomId, date]);
+  }, [roomId, effectiveDate]);
 
   const timeToMinutes = (t: string) => {
-    const parts = (t || "00:00").split(":").map(Number);
-    return (parts[0] || 0) * 60 + (parts[1] || 0);
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
   };
 
-//-----------------------
-// Convert HH:mm to minutes
+  const LATEST_START_TODAY = 23 * 60 + 15;
 
+  // ✅ CHANGED: use effectiveDate instead of date
+  const availableStartTimes = useMemo(() => {
+    const now = dayjs();
+    const isToday = dayjs(effectiveDate).isSame(now, "day");
+    const currentMinutes = now.hour() * 60 + now.minute();
 
-// Maximum start time allowed today
-const LATEST_START_TODAY = 23 * 60 + 15; // 23:15
+    return ALL_START_SLOTS.filter((slot) => {
+      const slotMin = timeToMinutes(slot);
+      if (isToday && (slotMin <= currentMinutes || slotMin > LATEST_START_TODAY)) return false;
+      for (const r of reservations) {
+        const rStart = timeToMinutes(r.start);
+        const rEnd = timeToMinutes(r.end);
+        if (slotMin >= rStart && slotMin < rEnd) return false;
+      }
+      return true;
+    });
+  }, [reservations, effectiveDate]);
 
-// Available start times
-const availableStartTimes = useMemo(() => {
-  const now = dayjs();
-  const isToday = dayjs(date).isSame(now, "day");
+  // ✅ CHANGED: use effectiveDate instead of date
+  const availableEndTimes = useMemo(() => {
+    if (!startTime) return [];
+    const startMin = timeToMinutes(startTime);
 
-  return ALL_START_SLOTS.filter((slot) => {
-    const slotMin = timeToMinutes(slot);
+    const now = dayjs();
+    const isToday = dayjs(effectiveDate).isSame(now, "day");
 
-    // 1️⃣ Cannot pick past times if today
-    if (isToday) {
-      if (slotMin <= now.hour() * 60 + now.minute()) return false;
+    const nextBooking = reservations
+      .map((r) => timeToMinutes(r.start))
+      .filter((s) => s > startMin)
+      .sort((a, b) => a - b)[0];
 
-      // 2️⃣ Cannot pick start time past 23:15 today
-      if (slotMin > LATEST_START_TODAY) return false;
-    }
+    const limit = nextBooking ? nextBooking - 1 : 1440;
 
-    // 3️⃣ Exclude slots overlapping existing reservations
-    for (const r of reservations) {
-      const rStart = timeToMinutes(r.start);
-      const rEnd = timeToMinutes(r.end);
-      if (slotMin >= rStart && slotMin < rEnd) return false;
-    }
-
-    return true;
-  });
-}, [reservations, date]);
-
-// Available end times
-const availableEndTimes = useMemo(() => {
-  if (!startTime) return [];
-
-  const startMin = timeToMinutes(startTime);
-  const now = dayjs();
-  const isToday = dayjs(date).isSame(now, "day");
-
-  // If today and start time is after 23:15, move to next day
-  if (isToday && startMin > LATEST_START_TODAY) {
-    const nextDay = dayjs(date).add(1, "day").format("YYYY-MM-DD");
-    setDate(nextDay);   // move to next day
-    setStartTime("");   // clear start
-    setEndTime("");     // clear end
-    return [];
-  }
-
-  // Determine next booking after start time
-  const nextBooking = reservations
-    .map((r) => timeToMinutes(r.start))
-    .filter((s) => s > startMin)
-    .sort((a, b) => a - b)[0];
-
-  const limit = nextBooking ? nextBooking - 1 : 24 * 60;
-
-  return ALL_END_SLOTS.filter((slot) => {
-    const slotMin = timeToMinutes(slot);
-
-    // End must be after start and before next reservation or end of day
-    if (slotMin <= startMin || slotMin > limit) return false;
-
-    // Exclude past times if today
-    if (isToday && slotMin <= now.hour() * 60 + now.minute()) return false;
-
-    // Exclude overlapping other reservations
-    for (const r of reservations) {
-      const rStart = timeToMinutes(r.start);
-      const rEnd = timeToMinutes(r.end);
-      if (slotMin > rStart && slotMin <= rEnd) return false;
-    }
-
-    return true;
-  });
-}, [startTime, reservations, date]);
-
-
+    return ALL_END_SLOTS.filter((slot) => {
+      const slotMin = timeToMinutes(slot);
+      if (slotMin <= startMin || slotMin > limit) return false;
+      if (isToday && slotMin <= now.hour() * 60 + now.minute()) return false;
+      return true;
+    });
+  }, [startTime, reservations, effectiveDate]);
 
 //------------------------
 

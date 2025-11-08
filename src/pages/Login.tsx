@@ -1,3 +1,7 @@
+
+ /* login tsx */
+
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "../components/Input";
@@ -9,7 +13,7 @@ import "../styles/login.css";
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // new state
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
@@ -21,10 +25,7 @@ function Login() {
           method: "GET",
           credentials: "include",
         });
-        if (res.ok) {
-          const data = await res.json();
-          navigate("/dashboard");
-        }
+        if (res.ok) navigate("/dashboard");
       } catch {
         // not logged in
       }
@@ -68,58 +69,71 @@ function Login() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <img src="/images/logo.jpg" alt="School Logo" className="login-logo" />
-          <h2>Welcome Back</h2>
-          <p className="text-gray-500 text-sm">Log in to your account</p>
-        </div>
-
-        <Form onSubmit={handleSubmit}>
-          {success && <p className="success-message">{success}</p>}
-
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setErrors((prev) => ({ ...prev, email: validateEmail(e.target.value) || "" }));
-            }}
-            placeholder="Email Address"
-            required
-            error={errors.email}
-          />
-
-          <Input
-            type={showPassword ? "text" : "password"} // toggle type
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setErrors((prev) => ({ ...prev, password: validatePassword(e.target.value) || "" }));
-            }}
-            placeholder="Password"
-            required
-            error={errors.password}
-          />
-
-          <div className="show-password">
-            <label>
-              <input
-                type="checkbox"
-                checked={showPassword}
-                onChange={() => setShowPassword((prev) => !prev)}
-              />{" "}
-              Show Password
-            </label>
+    <div className="login-page">
+      <div className="login-overlay">
+        <div className="login-card glass-effect">
+          <div className="login-header">
+            <img src="/images/logo.png" alt="School Logo" className="login-logo" />
+            <h2>Welcome Back</h2>
+            <p className="text-gray">Log in to your account</p>
           </div>
 
-          <SubmitButton variant="primary" className="login-btn">Log In</SubmitButton>
+          <Form onSubmit={handleSubmit}>
+            {success && <p className="success-message">{success}</p>}
 
-          <p className="login-footer">
-            Don't have an account? <Link to="/signup">Sign Up</Link>
-          </p>
-        </Form>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrors((prev) => ({
+                  ...prev,
+                  email: validateEmail(e.target.value) || "",
+                }));
+              }}
+              placeholder="Email Address"
+              required
+              error={errors.email}
+            />
+
+            <Input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrors((prev) => ({
+                  ...prev,
+                  password: validatePassword(e.target.value) || "",
+                }));
+              }}
+              placeholder="Password"
+              required
+              error={errors.password}
+            />
+
+            {/* ✅ Pantay na “Show Password” at “Forgot Password?” */}
+            <div className="show-forgot-container">
+              <label className="show-password">
+                <input
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={() => setShowPassword((prev) => !prev)}
+                />{" "}
+                Show Password
+              </label>
+
+              <label className="forgot-password-label">Forgot Password?</label>
+            </div>
+
+            <SubmitButton variant="primary" className="login-btn">
+              Log In
+            </SubmitButton>
+
+            <p className="login-footer">
+              Don’t have an account? <Link to="/signup">Sign Up</Link>
+            </p>
+          </Form>
+        </div>
       </div>
     </div>
   );

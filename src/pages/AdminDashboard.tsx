@@ -18,7 +18,7 @@ import RejectedTab from "../components/Dashboard/Tabs/RejectedTab";
 
 
 const roleLabels: Record<number, string> = {
-  1: "Admin",
+
   2: "Staff",
   3: "Reserver",
   4: "Viewer",
@@ -337,7 +337,7 @@ useEffect(() => {
     <div>
       {/* Sidebar */}
       <div className="dashboard-sidebar">
-        <img src="/images/logo.jpg" alt="School Logo" className="login-logo" />
+        <img src="/images/logo.png" alt="School Logo" className="login-logo" />
      <>
       <ToastContainer position="top-right" autoClose={5000} />
       {/* other components */}
