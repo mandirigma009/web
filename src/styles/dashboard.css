@@ -8,23 +8,7 @@ body {
   overflow-x: hidden;
 }
 
-/* === SIDEBAR === */
-.dashboard-sidebar {
-  width: 230px;
-  background: linear-gradient(180deg, #15803d 0%, #22c55e 100%);
-  color: #f0fdf4;
-  padding: 25px 20px;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  overflow-y: auto;
-  box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
-  border: none;
-}
-
+/* === SIDEBAR LOGO & HEADER === */
 .dashboard-sidebar img.login-logo {
   width: 90px;
   margin: 0 auto 25px auto;
@@ -42,6 +26,7 @@ body {
   margin-bottom: 1.5rem;
 }
 
+/* === SIDEBAR BUTTONS === */
 .dashboard-sidebar button {
   margin-bottom: 10px;
   padding: 12px 14px;
@@ -66,12 +51,13 @@ body {
 
 /* === MAIN CONTENT === */
 .dashboard-main {
-  margin-left: 250px;
+  margin-left: 250px; /* default expanded */
   padding: 40px;
   min-height: 100vh;
   background: linear-gradient(180deg, #e8fbe8 0%, #bbf7d0 100%);
   color: #064e3b;
   box-sizing: border-box;
+  transition: margin-left 0.3s ease;
 }
 
 .dashboard-main h1 {
@@ -196,3 +182,134 @@ button:hover {
   font-weight: 500;
   box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
 }
+
+/* === DASHBOARD CONTAINER === */
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* === SIDEBAR === */
+.dashboard-sidebar {
+  width: 230px;
+  background: linear-gradient(180deg, #15803d 0%, #22c55e 100%);
+  color: #f0fdf4;
+  padding: 25px 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow-y: auto;
+  box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
+  border: none;
+  flex-shrink: 0;
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+/* === HAMBURGER BUTTON === */
+.hamburger-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  justify-content: center;
+  padding: 12px 0;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* === SIDEBAR MENU BUTTONS === */
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 12px 18px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sidebar-btn .icon {
+  font-size: 15px;
+}
+
+.sidebar-btn:hover,
+.sidebar-btn.active {
+  background: #333;
+}
+
+/* === COLLAPSED SIDEBAR === */
+.sidebar-collapsed .dashboard-sidebar {
+  width: 60px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  align-items: center;
+}
+
+.sidebar-collapsed .dashboard-sidebar img.login-logo {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+}
+
+.sidebar-collapsed .hamburger-btn {
+  margin-bottom: 8px;
+  padding: 6px 0;
+}
+
+.sidebar-collapsed .sidebar-btn {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.sidebar-collapsed .sidebar-btn .label {
+  display: none !important;
+}
+
+/* === EXPANDED SIDEBAR === */
+.sidebar-open .dashboard-sidebar {
+  width: 220px;
+  padding-top: 25px;
+  padding-bottom: 25px;
+  align-items: flex-start;
+}
+
+/* === MAIN CONTENT SHIFT === */
+.sidebar-open ~ .dashboard-main {
+  margin-left: 220px; /* match expanded width */
+}
+
+.sidebar-collapsed ~ .dashboard-main {
+  margin-left: 60px; /* match collapsed width */
+}
+
+/* === LOGOUT BUTTON === */
+.dashboard-logout {
+  margin-top: auto;
+}
+
+/* === SCROLLING BEHAVIOR === */
+.dashboard-main {
+  flex: 1;
+  overflow-y: auto;
+  transition: margin-left 0.3s ease;
+}
+
+.dashboard-container.sidebar-open .dashboard-main {
+  margin-left: 220px; /* match expanded width */
+}
+
+.dashboard-container.sidebar-collapsed .dashboard-main {
+  margin-left: 60px; /* match collapsed width */
+}
+

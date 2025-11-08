@@ -6,6 +6,15 @@ import { Button } from "../components/Button";
 import type { User, Room } from "../types";
 import "../styles/modal.css";
 import "../styles/dashboard.css";
+import {
+  FaCheckCircle,
+  FaDoorOpen,
+  FaUsers,
+  FaCalendarCheck,
+  FaTimesCircle,
+  FaSignOutAlt,
+} from "react-icons/fa";
+
 
 // Components
 import AdminTab from "../components/Dashboard/Tabs/AdminTab";
@@ -33,6 +42,7 @@ import "react-toastify/dist/ReactToastify.css";
 function Dashboard() {
   const [name, setName] = useState<string>("");
   const [id, setId] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState<number>(1);
@@ -327,9 +337,13 @@ useEffect(() => {
   return (
 
 
-    <div>
+
+<div className={`dashboard-container ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
       {/* Sidebar */}
       <div className="dashboard-sidebar">
+         <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+    ☰
+  </button>
         <img src="/images/logo.png" alt="School Logo" className="login-logo" />
      <>
       <ToastContainer position="top-right" autoClose={5000} />
@@ -339,11 +353,14 @@ useEffect(() => {
         {/* Admin-only menu options */}
         {userRole && (userRole === 1 || userRole === 2) && (
           <>
+   
+
             <button
                className={`sidebar-btn ${activeTab === "Admin" ? "active" : ""}`}
               onClick={() => setActiveTab("Admin")}
             >
-              Management Users
+             <span className="icon"><FaUsers /></span>
+            <span className="label">Management Users</span>
             </button>
           </>
         )}
@@ -355,7 +372,8 @@ useEffect(() => {
           
             onClick={() => setActiveTab("ForApproval")}
           >
-            For Approval
+            <span className="icon"><FaCheckCircle /></span>
+            <span className="label">For Approval</span>
           </button>
     
 
@@ -363,14 +381,16 @@ useEffect(() => {
            className={`sidebar-btn ${activeTab === "Rooms" ? "active" : ""}`}
           onClick={() => setActiveTab("Rooms")}
         >
-          Rooms
+            <span className="icon"><FaDoorOpen /></span>
+            <span className="label">Rooms</span>
         </button>
 
           <button
             className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
             onClick={() => setActiveTab("MyBookings")}
           >
-            {userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}
+            <span className="icon"><FaCalendarCheck /></span>
+            <span className="label">{userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}</span>
           </button>
 
 {/*
@@ -385,11 +405,15 @@ useEffect(() => {
            className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}
           onClick={() => setActiveTab("Rejected")}
         >
-          Rejected
+            <span className="icon"><FaTimesCircle /></span>
+            <span className="label">Rejected</span>
+          
         </button>
 
-        <Button variant="secondary" onClick={handleLogout}>
-          Log Out
+        <Button  className='sidebar-btn' variant="secondary"  onClick={handleLogout}>
+            <span className="icon"><FaSignOutAlt /></span>
+            <span className="label">Log Out</span>
+          
         </Button>
       </div>
 
