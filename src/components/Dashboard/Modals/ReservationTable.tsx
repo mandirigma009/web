@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Dashboard/ReservationTable.tsx
 import { useState, useRef} from "react";
 import { formatToPhilippineDate } from "../../../../server/utils/dateUtils";
@@ -22,17 +23,18 @@ dayjs.extend(timezone);
 
 interface ReservationTableProps {
   reservations: Room[];
-  userRole: number;
+  userRole: (number);
   deleteReservation?: (id: number) => void;
   editBooking?: (booking: Room) => void;
   approveBooking?: (id: number) => void;
   rejectBooking?: (id: number) => void;
-  formatTime: (start: string, end: string, dateStr?: string) => string;
+  formatTime: (start: string, end: string, dateStr: string) => string;
   isForApproval?: boolean;
   isMyBookings?: boolean;
   refreshMyBookings: () => void;
   openCalendar?: (booking: Room) => void;
   currentUserId: number | null;
+
 }
 
 export default function ReservationTable({
@@ -97,8 +99,8 @@ const handleSort = (key: string) => {
     }
   };
 
-console.log("current user role : ", userRole)
-console.log("currentUserId:", currentUserId)
+//console.log("current user role : ", userRole)
+//console.log("currentUserId:", currentUserId)
 
 const visibleReservations = (reservations || []).filter((b) => {
   if (isMyBookings) {
@@ -129,8 +131,8 @@ const sortedReservations = [...visibleReservations].sort((a, b) => {
       try {
         const dateUTC = dayjs.utc(b.date_reserved);
         const datePH = dateUTC.tz("Asia/Manila");
-        const startTime = b.reservation_start.length === 5 ? `${b.reservation_start}:00` : b.reservation_start;
-        const endTime = b.reservation_end.length === 5 ? `${b.reservation_end}:00` : b.reservation_end;
+        const startTime = b.reservation_start?.length === 5 ? `${b.reservation_start}:00` : b.reservation_start;
+        const endTime = b.reservation_end?.length === 5 ? `${b.reservation_end}:00` : b.reservation_end;
         const startPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
         const endPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila");
         return {
@@ -145,7 +147,7 @@ const sortedReservations = [...visibleReservations].sort((a, b) => {
         return null;
       }
     })
-    .filter(Boolean);
+     .filter((e) => e !== null);
 
   // ----------------------------
   const isCancelable = (booking: Room) => {
@@ -154,7 +156,7 @@ const sortedReservations = [...visibleReservations].sort((a, b) => {
       const nowPH = dayjs().tz("Asia/Manila");
       const dateUTC = dayjs.utc(booking.date_reserved);
       const datePH = dateUTC.tz("Asia/Manila");
-      const startTime = booking.reservation_start.length === 5 ? `${booking.reservation_start}:00` : booking.reservation_start;
+      const startTime = booking.reservation_start?.length === 5 ? `${booking.reservation_start}:00` : booking.reservation_start;
       const combinedPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
       if (!combinedPH.isValid()) return false;
       
@@ -295,7 +297,7 @@ const sortedReservations = [...visibleReservations].sort((a, b) => {
                     <td>
                       <strong>{booking.room_description || "No description"}</strong>
                       <br />
-                      <span style={{ fontSize: "0.9em", color: selectedRowId === booking.id ? "#fff" : "#000" }}>
+                      <span style={{ fontSize: "0.9em", color: selectedRowId === booking.id ? "#000" : "#000" }}>
                         {booking.chairs ? `${booking.chairs} Chair${booking.chairs > 1 ? "s" : ""}` : "No Chairs"},
                         TV: {booking.has_tv ? "Yes" : "No"} | Tables: {booking.has_table ? "Yes" : "No"} | Projector: {booking.has_projector ? "Yes" : "No"}
                       </span>
@@ -440,7 +442,7 @@ const sortedReservations = [...visibleReservations].sort((a, b) => {
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
           formatTimePH={(s, e) => `${s} - ${e}`}
-          userRole={userRole === 1 || userRole === 2 ? "admin" : "teacher"}
+          userRole={userRole}
           activeTab={activeTab}
          onApprove={() => handleAction("approve", selectedBooking)}
           onReject={() => handleAction("reject", selectedBooking)}

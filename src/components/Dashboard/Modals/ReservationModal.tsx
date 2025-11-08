@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useState } from "react";
 import { toPH } from "../../../../server/utils/dateUtils.ts";
 import dayjs from "dayjs";
@@ -9,11 +10,10 @@ import { toast } from "react-toastify";
 interface ReservationModalProps {
   roomId: number;
   building: string;
-  floor: string;
+  floor: number;
   roomNumber: string;
   roomDesc: string;
   roomName: string;
-  name: string;
   currentUserId: number | null;
   reservedBy: string;
   userRole: number;
@@ -79,7 +79,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
   const [selectedTeacherId, setSelectedTeacherId] = useState<number>();
   const [selectedTeacherName, setSelectedTeacherName] = useState("");
 
-  const [date, setDate] = useState(toPH(new Date()).format("YYYY-MM-DD"));
+  const [date, setDate] = useState(toPH(new Date().toISOString()).format("YYYY-MM-DD"));
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [notes, setNotes] = useState("");
@@ -104,7 +104,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
         const res = await fetch("http://localhost:5000/api/users");
         const data = await res.json();
         if (Array.isArray(data.users))
-          setTeachers(data.users.filter((u) => u.role === 3));
+          setTeachers(data.users.filter((u: { role: number; }) => u.role === 3));
       } catch (err) {
         console.error(err);
       }
@@ -179,7 +179,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
       }
       return true;
     });
-  }, [reservations, effectiveDate]);
+  }, [effectiveDate, LATEST_START_TODAY, reservations]);
 
   // ✅ CHANGED: use effectiveDate instead of date
   const availableEndTimes = useMemo(() => {
@@ -231,7 +231,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
     }
   };
 
-  const isOverlapping = (newRes, pendingRes) => {
+  const isOverlapping = (newRes: { roomId: any; date: any; startTime: any; endTime: any; }, pendingRes: { room_id: any; date: any; reservation_start: any; reservation_end: any; }) => {
     if (newRes.roomId !== pendingRes.room_id) return false;
     if (newRes.date !== pendingRes.date) return false;
 
@@ -247,7 +247,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
     try {
       const pendingReservations = await getPendingReservations();
       const newReservation = { roomId, date, startTime, endTime };
-      const conflict = pendingReservations.find(r => isOverlapping(newReservation, r));
+      const conflict = pendingReservations.find((r: { room_id: any; date: any; reservation_start: any; reservation_end: any; }) => isOverlapping(newReservation, r));
 
       if (conflict) {
         toast.warn(() => (
@@ -279,7 +279,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
 
   const submitReservation = async () => {
     try {
-      const todayPH = toPH(new Date());
+      const todayPH = toPH(new Date().toISOString());
       const selectedDatePH = toPH(date);
 
       if (selectedDatePH.isBefore(todayPH, "day")) {
@@ -287,8 +287,8 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
         return;
       }
 
-      let finalStartDate = startDate || todayPH.format("YYYY-MM-DD");
-      let finalEndDate = endDate || toPH(new Date()).add(7, "days").format("YYYY-MM-DD");
+      const finalStartDate = startDate || todayPH.format("YYYY-MM-DD");
+      const finalEndDate = endDate ||toPH(new Date().toISOString()).add(7, "days").format("YYYY-MM-DD");
 
       const finalReservedBy = isAdmin ? selectedTeacherName : reservedBy;
       const finalUserId = isAdmin ? selectedTeacherId! : currentUserId!;
@@ -326,7 +326,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
         fetchBookedTimes();
         refreshPendingBookings?.();
         setShowConfirm(false);
-        setDate(toPH(new Date()).format("YYYY-MM-DD"));
+        setDate(toPH(new Date().toISOString()).format("YYYY-MM-DD"));
         setStartTime("");
         setEndTime("");
         setNotes("");

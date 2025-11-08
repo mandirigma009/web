@@ -10,10 +10,11 @@ import "react-toastify/dist/ReactToastify.css";
 interface ForApprovalTabProps {
   pendingBookings: Room[];
   refreshPendingBookings: () => void; // parent fetch function
-  userRole: number;
+  userRole: (number);
+    currentUserId: number | null;
 }
 
-export default function ForApprovalTab({ pendingBookings, refreshPendingBookings, userRole }: ForApprovalTabProps) {
+export default function ForApprovalTab({ pendingBookings, refreshPendingBookings, userRole, currentUserId }: ForApprovalTabProps) {
   const [editingBooking, setEditingBooking] = useState<Room | null>(null);
   const [calendarBooking, setCalendarBooking] = useState<Room | null>(null);
 
@@ -45,6 +46,7 @@ export default function ForApprovalTab({ pendingBookings, refreshPendingBookings
       <ReservationTable
         reservations={pendingBookings}
         userRole={userRole}
+        currentUserId={currentUserId}
         editBooking={setEditingBooking}
         approveBooking={handleApprove}
         deleteReservation={handleCancel}
@@ -71,7 +73,7 @@ export default function ForApprovalTab({ pendingBookings, refreshPendingBookings
           booking={calendarBooking}
           onClose={() => setCalendarBooking(null)}
           formatTimePH={(s, e) => `${s} - ${e}`}
-          userRole={userRole === 1 || userRole === 2 ? "admin" : "teacher"}
+          userRole={userRole}
           activeTab="pending"
           onApprove={handleApprove}
           onReject={handleReject}

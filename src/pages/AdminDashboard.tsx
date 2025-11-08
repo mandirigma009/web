@@ -12,7 +12,7 @@ import AdminTab from "../components/Dashboard/Tabs/AdminTab";
 import RoomsTab from "../components/Dashboard/Tabs/RoomsTab";
 import MyBookingsTab from "../components/Dashboard/Tabs/MyBookingsTab";
 import MyProfileTab from "../components/Dashboard/Tabs/MyProfileTab";
-import AddRoomModal from "../components/Dashboard/Modals/AddRoomModal";
+//import AddRoomModal from "../components/Dashboard/Modals/AddRoomModal";
 import ForApprovalTab from "../components/Dashboard/Tabs/ForApprovalTab";
 import RejectedTab from "../components/Dashboard/Tabs/RejectedTab";
 
@@ -39,23 +39,15 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState<
     "Admin" | "Rooms" | "MyProfile" | "MyBookings" | "ForApproval" | "Rejected" 
   >("Rooms");
-  const [userRole, setUserRole] = useState<number | null>(null);
+  const [userRole, setUserRole] = useState<number>(4);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
-  const [newRoom, setNewRoom] = useState({
-    room_number: "",
-    room_name: "",
-    room_description: "",
-    building_name: "",
-    floor_number: 1,
-    chairs: 0,
-  });
+ 
 
   const [myBookings, setMyBookings] = useState<Room[]>([]);
   const [pendingBookings, setPendingBookings] = useState<Room[]>([]);
     const [rejectedBookings, setRejectedBookings] = useState<Room[]>([]);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [, setCurrentTime] = useState(new Date());
 
   const navigate = useNavigate();
 
@@ -260,7 +252,7 @@ useEffect(() => {
       alert("Failed to update role. Check console for details.");
     }
   };
-
+/*
   // ---------- Add room ----------
   const handleAddRoom = async () => {
     try {
@@ -289,6 +281,7 @@ useEffect(() => {
     }
   };
 
+  */
   // ---------- Cancel reservation ----------
   const cancelReservation = async (id: number) => {
     try {
@@ -429,6 +422,7 @@ useEffect(() => {
                 pendingBookings={pendingBookings}
                  refreshPendingBookings={fetchPendingBookings}
                   userRole={userRole}
+                  currentUserId = {id}
              />
         )}
 
@@ -441,7 +435,7 @@ useEffect(() => {
             name={name}
             id={id}
             onBookingSuccess={fetchMyBookings}
-            setShowAddRoomModal={setShowAddRoomModal}
+           // setShowAddRoomModal={setShowAddRoomModal}
             formatDate={formatDate}
             formatTime={formatTime}
              refreshPendingBookings={fetchPendingBookings}
@@ -471,21 +465,23 @@ useEffect(() => {
                (userRole === 1 || userRole === 2 || userRole === 3) && (
               <RejectedTab
                 rejectedBookings={rejectedBookings}
-                 refreshRejectedBookings={fetchRejectedBookings}
+                 //rejectedBookings={fetchRejectedBookings}
                   userRole={userRole}
              />
         )}
              
     
-
+{/*
         {showAddRoomModal && (
           <AddRoomModal
             newRoom={newRoom}
             setNewRoom={setNewRoom}
-            handleAddRoom={handleAddRoom}
-            setShowAddRoomModal={setShowAddRoomModal}
+            //onClose = 
+            //handleAddRoom={handleAddRoom}
+           // setShowAddRoomModal={setShowAddRoomModal}
           />
-        )}
+         
+        )} */}
       </div>
     </div>
   );

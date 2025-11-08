@@ -14,8 +14,8 @@ interface CalendarEventsModalProps {
   booking: Room;
   onClose: () => void;
   formatTimePH: (start: string, end: string, dateStr?: string) => string;
-  userRole: "admin" | "teacher" | "user";
-  activeTab: string; // "pending" | "approved" | "rejected"
+  userRole: (number);
+  activeTab: (string); // "pending" | "approved" | "rejected"
    onApprove?: (id: number) => void;
   onReject?: (id: number) => void;
   onCancel?: (id: number) => void;
@@ -37,13 +37,13 @@ export default function CalendarEventsModal({
   onEdit,
 }: CalendarEventsModalProps) {
   const isCancelable = (booking: Room) => {
-    if (userRole === "admin") return true;
-    if (userRole === "teacher") {
+    if (userRole === 1 || userRole === 2  ) return true;
+    if (userRole === 3) {
       const nowPH = dayjs().tz("Asia/Manila");
       const dateUTC = dayjs.utc(booking.date_reserved);
       const datePH = dateUTC.tz("Asia/Manila");
       const startTime =
-        booking.reservation_start.length === 5
+        booking.reservation_start?.length === 5
           ? `${booking.reservation_start}:00`
           : booking.reservation_start;
       const combinedPH = dayjs.tz(
@@ -103,8 +103,8 @@ export default function CalendarEventsModal({
 
         <p><strong>Reserved By:</strong> {booking.reserved_by}</p>
         <p><strong>Status:</strong> {booking.status}</p>
-        <p><strong>Date:</strong> {formatToPhilippineDate(booking.date_reserved)}</p>
-        <p><strong>Time:</strong> {formatTimePH(booking.reservation_start, booking.reservation_end, booking.date_reserved)}</p>
+        <p><strong>Date:</strong> {formatToPhilippineDate(booking?.date_reserved)}</p>
+        <p><strong>Time:</strong> {formatTimePH(booking?.reservation_start, booking.reservation_end, booking.date_reserved)}</p>
 
         {booking.notes && <p><strong>Notes:</strong> {booking.notes}</p>}
         {booking.reject_reason && <p><strong>Reason:</strong> {booking.reject_reason}</p>}
@@ -112,7 +112,7 @@ export default function CalendarEventsModal({
         {/* --- ACTION BUTTONS --- */}
         <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
           {/* Admin Buttons for Pending */}
-          {userRole === "admin" && activeTab === "pending" && (
+          {userRole === 1 || userRole === 2 && activeTab === "pending" && (
             <>
               <button className="btn btn-success btn-sm"   onClick={async () => {
                         if (onApprove) await onApprove(booking.id);
@@ -123,7 +123,7 @@ export default function CalendarEventsModal({
           )}
 
           {/* Teacher Buttons for Pending */}
-          {userRole === "teacher" && activeTab === "pending" && (
+          {userRole === 3 && activeTab === "pending" && (
           
  <div
     className="modal-footer"

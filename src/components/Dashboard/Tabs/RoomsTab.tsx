@@ -13,7 +13,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 interface RoomsTabProps {
   rooms: Room[];
-  userRole: number | null;
+  userRole: number;
   name: string;
   id: number | null;
   onBookingSuccess?: () => void;
@@ -42,7 +42,7 @@ export default function RoomsTab({
   const [selectedFloor, setSelectedFloor] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("");
   const [showReservationModal, setShowReservationModal] = useState(false);
-  const [highlightedRowId, setHighlightedRowId] = useState<number | null>(null);
+  const [, setHighlightedRowId] = useState<number | null>(null);
   const [roomList, setRoomList] = useState<Room[]>(rooms);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusRoom, setStatusRoom] = useState<Room | null>(null);
@@ -325,7 +325,7 @@ export default function RoomsTab({
         <ReservationModal
           roomId={Number(selectedRoom)}
           building={room?.building_name || ""}
-          floor={room?.floor_number || ""}
+          floor={room?.floor_number ?? 1}
           currentUserId={id}
           roomName={room?.room_name || ""}
           roomNumber={room?.room_number || ""}

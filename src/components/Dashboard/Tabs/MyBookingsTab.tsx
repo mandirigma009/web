@@ -3,7 +3,7 @@ import type { Room } from "../../../types";
 import ReservationTable from "../Modals/ReservationTable";
 import "../../../styles/dashboard.css";
 import "react-toastify/dist/ReactToastify.css";
-import { toast, ToastContainer } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 
 
 interface MyBookingsTabProps {
@@ -13,13 +13,13 @@ interface MyBookingsTabProps {
   formatDate: (dateStr: string) => string;
   formatTime: (start: string, end: string, dateStr: string) => string;
   refreshMyBookings: () => void;
-  userRole: number; // add userRole prop
-  currentUserId: number;
+  userRole: (number);
+  currentUserId: number | null;
 }
 
 export default function MyBookingsTab({
   myBookings,
-  formatDate,
+ // formatDate,
   formatTime,
   refreshMyBookings,
   userRole,
@@ -27,7 +27,7 @@ currentUserId
 }: 
 
 MyBookingsTabProps) {
-
+/*
   const handleCancelReservation = async (bookingId: number, reason?: string) => {
   try {
     // If reason is provided (from CancelReasonModal), send it to backend
@@ -51,7 +51,7 @@ MyBookingsTabProps) {
   }
 };
 
-
+*/
 //console.log("UserRole in MybookingsTab: ", userRole)
 
   return (
@@ -59,8 +59,7 @@ MyBookingsTabProps) {
       <ReservationTable
         reservations={myBookings}
         userRole={userRole}
-        cancelReservation={handleCancelReservation}
-        formatDate={formatDate}
+        //formatDate={formatDate}
         formatTime={formatTime}
         refreshMyBookings = {refreshMyBookings}
         isMyBookings={true}

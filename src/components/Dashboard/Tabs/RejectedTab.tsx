@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import type { Room } from "../../../types";
 import { formatToPhilippineDate } from "../../../../server/utils/dateUtils.ts";
@@ -23,7 +24,7 @@ interface RejectedTabProps {
   userRole: number;
 }
 
-export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
+export default function RejectedTab({ rejectedBookings, userRole}: RejectedTabProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
@@ -100,7 +101,7 @@ export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
         return null;
       }
     })
-    .filter(Boolean);
+     .filter((e) => e !== null);
 
   // -----------------------------
   // Deselect row on outside click
@@ -279,6 +280,8 @@ export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
           formatTimePH={formatTimePH}
+          userRole={userRole}
+          activeTab = 'rejected'
         />
       )}
     </div>
