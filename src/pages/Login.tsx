@@ -1,7 +1,3 @@
-
- /* login tsx */
-
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "../components/Input";
@@ -19,6 +15,7 @@ function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Auto-redirect if already authenticated
     const checkAuth = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/me", {
@@ -111,7 +108,6 @@ function Login() {
               error={errors.password}
             />
 
-            {/* ✅ Pantay na “Show Password” at “Forgot Password?” */}
             <div className="show-forgot-container">
               <label className="show-password">
                 <input
@@ -122,7 +118,16 @@ function Login() {
                 Show Password
               </label>
 
-              <label className="forgot-password-label">Forgot Password?</label>
+              <span
+                className="forgot-password-label"
+                style={{ cursor: "pointer", color: "#007bff", textDecoration: "underline" }}
+                onClick={() =>
+                  navigate("/forgot-password", { state: { fromLogin: true, email } })
+                }
+              >
+                Forgot Password?
+              </span>
+
             </div>
 
             <SubmitButton variant="primary" className="login-btn">

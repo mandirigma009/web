@@ -72,7 +72,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
   } = props;
 
   const isAdmin = userRole === 1 || userRole === 2;
-  const canUseRecurrence = isAdmin;
+  const canUseRecurrence = isAdmin || userRole === 3;
 
   const [reservations, setReservations] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);

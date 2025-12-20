@@ -435,6 +435,8 @@ useEffect(() => {
               handleEditClick={handleEditClick}
               handleSaveRole={handleSaveRole}
               setSelectedRole={setSelectedRole}
+              currentUserRole = {userRole}
+            
             />
           )}
 

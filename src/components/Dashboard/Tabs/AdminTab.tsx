@@ -3,53 +3,40 @@ import { useState, useEffect, useRef } from "react";
 import type { User } from "../../../types";
 import "../../../styles/modal.css";
 import "../../../styles/dashboard.css";
+import AddUserModal from "../Modals/AddUserModal";
 
 interface AdminTabProps {
   users: User[];
+  currentUserRole: number; // Added to check if current user is admin
   editingUserId: number | null;
   selectedRole: number;
   roleLabels: Record<number, string>;
   handleEditClick: (user: User) => void;
   handleSaveRole: (id: number) => void;
   setSelectedRole: (role: number) => void;
+
 }
 
 export default function AdminTab({
   users,
+  currentUserRole,
   editingUserId,
   selectedRole,
   roleLabels,
   handleEditClick,
   handleSaveRole,
   setSelectedRole,
+
 }: AdminTabProps) {
-
   const dropdownRef = useRef<HTMLDivElement>(null);
-    const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+   const [localUsers, setLocalUsers] = useState<User[]>(users);
 
-
-    //outside click
-    useEffect(() => {
-  const handleClickOutside = (event: MouseEvent) => {
-    const table = document.getElementById("my-bookings-table");
-    if (table && !table.contains(event.target as Node)) {
-      setSelectedRowId(null);
-    }
-  };
-
-  document.addEventListener("click", handleClickOutside);
-  return () => document.removeEventListener("click", handleClickOutside);
-}, []);
-
-
-
-  // Unhighlight row when clicking outside
+  // Outside click to unhighlight
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setSelectedRowId(null);
       }
     };
@@ -57,39 +44,45 @@ export default function AdminTab({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
- // Delete user
-const handleDeleteUser = async (userId: number) => {
-  console.log("Attempting to delete user with ID:", userId); // 🔹 added log
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
 
-  if (!confirm("Are you sure you want to delete this user?")) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/users/${userId}`, {
+        method: "DELETE",
+      });
 
-  try {
-    const res = await fetch(`http://localhost:5000/api/users/${userId}`, {
-      method: "DELETE",
-    });
+      if (!res.ok) throw new Error("Failed to delete user");
 
-    if (!res.ok) throw new Error("Failed to delete user");
+      alert("User deleted!");
 
-    alert("User deleted!");
-
-    // Remove user from local state
-    const index = users.findIndex((u) => u.id === userId);
-    if (index !== -1) {
-      users.splice(index, 1);
+      // Refresh user list
+   users.filter((u) => u.id !== userId);
+      setSelectedRowId(null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete user");
     }
+  };
 
-    setSelectedRowId(null);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to delete user");
-  }
-};
+    const fetchUsers = async () => {
+    const res = await fetch("http://localhost:5000/api/users");
+    const data = await res.json();
+    setLocalUsers(data);
+  };
 
-//--------------------------
   return (
     <div ref={dropdownRef}>
-      <h2>User Management</h2>
-     <table id="my-bookings-table" className="dashboard-table">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2>User Management</h2>
+        {currentUserRole === 1 && (
+          <button className="primary" onClick={() => setShowAddModal(true)}>
+            Add User
+          </button>
+        )}
+      </div>
+
+      <table id="my-bookings-table" className="dashboard-table">
         <thead>
           <tr>
             <th>Name</th>
@@ -157,6 +150,13 @@ const handleDeleteUser = async (userId: number) => {
           ))}
         </tbody>
       </table>
+
+      {showAddModal && (
+        <AddUserModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={fetchUsers} // ✅ refresh table
+        />
+      )}
     </div>
   );
 }
