@@ -313,3 +313,24 @@ button:hover {
   margin-left: 60px; /* match collapsed width */
 }
 
+/* Highlighted row style */
+.highlighted {
+  background-color: #d4f5d4; /* light green */
+  color: #000; /* black text */
+}
+
+.dashboard-table tbody tr:hover {
+  background-color: #c0f0c0; /* slightly different green on hover */
+}
+
+/* Highlighted row */
+.highlighted {
+  background-color: #d4f5d4; /* Light green */
+  color: #000 !important; /* Force all text to black */
+}
+
+/* Ensure all child elements inherit black text */
+.highlighted * {
+  color: #000 !important;
+}
+

@@ -8,6 +8,7 @@ import { ProtectedRoute } from "../components/ProtectedRoute";
 import NotFound from "../pages/NotFound";
 import ForgotPassword from "../pages/ForgotPassword";
 import ResetPassword from "../pages/ResetPassword";
+import VerifyEmail from "../pages/VerifyEmail";
 
 
 export default function AppRoutes() {
@@ -21,6 +22,8 @@ export default function AppRoutes() {
       <Route path="/unauthorized" element={<h1>🚫 Unauthorized</h1>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+
 
 
       {/* Protected Dashboards */}

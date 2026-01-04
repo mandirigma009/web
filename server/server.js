@@ -1,4 +1,4 @@
-//server/routes
+//server/server.js
 import dotenv from "dotenv";
 dotenv.config(); // <-- MUST be first
 

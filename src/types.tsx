@@ -1,5 +1,8 @@
 // src/types.tsx
 export interface User {
+ 
+  status: string;
+  verified: number;
   id: number;
   name: string;
   email: string;
@@ -21,6 +24,7 @@ export interface Room {
   building_name: string;
   floor_number: number;
   status: number;
+  verified: number;
   date_reserved: string;
   reservation_start: string;
   reservation_end: string;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/ResetPassword.tsx
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
@@ -11,7 +12,7 @@ function ResetPassword() {
   const location = useLocation();
   const state = location.state as { email?: string; fromForgot?: boolean };
 
-  const [email, setEmail] = useState(state?.email || "");
+  const [email, ] = useState(state?.email || "");
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

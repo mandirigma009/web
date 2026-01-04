@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Dashboard/AddUserModal.tsx
 import { useState } from "react";
 import { Button } from "../../Button";
@@ -12,13 +13,39 @@ export default function AddUserModal({ onClose, onSuccess }: AddUserModalProps) 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const generatePassword = () => {
-    const chars =
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
-    return Array.from({ length: 8 }, () =>
-      chars[Math.floor(Math.random() * chars.length)]
-    ).join("");
+  const generatePassword = (length = 8) => {
+        const lowercase = "abcdefghijklmnopqrstuvwxyz";
+        const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const numbers = "0123456789";
+        const special = "!@#$%^&*()";
+
+        if (length < 8) length = 8; // enforce minimum length
+
+        // pick at least 1 from each category
+        const getRandom = (chars: string) => chars[Math.floor(Math.random() * chars.length)];
+
+        const passwordChars = [
+          getRandom(lowercase),
+          getRandom(uppercase),
+          getRandom(numbers),
+          getRandom(special),
+        ];
+
+        // fill the rest randomly
+        const allChars = lowercase + uppercase + numbers + special;
+        for (let i = passwordChars.length; i < length; i++) {
+          passwordChars.push(getRandom(allChars));
+        }
+
+        // shuffle to avoid predictable pattern
+        for (let i = passwordChars.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
+        }
+
+        return passwordChars.join("");
   };
+
 
   const handleSubmit = async () => {
     if (!name || !email) {
@@ -37,6 +64,7 @@ export default function AddUserModal({ onClose, onSuccess }: AddUserModalProps) 
           email,
           password: generatePassword(),
           role: 3, // ✅ default role for Add User
+         isAdminCreated: true, 
         }),
       });
 

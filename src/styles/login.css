@@ -208,5 +208,111 @@ input:focus {
   align-items: center;       /*  align vertically with checkbox text */
 }
 
+/* =========================================================
+   LOGIN ATTEMPTS WARNING
+   ========================================================= */
+.attempts-warning {
+  margin-top: -6px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  text-align: left;
+  color: #ffd166;
+  animation: fadeIn 0.4s ease-in-out;
+}
 
+.attempts-warning strong {
+  color: #ffe8a3;
+}
+
+/* =========================================================
+   ACCOUNT LOCK WARNING
+   ========================================================= */
+.lock-warning {
+  background: rgba(255, 80, 80, 0.25);
+  border: 1px solid rgba(255, 120, 120, 0.6);
+  color: #ffecec;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  font-size: 0.85rem;
+  text-align: left;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.lock-warning p {
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+}
+
+.reset-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #00ffb2;
+  font-weight: 600;
+  font-size: 0.85rem;
+  align-content: center;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.reset-link:hover {
+  color: #00ffa6;
+}
+
+input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-btn:disabled {
+  background: rgba(255, 255, 255, 0.25);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Error text under inputs */
+.input-error {
+  background: rgba(220, 53, 69, 0.3);
+  color: #fff;
+}
+
+.attempts-warning {
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  text-align: left;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.attempts-warning.warning {
+  color: #ffd166;
+}
+
+.attempts-warning.danger {
+  color: #ff6b6b;
+}
+
+
+.lock-warning {
+  background: rgba(255, 80, 80, 0.25);
+  border: 1px solid rgba(255, 120, 120, 0.6);
+  color: #ffecec;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  font-size: 0.85rem;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+
+.shake {
+  animation: shake 0.35s ease-in-out;
+}
 
