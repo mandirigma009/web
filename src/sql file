@@ -1,0 +1,136 @@
+-- --------------------------------------------------------
+-- Database: myapp
+-- --------------------------------------------------------
+
+CREATE DATABASE IF NOT EXISTS `myapp`;
+USE `myapp`;
+
+-- --------------------------------------------------------
+-- Table structure for cron_last_run
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `cron_last_run` (
+  `id` int(11) NOT NULL DEFAULT 1,
+  `last_processed` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Sample data
+INSERT INTO `cron_last_run` (`id`, `last_processed`) VALUES
+(1, '2026-01-04 21:59:00');
+
+-- --------------------------------------------------------
+-- Table structure for rooms
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `rooms` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `room_number` varchar(10) NOT NULL,
+  `room_name` varchar(100) NOT NULL,
+  `room_description` text DEFAULT NULL,
+  `building_name` varchar(100) DEFAULT NULL,
+  `floor_number` int(11) DEFAULT NULL,
+  `status` tinyint(4) DEFAULT 1,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `chairs` int(11) DEFAULT 0,
+  `has_tv` tinyint(1) DEFAULT 0,
+  `has_projector` tinyint(1) DEFAULT 0,
+  `has_table` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Sample data
+INSERT INTO `rooms` (`id`, `room_number`, `room_name`, `room_description`, `building_name`, `floor_number`, `status`, `created_at`, `chairs`, `has_tv`, `has_projector`, `has_table`) VALUES
+(5, '125', 'R125', 'Classroom', 'CIT Building', 1, 1, '2025-09-21 23:16:26', 0, 0, 1, 1),
+(6, '412', 'R412', 'Classroom', 'IT Building', 4, 3, '2025-09-22 21:12:51', 0, 0, 1, 0),
+(9, '317', 'R317', 'Classroom', 'IT Building', 3, 1, '2025-10-05 09:51:38', 0, 0, 0, 1),
+(12, '314', 'R314', 'Classroom', 'IT Building', 3, 1, '2025-10-06 00:38:10', 30, 1, 1, 1),
+(15, '111', 'test room', 'test description', 'test 1', 1, 1, '2025-10-18 10:42:10', 60, 1, 1, 0),
+(17, '404', 'Roorm 404', 'this is a test room 4', 'test building', 4, 1, '2025-10-20 18:27:18', 40, 1, 1, 1),
+(20, '101', 'room 101', 'Test Room 1', 'test building', 1, 1, '2025-10-27 01:02:02', 40, 1, 0, 1),
+(21, '102', 'Room 102', 'Test room 2', 'test building', 1, 1, '2025-10-27 01:04:13', 37, 1, 1, 0),
+(25, '111', 'room 111', 'test room 111', 'test building', 1, 1, '2025-10-28 15:12:10', 200000000, 1, 1, 0),
+(26, '112', 'test room 112', 'test room', 'test building', 1, 1, '2025-10-28 15:12:56', 3000, 1, 1, 1),
+(27, '114', 'test room 113', 'test room', 'test building', 1, 1, '2025-10-28 15:13:24', 401, 1, 1, 1),
+(28, '444', 'room 444', 'test room 444', 'test building', 4, 1, '2025-11-08 16:29:21', 444, 1, 0, 0);
+
+-- --------------------------------------------------------
+-- Table structure for room_bookings
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `room_bookings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `room_id` int(11) NOT NULL,
+  `reserved_by` varchar(100) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `date_reserved` date NOT NULL,
+  `reservation_start` time NOT NULL,
+  `reservation_end` time NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `room_number` varchar(50) DEFAULT NULL,
+  `room_name` varchar(100) DEFAULT NULL,
+  `room_description` text DEFAULT NULL,
+  `building_name` varchar(100) DEFAULT NULL,
+  `floor_number` int(11) DEFAULT NULL,
+  `assigned_by` varchar(100) NOT NULL,
+  `status` enum('pending','approved','cancelled','rejected_by_admin','cancelled_not_approved_before_start') DEFAULT 'pending',
+  `is_archived` tinyint(1) DEFAULT 0,
+  `approved_at` datetime DEFAULT NULL,
+  `reject_reason` varchar(255) DEFAULT NULL,
+  `rejected_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_room_id` (`room_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table structure for room_bookings_archive
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `room_bookings_archive` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `room_id` int(11) NOT NULL,
+  `reserved_by` varchar(100) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `date_reserved` date NOT NULL,
+  `reservation_start` time NOT NULL,
+  `reservation_end` time NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `room_number` varchar(50) DEFAULT NULL,
+  `room_name` varchar(100) DEFAULT NULL,
+  `room_description` text DEFAULT NULL,
+  `building_name` varchar(100) DEFAULT NULL,
+  `floor_number` int(11) DEFAULT NULL,
+  `assigned_by` varchar(100) NOT NULL,
+  `status` enum('pending','approved','cancelled','rejected_by_admin','cancelled_not_approved_before_start') DEFAULT 'pending',
+  `is_archived` tinyint(1) DEFAULT 0,
+  `approved_at` datetime DEFAULT NULL,
+  `reject_reason` varchar(255) DEFAULT NULL,
+  `rejected_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_room_id` (`room_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table structure for users
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL UNIQUE,
+  `password` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `role` int(11) NOT NULL DEFAULT 4,
+  `reset_code` varchar(6) DEFAULT NULL,
+  `reset_expires` timestamp NULL DEFAULT NULL,
+  `status` enum('active','pending','rejected') NOT NULL DEFAULT 'active',
+  `verified` tinyint(1) NOT NULL DEFAULT 0,
+  `verification_token` varchar(255) DEFAULT NULL,
+  `verification_token_created_at` datetime DEFAULT NULL,
+  `failed_attempts` int(11) DEFAULT 0,
+  `locked_until` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Sample data
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `created_at`, `role`, `status`, `verified`) VALUES
+(1, 'Admin1 test', 'AdminTest@mail.com', '$2b$10$7Pmq0nBpg8D2FZAXdZbHcOLsy8NnkSDdfJE01vPdma.ywGGSeqVcm', '2025-09-20 10:03:05', 1, 'active', 1);
