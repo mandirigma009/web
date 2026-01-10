@@ -159,6 +159,7 @@ router.post("/book", async (req, res) => {
       date,
       startTime,
       endTime,
+      subject,
       notes,
       roomNumber,
       roomDesc,
@@ -210,9 +211,9 @@ router.post("/book", async (req, res) => {
       await db.query(
         `INSERT INTO room_bookings
          (room_id, reserved_by, user_id, email, assigned_by, date_reserved,
-          reservation_start, reservation_end, notes, room_number, room_description,
+          reservation_start, reservation_end, subject, notes, room_number, room_description,
           room_name, floor_number, building_name, status, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           roomId,
           reserved_by,
@@ -222,6 +223,7 @@ router.post("/book", async (req, res) => {
           b.date_reserved,
           startTime,
           endTime,
+          subject || null,
           notes || null,
           roomNumber,
           roomDesc,
@@ -530,6 +532,7 @@ router.put("/:id", async (req, res) => {
     date_reserved,
     reservation_start,
     reservation_end,
+    subject,
     notes,
     status,
   } = req.body;
@@ -541,9 +544,9 @@ router.put("/:id", async (req, res) => {
 
     await db.query(
       `UPDATE room_bookings
-       SET date_reserved = ?, reservation_start = ?, reservation_end = ?, notes = ?, status = ?
+       SET date_reserved = ?, reservation_start = ?, reservation_end = ?, subject = ?, notes = ?, status = ?
        WHERE id = ?`,
-      [date_reserved, reservation_start, reservation_end, notes, status, id]
+      [date_reserved, reservation_start, reservation_end, subject, notes, status, id]
     );
 
     res.json({ message: "Reservation updated successfully." });

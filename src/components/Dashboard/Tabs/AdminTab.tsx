@@ -77,6 +77,23 @@ export default function AdminTab({ currentUserRole, roleLabels }: AdminTabProps)
     }
   };
 
+  // Reject user
+const handleRejectUser = async (userId: number) => {
+  try {
+    const res = await fetch(`http://localhost:5000/api/users/${userId}/reject`, {
+      method: "PUT",
+    });
+    if (!res.ok) throw new Error("Failed to reject user");
+    fetchUsers();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to reject user");
+  }
+};
+
+
+
+
   // Save role immediately when changed
   const handleSaveRole = async (userId: number, newRole: number) => {
     try {
@@ -148,20 +165,56 @@ export default function AdminTab({ currentUserRole, roleLabels }: AdminTabProps)
                 )}
               </td>
               <td>{Number(u.verified) === 1 ? "Yes" : "No"}</td>
-              <td>
-                {u.status === "active" ? (
-                  "Active"
-                ) : (
-                  <>
-                    {u.status.charAt(0).toUpperCase() + u.status.slice(1)}
-                    {(currentUserRole === 1 || currentUserRole === 2) && (
-                      <button className="primary ml-2" onClick={() => handleActivateUser(u.id)}>
-                        Activate
-                      </button>
-                    )}
-                  </>
-                )}
-              </td>
+
+                <td className="text-center">
+                  {u.status === "pending" && (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="font-semibold text-orange-600">Pending</span>
+
+                      {(currentUserRole === 1 || currentUserRole === 2) && (
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            className="primary px-3 py-1"
+                            onClick={() => handleActivateUser(u.id)}
+                          >
+                            Activate
+                          </button>
+
+                          <button
+                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                            onClick={() => handleRejectUser(u.id)}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {u.status === "active" && (
+                    <div className="flex justify-center">
+                      <span className="font-semibold text-green-600">Active</span>
+                    </div>
+                  )}
+
+                  {u.status === "rejected" && (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="font-semibold text-red-600">Rejected</span>
+
+                      {(currentUserRole === 1 || currentUserRole === 2) && (
+                        <button
+                          className="primary px-3 py-1"
+                          onClick={() => handleActivateUser(u.id)}
+                        >
+                          Activate
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </td>
+
+
+
             <td>
               <button
                 className="border rounded px-2 py-1 bg-red-500 text-white hover:bg-red-600"

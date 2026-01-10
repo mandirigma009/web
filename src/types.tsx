@@ -9,13 +9,21 @@ export interface User {
   role: number;
 }
 
+export interface Building {
+  id: number;
+  building_name: string;
+}
+
+
 export interface Room {
-  has_tv: number;
+  building_id: string | number | readonly string[] | undefined;
   chairs: number;
-  has_projector: number;
-  has_table: number;
+  has_tv: 0 | 1;
+  has_projector: 0 | 1;
+  has_table: 0 | 1;
   id: number;
   name: string;
+  building: string;
   room_number: string;
   notes: string;
   room_name: string;
@@ -32,5 +40,8 @@ export interface Room {
   created_at: string;
   canceled_at: string;
   rejected_at:  string;
+  subject: string;
   reject_reason: string;
+  max_capacity: number;
+
 }

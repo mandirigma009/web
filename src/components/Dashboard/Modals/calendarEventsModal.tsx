@@ -92,6 +92,8 @@ export default function CalendarEventsModal({
         <p><strong>Room Name:</strong> {booking.room_name}</p>
         <p><strong>Building:</strong> {booking.building_name}</p>
         <p><strong>Floor:</strong> {booking.floor_number}</p>
+        <p><strong>Max Seat Capacity:</strong> {booking.max_capacity}</p>
+        <p><strong>Subject:</strong> {booking.subject}</p>
         <p>
           <strong>Description:</strong> {booking.room_description || "No description"}
           <br />

@@ -18,11 +18,12 @@ interface ReservationModalProps {
   currentUserId: number | null;
   reservedBy: string;
   userRole: number;
+  max_capacity: number;
   onClose: () => void;
   onSuccess: () => void;
-  refreshMyBookings: () => void;
+  refreshMyBookings?: () => void;
   onBookingSuccess?: () => void;
-  refreshPendingBookings: () => void;
+  refreshPendingBookings?: () => void;
   chairs?: number;
   has_tv?: number;
   has_table?: number;
@@ -60,6 +61,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
     roomNumber,
     roomDesc,
     roomName,
+    max_capacity,
     reservedBy,
     userRole,
     onClose,
@@ -92,6 +94,8 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
   const [recurrenceDays, setRecurrenceDays] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [subject, setSubject] = useState("");
+
 
   const today = dayjs().format("YYYY-MM-DD");
 
@@ -309,6 +313,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
         reserved_by: finalReservedBy,
         user_id: finalUserId,
         assigned_by: reservedBy,
+        subject,  
         notes,
         status,
         email,
@@ -355,9 +360,12 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
       <div className="modal-content">
         <h3 className="flex items-center justify-center">Book Room {roomNumber}</h3>
         <p>
-          <strong>Room Name:</strong> {roomName}<br></br> <strong>Floor:</strong> {floor} <br></br><strong>Building:</strong> {building} · <br></br>
+          <strong>Room Name:</strong> {roomName}<br></br> 
+          <strong>Floor:</strong> {floor} <br></br>
+          <strong>Building:</strong> {building} · <br></br>
+          <strong>Max Seat Capacity:</strong> {max_capacity} persons · <br></br>
        <strong>Description: {roomDesc}</strong> <br></br>
-          ·  Chairs: {chairs ?? 0},<br></br>
+          · Avialable Chairs: {chairs ?? 0},<br></br>
           · TV: {has_tv ? "Yes" : "No"},<br></br>
           · Tables: {has_table ? "Yes" : "No"},<br></br>
           · Projector: {has_projector ? "Yes" : "No"}·
@@ -470,6 +478,19 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
               {availableEndTimes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
 
+            <label>Subject:</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value.slice(0, 100))} // limit 100 chars
+                placeholder="Enter subject for the reservation"
+                maxLength={100}
+              />
+              <p style={{ fontSize: "0.8em", color: "#555", marginTop: "2px" }}>
+                {subject.length} / Max 100 characters
+              </p>
+
+
             <label>Notes:</label>
             <textarea value={notes} 
             onChange={e => setNotes(e.target.value.slice(0, 250))
@@ -513,8 +534,8 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
 
 
             <div style={{ marginTop: "15px", display: "flex", justifyContent: "space-between" }}>
-              <button type="button" onClick={onClose}>Cancel</button>
-              <button type="submit" className="bg-yellow-500 text-white px-3 py-2 rounded">Submit</button>
+            <button type="submit" className="bg-yellow-500 text-white px-3 py-2 rounded">Submit</button>
+             <button type="button" onClick={onClose}>Cancel</button>
             </div>
           </form>
         )}
@@ -535,6 +556,8 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
               <div><strong>Time:</strong> {startTime} - {endTime}</div>
               <div><strong>Reserved By:</strong> {isAdmin ? selectedTeacherName : reservedBy}</div>
               <div><strong>Email:</strong> {email || "N/A"}</div>
+              <div><strong>Subject:</strong> {subject || "N/A"}</div>
+
               <div><strong>Notes:</strong> {notes || "None"}</div>
             </div>
             <div style={{ marginTop: "15px", display: "flex", justifyContent: "space-between" }}>

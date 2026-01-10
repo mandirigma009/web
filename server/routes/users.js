@@ -47,6 +47,19 @@ router.get("/", async (req, res) => {
 });
 
 
+//-- reject
+router.put("/:id/reject", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query("UPDATE users SET status='rejected' WHERE id = ?", [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to reject user" });
+  }
+});
+
+
 // ✅ DELETE /api/users/:id
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;

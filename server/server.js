@@ -13,6 +13,7 @@ import roomsRoutes from "./routes/rooms.js";
 import pool from "./pool.js"; // ✅ use pool instead of db
 import roomBookingsRoutes from "./routes/roomBookings.js";
 import "./routes/autoCancelBookings.js";
+import buildingsRouter from "./routes/buildings.js";
 
 console.log("SMTP_USER:", process.env.SMTP_USER);
 console.log("SMTP_PASS:", process.env.SMTP_PASS);
@@ -38,6 +39,7 @@ app.use("/api", usersRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/rooms", roomsRoutes);
 app.use("/api/room_bookings", roomBookingsRoutes);
+app.use("/api/buildings", buildingsRouter);
 
 
 // ✅ Fix booking route

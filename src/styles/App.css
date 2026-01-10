@@ -1,4 +1,4 @@
-/* App Css */
+/*  sec/style/App.css */
 
 
  /* ==========================
@@ -252,4 +252,64 @@ body,
     padding: 12px 40px;
     font-size: 15px;
   }
+}
+
+
+/* ==========================
+   GLOBAL BUTTON STYLES
+========================== */
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-approve, , .btn-save {
+  background-color: #85ed8f  !important;
+  color: white  !important;
+}
+
+.btn-approve:hover, .btn-save:hover {
+  background-color: #195b27  !important;
+}
+.btn-edit {
+    background-color: #eda285  !important;
+  color: white  !important;
+}
+
+ .btn-edit:hover {
+
+    background-color: #8b5844  !important;
+}
+
+
+.btn-cancel {
+  background-color: #f8d7da  !important;
+  color: #721c24  !important;
+}
+.btn-cancel:hover {
+  background-color: #f5c6cb;
+}
+
+.btn-delete, .btn-reject {
+  background-color: #dc3545  !important;
+  color: white  !important;
+}
+.btn-delete:hover, .btn-reject:hover {
+  background-color: #690f18 !important;
+}
+
+.btn-book {
+  background-color: #3d96f6  !important;
+  color: white;
+}
+.btn-book:hover {
+  background-color: #06386c !important;
 }

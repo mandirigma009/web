@@ -9,15 +9,77 @@ const pool = require('../pool');
 // -----------------------
 // GET all rooms
 // -----------------------
+
+
+// server/routes/rooms.js
 router.get("/", async (req, res) => {
+  const [rows] = await pool.query(`
+    SELECT r.*, b.building_name
+    FROM rooms r
+    JOIN buildings b ON b.id = r.building_id
+    ORDER BY r.id DESC
+  `);
+  res.json({ rooms: rows });
+});
+
+
+
+router.put("/:id", async (req, res) => {
+  const {
+    room_number,
+    room_name,
+    room_description,
+    building_id,
+    floor_number,
+    status,
+    chairs,
+    has_tv,
+    has_projector,
+    has_table,
+    max_capacity  
+  } = req.body;
+
   try {
-    const [rows] = await pool.query("SELECT * FROM rooms ORDER BY id DESC");
-    res.json({ rooms: rows });
+    await pool.query(
+      `UPDATE rooms SET
+        room_number=?,
+        room_name=?,
+        room_description=?,
+        building_id=?,
+        floor_number=?,
+        status=?,
+        chairs=?,
+        has_tv=?,
+        has_projector=?,
+        has_table=?,
+        max_capacity=?  
+      WHERE id=?`,
+      [
+        room_number,
+        room_name,
+        room_description || null,
+        building_id,
+        floor_number,
+        status,
+        chairs,
+        has_tv ? 1 : 0,
+        has_projector ? 1 : 0,
+        has_table ? 1 : 0,
+        max_capacity || 0,  
+        req.params.id
+      ]
+    );
+
+    res.json({ success: true });
   } catch (err) {
-    console.error("❌ Error fetching rooms:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Error updating room:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
+
 
 
 /// ✅ Update room status (MySQL version)
@@ -48,51 +110,64 @@ router.put("/:id/status", async (req, res) => {
   }
 });
 
+
+
+
+
+
 // POST /api/rooms - create a new room
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
+  const {
+    room_number,
+    room_name,
+    room_description,
+    building_id,
+    floor_number,
+    status,
+    chairs,
+    has_tv,
+    has_projector,
+    has_table,
+    max_capacity 
+  } = req.body;
+
   try {
-    const {
-      room_number, room_name, room_description, building_name,
-      floor_number = 1, status = 1, chairs = 0, has_tv = 0, has_projector = 0, has_table = 0
-    } = req.body;
-
-    if (!room_number || !room_name || !building_name) {
-      return res.status(400).json({ error: 'room_number, room_name and building_name are required' });
-    }
-
     const [result] = await pool.query(
-      `INSERT INTO rooms (room_number, room_name, room_description, building_name, floor_number, status, chairs, has_tv, has_projector, has_table)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [room_number, room_name, room_description || null, building_name, floor_number, status, chairs, has_tv ? 1 : 0, has_projector ? 1 : 0, has_table ? 1 : 0]
+      `INSERT INTO rooms
+      (room_number, room_name, room_description, building_id, floor_number,
+       status, chairs, has_tv, has_projector, has_table, max_capacity)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        room_number,
+        room_name,
+        room_description,
+        building_id,
+        floor_number,
+        status,
+        chairs,
+        has_tv ? 1 : 0,
+        has_projector ? 1 : 0,
+        has_table ? 1 : 0,
+        max_capacity || 0   
+      ]
     );
 
-    const [rows] = await pool.query('SELECT * FROM rooms WHERE id = ?', [result.insertId]);
-    res.status(201).json(rows[0]);
+    res.status(201).json({ id: result.insertId });
   } catch (err) {
-    console.error('POST /api/rooms error', err);
-    res.status(500).json({ error: 'Server error' });
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        error: "Room already exists on this floor and building",
+      });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// PUT /api/rooms/:id - update room
-router.put('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const {
-      room_number, room_name, room_description, building_name,
-      floor_number = 1, status = 1, chairs = 0, has_tv = 0, has_projector = 0, has_table = 0
-    } = req.body;
-    await pool.query(
-      `UPDATE rooms SET room_number=?, room_name=?, room_description=?, building_name=?, floor_number=?, status=?, chairs=?, has_tv=?, has_projector=?, has_table=? WHERE id=?`,
-      [room_number, room_name, room_description || null, building_name, floor_number, status, chairs, has_tv ? 1 : 0, has_projector ? 1 : 0, has_table ? 1 : 0, id]
-    );
-    const [rows] = await pool.query('SELECT * FROM rooms WHERE id = ?', [id]);
-    res.json(rows[0]);
-  } catch (err) {
-    console.error('PUT /api/rooms/:id error', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
+
+
+
+
 
 // DELETE /api/rooms/:id - delete room
 router.delete('/:id', async (req, res) => {

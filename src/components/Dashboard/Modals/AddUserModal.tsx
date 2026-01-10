@@ -91,7 +91,7 @@ export default function AddUserModal({ onClose, onSuccess }: AddUserModalProps) 
         <label>Email</label>
         <input value={email} onChange={(e) => setEmail(e.target.value)} />
 
-        <div className="modal-actions">
+        <div style={{ marginTop: "15px", display: "flex", justifyContent: "space-between" }}>
           <Button onClick={handleSubmit} disabled={loading}>
             {loading ? "Saving..." : "Save"}
           </Button>
