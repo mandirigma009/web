@@ -28,24 +28,26 @@ export default function EditRoomModal({ room, onClose, onSuccess }: Props) {
       .then(setBuildings);
   }, []);
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/rooms/${room.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editedRoom),
-      });
+const save = async () => {
+  setSaving(true);
+  try {
+    const res = await fetch(`/api/rooms/${room.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editedRoom),
+    });
 
-      if (!res.ok) throw new Error();
-      onSuccess(await res.json());
-      onClose();
-    } catch {
-      alert("Failed to update room");
-    } finally {
-      setSaving(false);
-    }
-  };
+    if (!res.ok) throw new Error();
+    const updatedRoom = await res.json(); // <-- updated room
+    onSuccess(updatedRoom);             // <-- passes full room to RoomsTab
+    onClose();
+  } catch {
+    alert("Failed to update room");
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   return (
     <div className="modal-overlay">

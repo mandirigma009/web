@@ -16,7 +16,6 @@ import type { ActionKey } from "../../../utils/actionStyles";
 import "../../../styles/App.css";
 import { FaPlus, FaDoorOpen, FaBuilding } from "react-icons/fa";
 
-
 interface RoomsTabProps {
   rooms: Room[];
   userRole: number;
@@ -40,7 +39,7 @@ export default function RoomsTab({
   refreshPendingBookings,
   refreshMyBookings,
 }: RoomsTabProps) {
-  const [roomList, setRoomList] = useState<Room[]>(rooms);
+  const [roomList, setRoomList] = useState<Room[]>([]);
   const [allBuildings, setAllBuildings] = useState<Building[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState("");
   const [selectedFloor, setSelectedFloor] = useState("");
@@ -54,16 +53,22 @@ export default function RoomsTab({
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusRoom, setStatusRoom] = useState<Room | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+
   const room = roomList.find((r) => r.id === Number(selectedRoom));
- 
+
   const [searchQuery, setSearchQuery] = useState("");
-const [searchBy, setSearchBy] = useState<
-  "room_number" | "room_name" | "building" | "capacity" | "floor"
->("room_number");
+  const [searchBy, setSearchBy] = useState<
+    "room_number" | "room_name" | "building" | "capacity" | "floor"
+  >("room_number");
 
-const [filterHasTable, setFilterHasTable] = useState(false);
-const [filterHasProjector, setFilterHasProjector] = useState(false);
+  const [filterHasTable, setFilterHasTable] = useState(false);
+  const [filterHasProjector, setFilterHasProjector] = useState(false);
 
+  // ----------------------------
+  // Load initial rooms only once
+  useEffect(() => {
+    if (roomList.length === 0) setRoomList(rooms);
+  }, [rooms]);
 
   // Fetch buildings
   useEffect(() => {
@@ -73,17 +78,18 @@ const [filterHasProjector, setFilterHasProjector] = useState(false);
       .catch(console.error);
   }, []);
 
-  useEffect(() => {
-    setRoomList(rooms);
-  }, [rooms]);
-
+  // ----------------------------
+  // Handlers
   const handleEditSuccess = (updatedRoom: Room) => {
-    setRoomList((prev) => prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r)));
+    setRoomList((prev) =>
+      [...prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r))]
+    );
     setShowEditModal(false);
   };
 
   const handleAddRoomSuccess = (addedRoom: Room) => {
     setRoomList((prev) => [...prev, addedRoom]);
+    setShowAddRoomModal(false);
   };
 
   const handleDeleteRoom = async (roomId: number) => {
@@ -97,22 +103,19 @@ const [filterHasProjector, setFilterHasProjector] = useState(false);
     }
   };
 
+  const handleBuildingSuccess = (
+    building: Building,
+    action: "add" | "update" | "delete"
+  ) => {
+    setAllBuildings((prev) => {
+      if (action === "add") return [...prev, building];
+      if (action === "update") return prev.map((b) => (b.id === building.id ? building : b));
+      return prev.filter((b) => b.id !== building.id);
+    });
+    setShowBuildingModal(false);
+  };
 
-
-const handleBuildingSuccess = (
-  building: Building,
-  action: "add" | "update" | "delete"
-) => {
-  setAllBuildings((prev) => {
-    if (action === "add") return [...prev, building];
-    if (action === "update")
-      return prev.map((b) => (b.id === building.id ? building : b));
-    return prev.filter((b) => b.id !== building.id);
-  });
-};
-
-
-console.log("userRole : ", userRole)
+  // ----------------------------
   return (
     <div className="text-black">
       {/* Header */}
@@ -121,54 +124,41 @@ console.log("userRole : ", userRole)
         <div className="flex gap-2">
           {(isAdmin || [1, 2].includes(userRole)) && (
             <>
-
-             <Button
+              <Button
                 variant="primary"
                 title="Add Room"
                 onClick={() => setShowAddRoomModal(true)}
               >
                 <FaPlus />
                 <FaDoorOpen style={{ marginRight: 6 }} />
-
               </Button>
 
               <Button
                 variant="secondary"
                 title="Manage Buildings"
-                onClick={() => {
-                  setShowBuildingModal(true);
-                }}
+                onClick={() => setShowBuildingModal(true)}
               >
-       
-                <FaBuilding /><br></br>
+                <FaBuilding />
+                <br />
                 Manage Buildings
               </Button>
-
-
             </>
           )}
         </div>
       </div>
 
-        {/* Selectors */}
+      {/* Selectors */}
       <div className="mb-4 text-black">
         <label className="block mb-1 font-medium text-black">Building:</label>
-            <select
-              value={selectedBuilding}
-              onChange={(e) => {
-                const id = e.target.value;
-                setSelectedBuilding(id);
-                setSelectedFloor("");
-                setSelectedRoom("");
-
-                const building = allBuildings.find(b => String(b.id) === id);
-                if (building && (isAdmin || [1, 2].includes(userRole))) {
-
-                  setShowBuildingModal(true);
-                }
-              }}
-            >
-
+        <select
+          value={selectedBuilding}
+          onChange={(e) => {
+            const id = e.target.value;
+            setSelectedBuilding(id);
+            setSelectedFloor("");
+            setSelectedRoom("");
+          }}
+        >
           <option value="">-- Select Building --</option>
           {allBuildings.map((b) => (
             <option key={b.id} value={b.id} className="text-black">
@@ -218,223 +208,172 @@ console.log("userRole : ", userRole)
               </option>
             ))}
         </select>
-
-
       </div>
 
- {/* Search & Filters */}
-<div
-  className="mb-4 text-black"
-  style={{
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 16,
-    alignItems: "center", // aligns input/select with checkboxes
-  }}
->
-  {/* Search By */}
-  <div style={{ minWidth: 180 }}>
-    <label className="block text-sm font-medium mb-1">Search by</label>
-    <select
-      className="border rounded bg-white w-full h-10 px-2" // fixed height
-      value={searchBy}
-      onChange={(e) => setSearchBy(e.target.value as any)}
-    >
-      <option value="room_number">Room Number</option>
-      <option value="room_name">Room Name</option>
-      <option value="building">Building</option>
-      <option value="capacity">Capacity</option>
-      <option value="floor">Floor</option>
-    </select>
-  </div>
-
-  {/* Search Input */}
-  <div style={{ minWidth: 260, flexGrow: 1 }}>
-    <label className="block text-sm font-medium mb-1">Search</label>
-    <input
-      type="text"
-      placeholder="Type to search..."
-      className="border rounded bg-white w-full h-10 px-2" // same height as select
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-    />
-  </div>
-
-  {/* Filters */}
-  <div
-    style={{
-      display: "flex",
-      gap: 16,
-      alignItems: "center", // center align checkboxes with input
-      paddingTop: 24, // optional: aligns filter text with label baseline
-    }}
-  >
-    <label className="flex items-center gap-1">
-      <input
-        type="checkbox"
-        checked={filterHasTable}
-        onChange={(e) => setFilterHasTable(e.target.checked)}
-      />
-      Tables
-    </label>
-
-    <label className="flex items-center gap-1">
-      <input
-        type="checkbox"
-        checked={filterHasProjector}
-        onChange={(e) => setFilterHasProjector(e.target.checked)}
-      />
-      Projector
-    </label>
-  </div>
-          <Button
-            variant="primary"
-            className="text-black mt-2"
-            onClick={() => {
-              // Reset selectors
-              setSelectedBuilding("");
-              setSelectedFloor("");
-              setSelectedRoom("");
-              // Reset search
-              setSearchQuery("");
-              setSearchBy("room_number");
-              // Reset filters
-              setFilterHasTable(false);
-              setFilterHasProjector(false);
-            }}
+      {/* Search & Filters */}
+      <div
+        className="mb-4 text-black"
+        style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" }}
+      >
+        {/* Search By */}
+        <div style={{ minWidth: 180 }}>
+          <label className="block text-sm font-medium mb-1">Search by</label>
+          <select
+            className="border rounded bg-white w-full h-10 px-2"
+            value={searchBy}
+            onChange={(e) => setSearchBy(e.target.value as any)}
           >
-            Clear
+            <option value="room_number">Room Number</option>
+            <option value="room_name">Room Name</option>
+            <option value="building">Building</option>
+            <option value="capacity">Capacity</option>
+            <option value="floor">Floor</option>
+          </select>
+        </div>
+
+        {/* Search Input */}
+        <div style={{ minWidth: 260, flexGrow: 1 }}>
+          <label className="block text-sm font-medium mb-1">Search</label>
+          <input
+            type="text"
+            placeholder="Type to search..."
+            className="border rounded bg-white w-full h-10 px-2"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Filters */}
+        <div style={{ display: "flex", gap: 16, alignItems: "center", paddingTop: 24 }}>
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={filterHasTable}
+              onChange={(e) => setFilterHasTable(e.target.checked)}
+            />
+            Tables
+          </label>
+
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={filterHasProjector}
+              onChange={(e) => setFilterHasProjector(e.target.checked)}
+            />
+            Projector
+          </label>
+        </div>
+
+        <Button
+          variant="primary"
+          className="text-black mt-2"
+          onClick={() => {
+            setSelectedBuilding("");
+            setSelectedFloor("");
+            setSelectedRoom("");
+            setSearchQuery("");
+            setSearchBy("room_number");
+            setFilterHasTable(false);
+            setFilterHasProjector(false);
+          }}
+        >
+          Clear
         </Button>
-</div>
+      </div>
 
+      {/* Table */}
+      <div style={{ overflowX: "auto", maxHeight: "500px" }}>
+        <table className="dashboard-table" style={{ width: "100%", minWidth: "1200px" }}>
+          <thead>
+            <tr>
+              <th>Room Number</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Floor</th>
+              <th>Building</th>
+              <th>Capacity</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {roomList
+              .filter((r) => {
+                if (selectedBuilding && r.building_id !== Number(selectedBuilding)) return false;
+                if (selectedFloor && String(r.floor_number) !== selectedFloor) return false;
+                if (selectedRoom && r.id !== Number(selectedRoom)) return false;
 
-  {/* Table */}
-<div style={{ overflowX: "auto", maxHeight: "500px" }}>
-  <table className="dashboard-table" style={{ width: "100%", minWidth: "1200px" }}>
-    <thead>
-      <tr>
-        <th>Room Number</th>
-        <th>Name</th>
-        <th>Description</th>
-        <th>Floor</th>
-        <th>Building</th>
-        <th>Capacity</th>
-        <th>Status</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {roomList
-        .filter((r) => {
-          // Existing selectors
-          if (selectedBuilding && r.building_id !== Number(selectedBuilding)) return false;
-          if (selectedFloor && String(r.floor_number) !== selectedFloor) return false;
-          if (selectedRoom && r.id !== Number(selectedRoom)) return false;
+                if (searchQuery) {
+                  const q = searchQuery.toLowerCase();
+                  switch (searchBy) {
+                    case "room_number":
+                      if (!String(r.room_number).toLowerCase().includes(q)) return false;
+                      break;
+                    case "room_name":
+                      if (!r.room_name?.toLowerCase().includes(q)) return false;
+                      break;
+                    case "capacity":
+                      if (!String(r.max_capacity ?? "").includes(q)) return false;
+                      break;
+                    case "floor":
+                      if (!String(r.floor_number).includes(q)) return false;
+                      break;
+                    case "building":
+                      const buildingName =
+                        allBuildings.find((b) => b.id === r.building_id)?.building_name || "";
+                      if (!buildingName.toLowerCase().includes(q)) return false;
+                      break;
+                  }
+                }
 
-          // Search logic
-          if (searchQuery) {
-            const q = searchQuery.toLowerCase();
+                if (filterHasTable && !r.has_table) return false;
+                if (filterHasProjector && !r.has_projector) return false;
 
-            switch (searchBy) {
-              case "room_number":
-                if (!String(r.room_number).toLowerCase().includes(q)) return false;
-                break;
-              case "room_name":
-                if (!r.room_name?.toLowerCase().includes(q)) return false;
-                break;
-              case "capacity":
-                if (!String(r.max_capacity ?? "").includes(q)) return false;
-                break;
-              case "floor":
-                if (!String(r.floor_number).includes(q)) return false;
-                break;
-              case "building": {
-                const buildingName =
-                  allBuildings.find((b) => b.id === r.building_id)?.building_name || "";
-                if (!buildingName.toLowerCase().includes(q)) return false;
-                break;
-              }
-            }
-          }
-
-          // Boolean filters
-          if (filterHasTable && !r.has_table) return false;
-          if (filterHasProjector && !r.has_projector) return false;
-
-          return true;
-        })
-        .map((r) => (
-          <tr key={r.id} onClick={() => setSelectedRowId(r.id)} className={selectedRowId === r.id ? "highlighted" : ""}>
-            <td>{r.room_number}</td>
-            <td>{r.room_name}</td>
-            <td>
-              <div>
-                <strong>{r.room_description || "No description"}</strong><br />
-                <span style={{ fontSize: "0.9em", color: selectedRowId === r.id ? "#fff" : "#000" }}>
-                  {r.chairs ? `${r.chairs} Chair${r.chairs > 1 ? "s" : ""}` : "No Chairs"},
-                  TV: {r.has_tv ? "Yes" : "No"} | Tables: {r.has_table ? "Yes" : "No"} | Projector: {r.has_projector ? "Yes" : "No"}
-                </span>
-              </div>
-            </td>
-            <td>{r.floor_number}</td>
-            <td>{allBuildings.find((b) => b.id === r.building_id)?.building_name || "Unknown"}</td>
-            <td>{r.max_capacity || 0} persons</td>
-            <td>{r.status === 1 ? "Available" : r.status === 2 ? "Fully Booked" : r.status === 3 ? "Under Maintenance" : "N/A"}</td>
-            <td>
-              <ActionMenu
-                actions={[
-                  // Role 1 & 2 and admin: edit, delete, update status
-                  ...(isAdmin || [1, 2].includes(userRole)
-                    ? [
-                        {
-                          key: "edit" as ActionKey,
-                          title: "Edit Room",
-                          onClick: () => {
-                            setEditRoom(r);
-                            setShowEditModal(true);
-                          },
-                        },
-                        {
-                          key: "delete" as ActionKey,
-                          title: "Delete Room",
-                          onClick: () => handleDeleteRoom(r.id),
-                        },
-                        {
-                          key: "approve" as ActionKey,
-                          title: "Update Room Status",
-                          onClick: () => {
-                            setStatusRoom(r);
-                            setShowStatusModal(true);
-                          },
-                        },
-                      ]
-                    : []),
-                  // Role 1, 2, 3: Reserve action (only if status is available)
-                  ...(r.status === 1 && [1, 2, 3].includes(userRole)
-                    ? [
-                        {
-                          key: "book" as ActionKey,
-                          title: "Reserve Room",
-                          onClick: () => {
-                            setSelectedRoom(String(r.id));
-                            setShowReservationModal(true);
-                          },
-                        },
-                      ]
-                    : []),
-                ]}
-              />
-            </td>
-          </tr>
-        ))}
-    </tbody>
-  </table>
-</div>
-   
-
-
- 
-  
+                return true;
+              })
+              .map((r) => (
+                <tr
+                  key={r.id}
+                  onClick={() => setSelectedRowId(r.id)}
+                  className={selectedRowId === r.id ? "highlighted" : ""}
+                >
+                  <td>{r.room_number}</td>
+                  <td>{r.room_name}</td>
+                  <td>
+                    <div>
+                      <strong>{r.room_description || "No description"}</strong>
+                      <br />
+                      <span style={{ fontSize: "0.9em", color: selectedRowId === r.id ? "#fff" : "#000" }}>
+                        {r.chairs ? `${r.chairs} Chair${r.chairs > 1 ? "s" : ""}` : "No Chairs"},
+                        TV: {r.has_tv ? "Yes" : "No"} | Tables: {r.has_table ? "Yes" : "No"} | Projector: {r.has_projector ? "Yes" : "No"}
+                      </span>
+                    </div>
+                  </td>
+                  <td>{r.floor_number}</td>
+                  <td>{allBuildings.find((b) => b.id === r.building_id)?.building_name || "Unknown"}</td>
+                  <td>{r.max_capacity || 0} persons</td>
+                  <td>{r.status === 1 ? "Available" : r.status === 2 ? "Fully Booked" : r.status === 3 ? "Under Maintenance" : "N/A"}</td>
+                  <td>
+                    <ActionMenu
+                      actions={[
+                        ...(isAdmin || [1, 2].includes(userRole)
+                          ? [
+                              { key: "edit" as ActionKey, title: "Edit Room", onClick: () => { setEditRoom(r); setShowEditModal(true); } },
+                              { key: "delete" as ActionKey, title: "Delete Room", onClick: () => handleDeleteRoom(r.id) },
+                              { key: "approve" as ActionKey, title: "Update Room Status", onClick: () => { setStatusRoom(r); setShowStatusModal(true); } },
+                            ]
+                          : []),
+                        ...(r.status === 1 && [1, 2, 3].includes(userRole)
+                          ? [{ key: "book" as ActionKey, title: "Reserve Room", onClick: () => { setSelectedRoom(String(r.id)); setShowReservationModal(true); } }]
+                          : []),
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Modals */}
       {showAddRoomModal && (
@@ -445,21 +384,12 @@ console.log("userRole : ", userRole)
         />
       )}
 
-{showBuildingModal && (
-  <BuildingModal
-    onClose={() => setShowBuildingModal(false)}
-    onSuccess={handleBuildingSuccess}
-  />
-)}
-
-
+      {showBuildingModal && (
+        <BuildingModal onClose={() => setShowBuildingModal(false)} onSuccess={handleBuildingSuccess} />
+      )}
 
       {showEditModal && editRoom && (
-        <EditRoomModal
-          room={editRoom}
-          onClose={() => setShowEditModal(false)}
-          onSuccess={handleEditSuccess}
-        />
+        <EditRoomModal room={editRoom} onClose={() => setShowEditModal(false)} onSuccess={handleEditSuccess} />
       )}
 
       {showReservationModal && selectedRoom && room && (
@@ -490,9 +420,7 @@ console.log("userRole : ", userRole)
           room={statusRoom}
           onClose={() => setShowStatusModal(false)}
           onUpdateStatusSuccess={(updatedRoom) =>
-            setRoomList((prev) =>
-              prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r))
-            )
+            setRoomList((prev) => [...prev.map((r) => (r.id === updatedRoom.id ? updatedRoom : r))])
           }
         />
       )}

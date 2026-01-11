@@ -70,7 +70,16 @@ router.put("/:id", async (req, res) => {
       ]
     );
 
-    res.json({ success: true });
+    // Fetch updated room to return
+    const [rows] = await pool.query(
+      `SELECT r.*, b.building_name
+       FROM rooms r
+       JOIN buildings b ON b.id = r.building_id
+       WHERE r.id = ?`,
+      [req.params.id]
+    );
+
+    res.json(rows[0]);
   } catch (err) {
     console.error("❌ Error updating room:", err);
     res.status(500).json({ error: "Server error" });
@@ -165,6 +174,24 @@ router.post("/", async (req, res) => {
 });
 
 
+// GET /api/rooms/:id - fetch single room
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT r.*, b.building_name
+       FROM rooms r
+       JOIN buildings b ON b.id = r.building_id
+       WHERE r.id = ?`,
+      [id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Room not found" });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("❌ Error fetching room:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 
 
