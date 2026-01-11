@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../Button";
 import type { Building, Room } from "../../../types";
+import "../../../styles/App.css";
 
 interface AddRoomModalProps {
   buildings: Building[];
@@ -211,7 +212,7 @@ const validate = () =>
           <Button variant="primary" onClick={handleSaveRoom}>
             Save Room
           </Button>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary"  className="btn-cancel" onClick={onClose}>
             Cancel
           </Button>
         </div>

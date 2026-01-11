@@ -67,7 +67,7 @@
 }
 
 #cancelBtn {
-  background-color: crimson;
+  background-color: crimson !important;
 }
 
 /* Overlay (background dim) */

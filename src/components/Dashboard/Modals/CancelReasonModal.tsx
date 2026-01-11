@@ -52,10 +52,10 @@ export default function CancelReasonModal({
         {error && <p className="cancel-modal-error">{error}</p>}
 
         <div className="cancel-modal-buttons">
-          <button className="btn btn-secondary btn-sm" onClick={onClose}>
+          <button  className="modal-close-btn" onClick={onClose}>
             Close
           </button>
-          <button className="btn btn-danger btn-sm" onClick={handleConfirm}>
+          <button  className="btn-cancel" onClick={handleConfirm}>
             Confirm Cancel
           </button>
         </div>

@@ -10,11 +10,11 @@ import UpdateStatusModal from "../Modals/UpdateStatusModal";
 import "../../../styles/dashboard.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import AddBuildingModal from "../Modals/AddBuildingModal";
+import BuildingModal from "../Modals/BuildingModal";
 import ActionMenu from "../../ActionMenu";
 import type { ActionKey } from "../../../utils/actionStyles";
 import "../../../styles/App.css";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaDoorOpen, FaBuilding } from "react-icons/fa";
 
 
 interface RoomsTabProps {
@@ -47,7 +47,8 @@ export default function RoomsTab({
   const [selectedRoom, setSelectedRoom] = useState("");
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
-  const [showAddBuilding, setShowAddBuilding] = useState(false);
+  const [showBuildingModal, setShowBuildingModal] = useState(false);
+
   const [editRoom, setEditRoom] = useState<Room | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -96,11 +97,22 @@ const [filterHasProjector, setFilterHasProjector] = useState(false);
     }
   };
 
-  const handleAddBuildingSuccess = (building: Building) => {
-  setAllBuildings((prev) => [...prev, building]);
+
+
+const handleBuildingSuccess = (
+  building: Building,
+  action: "add" | "update" | "delete"
+) => {
+  setAllBuildings((prev) => {
+    if (action === "add") return [...prev, building];
+    if (action === "update")
+      return prev.map((b) => (b.id === building.id ? building : b));
+    return prev.filter((b) => b.id !== building.id);
+  });
 };
 
 
+console.log("userRole : ", userRole)
   return (
     <div className="text-black">
       {/* Header */}
@@ -109,15 +121,30 @@ const [filterHasProjector, setFilterHasProjector] = useState(false);
         <div className="flex gap-2">
           {(isAdmin || [1, 2].includes(userRole)) && (
             <>
-              <Button variant="primary" onClick={() => setShowAddRoomModal(true)}>
-                <FaPlus /> Add Room
+
+             <Button
+                variant="primary"
+                title="Add Room"
+                onClick={() => setShowAddRoomModal(true)}
+              >
+                <FaPlus />
+                <FaDoorOpen style={{ marginRight: 6 }} />
+
               </Button>
+
               <Button
                 variant="secondary"
-                onClick={() => setShowAddBuilding(true)}>
-              
-                <FaPlus /> Add Building
+                title="Manage Buildings"
+                onClick={() => {
+                  setShowBuildingModal(true);
+                }}
+              >
+       
+                <FaBuilding /><br></br>
+                Manage Buildings
               </Button>
+
+
             </>
           )}
         </div>
@@ -126,15 +153,22 @@ const [filterHasProjector, setFilterHasProjector] = useState(false);
         {/* Selectors */}
       <div className="mb-4 text-black">
         <label className="block mb-1 font-medium text-black">Building:</label>
-        <select
-          className="text-black bg-white border rounded px-2 py-1"
-          value={selectedBuilding}
-          onChange={(e) => {
-            setSelectedBuilding(e.target.value);
-            setSelectedFloor("");
-            setSelectedRoom("");
-          }}
-        >
+            <select
+              value={selectedBuilding}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSelectedBuilding(id);
+                setSelectedFloor("");
+                setSelectedRoom("");
+
+                const building = allBuildings.find(b => String(b.id) === id);
+                if (building && (isAdmin || [1, 2].includes(userRole))) {
+
+                  setShowBuildingModal(true);
+                }
+              }}
+            >
+
           <option value="">-- Select Building --</option>
           {allBuildings.map((b) => (
             <option key={b.id} value={b.id} className="text-black">
@@ -274,137 +308,133 @@ const [filterHasProjector, setFilterHasProjector] = useState(false);
 </div>
 
 
-     
+  {/* Table */}
+<div style={{ overflowX: "auto", maxHeight: "500px" }}>
+  <table className="dashboard-table" style={{ width: "100%", minWidth: "1200px" }}>
+    <thead>
+      <tr>
+        <th>Room Number</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Floor</th>
+        <th>Building</th>
+        <th>Capacity</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {roomList
+        .filter((r) => {
+          // Existing selectors
+          if (selectedBuilding && r.building_id !== Number(selectedBuilding)) return false;
+          if (selectedFloor && String(r.floor_number) !== selectedFloor) return false;
+          if (selectedRoom && r.id !== Number(selectedRoom)) return false;
+
+          // Search logic
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+
+            switch (searchBy) {
+              case "room_number":
+                if (!String(r.room_number).toLowerCase().includes(q)) return false;
+                break;
+              case "room_name":
+                if (!r.room_name?.toLowerCase().includes(q)) return false;
+                break;
+              case "capacity":
+                if (!String(r.max_capacity ?? "").includes(q)) return false;
+                break;
+              case "floor":
+                if (!String(r.floor_number).includes(q)) return false;
+                break;
+              case "building": {
+                const buildingName =
+                  allBuildings.find((b) => b.id === r.building_id)?.building_name || "";
+                if (!buildingName.toLowerCase().includes(q)) return false;
+                break;
+              }
+            }
+          }
+
+          // Boolean filters
+          if (filterHasTable && !r.has_table) return false;
+          if (filterHasProjector && !r.has_projector) return false;
+
+          return true;
+        })
+        .map((r) => (
+          <tr key={r.id} onClick={() => setSelectedRowId(r.id)} className={selectedRowId === r.id ? "highlighted" : ""}>
+            <td>{r.room_number}</td>
+            <td>{r.room_name}</td>
+            <td>
+              <div>
+                <strong>{r.room_description || "No description"}</strong><br />
+                <span style={{ fontSize: "0.9em", color: selectedRowId === r.id ? "#fff" : "#000" }}>
+                  {r.chairs ? `${r.chairs} Chair${r.chairs > 1 ? "s" : ""}` : "No Chairs"},
+                  TV: {r.has_tv ? "Yes" : "No"} | Tables: {r.has_table ? "Yes" : "No"} | Projector: {r.has_projector ? "Yes" : "No"}
+                </span>
+              </div>
+            </td>
+            <td>{r.floor_number}</td>
+            <td>{allBuildings.find((b) => b.id === r.building_id)?.building_name || "Unknown"}</td>
+            <td>{r.max_capacity || 0} persons</td>
+            <td>{r.status === 1 ? "Available" : r.status === 2 ? "Fully Booked" : r.status === 3 ? "Under Maintenance" : "N/A"}</td>
+            <td>
+              <ActionMenu
+                actions={[
+                  // Role 1 & 2 and admin: edit, delete, update status
+                  ...(isAdmin || [1, 2].includes(userRole)
+                    ? [
+                        {
+                          key: "edit" as ActionKey,
+                          title: "Edit Room",
+                          onClick: () => {
+                            setEditRoom(r);
+                            setShowEditModal(true);
+                          },
+                        },
+                        {
+                          key: "delete" as ActionKey,
+                          title: "Delete Room",
+                          onClick: () => handleDeleteRoom(r.id),
+                        },
+                        {
+                          key: "approve" as ActionKey,
+                          title: "Update Room Status",
+                          onClick: () => {
+                            setStatusRoom(r);
+                            setShowStatusModal(true);
+                          },
+                        },
+                      ]
+                    : []),
+                  // Role 1, 2, 3: Reserve action (only if status is available)
+                  ...(r.status === 1 && [1, 2, 3].includes(userRole)
+                    ? [
+                        {
+                          key: "book" as ActionKey,
+                          title: "Reserve Room",
+                          onClick: () => {
+                            setSelectedRoom(String(r.id));
+                            setShowReservationModal(true);
+                          },
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            </td>
+          </tr>
+        ))}
+    </tbody>
+  </table>
+</div>
+   
 
 
  
-      
-      {/* Table */}
-      <div style={{ overflowX: "auto", maxHeight: "500px" }}>
-        <table className="dashboard-table" style={{ width: "100%", minWidth: "1200px" }}>
-          <thead>
-            <tr>
-              <th>Room Number</th>
-              <th>Name</th>
-              <th>Description</th>
-              <th>Floor</th>
-              <th>Building</th>
-              <th>Capacity</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roomList
-              .filter((r) => {
-                // Existing selectors
-                if (selectedBuilding && r.building_id !== Number(selectedBuilding)) return false;
-                if (selectedFloor && String(r.floor_number) !== selectedFloor) return false;
-                if (selectedRoom && r.id !== Number(selectedRoom)) return false;
-
-                // Search logic
-                if (searchQuery) {
-                  const q = searchQuery.toLowerCase();
-
-                  switch (searchBy) {
-                    case "room_number":
-                      if (!String(r.room_number).toLowerCase().includes(q)) return false;
-                      break;
-
-                    case "room_name":
-                      if (!r.room_name?.toLowerCase().includes(q)) return false;
-                      break;
-
-                    case "capacity":
-                      if (!String(r.max_capacity ?? "").includes(q)) return false;
-                      break;
-
-                    case "floor":
-                      if (!String(r.floor_number).includes(q)) return false;
-                      break;
-
-                    case "building": {
-                      const buildingName =
-                        allBuildings.find((b) => b.id === r.building_id)?.building_name || "";
-                      if (!buildingName.toLowerCase().includes(q)) return false;
-                      break;
-                    }
-                  }
-                }
-
-                // Boolean filters
-                if (filterHasTable && !r.has_table) return false;
-                if (filterHasProjector && !r.has_projector) return false;
-
-                return true;
-              })
-
-              .map((r) => (
-                <tr key={r.id} onClick={() => setSelectedRowId(r.id)} className={selectedRowId === r.id ? "highlighted" : ""}>
-                  <td>{r.room_number}</td>
-                  <td>{r.room_name}</td>
-                  <td>
-                    <div>
-                      <strong>{r.room_description || "No description"}</strong><br />
-                      <span style={{ fontSize: "0.9em", color: selectedRowId === r.id ? "#fff" : "#000" }}>
-                        {r.chairs ? `${r.chairs} Chair${r.chairs > 1 ? "s" : ""}` : "No Chairs"},
-                        TV: {r.has_tv ? "Yes" : "No"} | Tables: {r.has_table ? "Yes" : "No"} | Projector: {r.has_projector ? "Yes" : "No"}
-                      </span>
-                    </div>
-                  </td>
-                  <td>{r.floor_number}</td>
-                  <td>{allBuildings.find((b) => b.id === r.building_id)?.building_name || "Unknown"}</td>
-                  <td>{r.max_capacity || 0} persons</td>
-                  <td>{r.status === 1 ? "Available" : r.status === 2 ? "Fully Booked" : r.status === 3 ? "Under Maintenance" : "N/A"}</td>
-      <td>
-  {(isAdmin || [1, 2].includes(userRole)) && (
-   <ActionMenu
-  actions={[
-    {
-      key: "edit" as ActionKey,
-      title: "Edit Room",
-      onClick: () => {
-        setEditRoom(r);
-        setShowEditModal(true);
-      },
-    },
-    {
-      key: "delete" as ActionKey,
-      title: "Delete Room",
-      onClick: () => handleDeleteRoom(r.id),
-    },
-    ...(r.status === 1
-      ? [
-          {
-            key: "book" as ActionKey,
-            title: "Reserve Room",
-            onClick: () => {
-              setSelectedRoom(String(r.id));
-              setShowReservationModal(true);
-            },
-          },
-        ]
-      : []),
-    {
-      key: "approve" as ActionKey,
-      title: "Update Room Status",
-      onClick: () => {
-        setStatusRoom(r);
-        setShowStatusModal(true);
-      },
-    },
-  ]}
-/>
-
-  )}
-</td>
-
-
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+  
 
       {/* Modals */}
       {showAddRoomModal && (
@@ -415,12 +445,13 @@ const [filterHasProjector, setFilterHasProjector] = useState(false);
         />
       )}
 
-      {showAddBuilding && (
-        <AddBuildingModal
-          onClose={() => setShowAddBuilding(false)}
-          onSuccess={handleAddBuildingSuccess}
-        />
-      )}
+{showBuildingModal && (
+  <BuildingModal
+    onClose={() => setShowBuildingModal(false)}
+    onSuccess={handleBuildingSuccess}
+  />
+)}
+
 
 
       {showEditModal && editRoom && (

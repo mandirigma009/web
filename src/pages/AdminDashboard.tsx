@@ -16,29 +16,22 @@ import {
   FaSignOutAlt,
 } from "react-icons/fa";
 
-
 // Components
 import AdminTab from "../components/Dashboard/Tabs/AdminTab";
 import RoomsTab from "../components/Dashboard/Tabs/RoomsTab";
 import MyBookingsTab from "../components/Dashboard/Tabs/MyBookingsTab";
 import MyProfileTab from "../components/Dashboard/Tabs/MyProfileTab";
-//import AddRoomModal from "../components/Dashboard/Modals/AddRoomModal";
 import ForApprovalTab from "../components/Dashboard/Tabs/ForApprovalTab";
 import RejectedTab from "../components/Dashboard/Tabs/RejectedTab";
-
-
-const roleLabels: Record<number, string> = {
-
-  2: "Staff",
-  3: "Reserver",
-  4: "Viewer",
-};
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-
-
+const roleLabels: Record<number, string> = {
+  2: "Staff",
+  3: "Reserver",
+  4: "Viewer",
+};
 
 function Dashboard() {
   const [name, setName] = useState<string>("");
@@ -48,17 +41,16 @@ function Dashboard() {
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<
-    "Admin" | "Rooms" | "MyProfile" | "MyBookings" | "ForApproval" | "Rejected" 
+    "Admin" | "Rooms" | "MyProfile" | "MyBookings" | "ForApproval" | "Rejected"
   >("Rooms");
-  const [userRole, setUserRole] = useState<number>(4);
+  const [userRole, setUserRole] = useState<number | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
- 
-
   const [myBookings, setMyBookings] = useState<Room[]>([]);
   const [pendingBookings, setPendingBookings] = useState<Room[]>([]);
-    const [rejectedBookings, setRejectedBookings] = useState<Room[]>([]);
+  const [rejectedBookings, setRejectedBookings] = useState<Room[]>([]);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [, setCurrentTime] = useState(new Date());
+  const [loadingUser, setLoadingUser] = useState(true);
 
   const navigate = useNavigate();
 
@@ -90,11 +82,13 @@ function Dashboard() {
       } catch (err) {
         console.error("Error fetching user:", err);
         navigate("/login");
+      } finally {
+        setLoadingUser(false);
       }
     };
     fetchUser();
   }, [navigate]);
-//console.log("userID in admin dashboard: ", id)
+
   // ---------- Fetch users (admin only) ----------
   useEffect(() => {
     const fetchUsers = async () => {
@@ -137,90 +131,66 @@ function Dashboard() {
 
   // ---------- Fetch my bookings ----------
   const fetchMyBookings = async () => {
-  if (!id) return;
-  try {
-    const res = await fetch(
-      `http://localhost:5000/api/room_bookings/my-bookings/${id}`,
-      { method: "GET", credentials: "include" }
-    );
-    if (!res.ok) throw new Error("Failed to fetch bookings");
-    const data = await res.json();
-    //console.log("Fetched approved bookings:", data.bookings); // debug
-    setMyBookings(data.bookings || []);
-  } catch (err) {
-    console.error("Error fetching my bookings:", err);
-    setMyBookings([]);
-  }
-};
-
+    if (!id) return;
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/room_bookings/my-bookings/${id}`,
+        { method: "GET", credentials: "include" }
+      );
+      if (!res.ok) throw new Error("Failed to fetch bookings");
+      const data = await res.json();
+      setMyBookings(data.bookings || []);
+    } catch (err) {
+      console.error("Error fetching my bookings:", err);
+      setMyBookings([]);
+    }
+  };
 
   useEffect(() => {
-    fetchMyBookings();
+    if (id) fetchMyBookings();
   }, [id]);
 
-
-// ---------- Fetch pending bookings (ForApprovalTab) ----------
-const fetchPendingBookings = async () => {
-  if (!id || !userRole) return;
-
-  try {
-    const res = await fetch(
-      `http://localhost:5000/api/room_bookings/pending?userRole=${userRole}&userId=${id}`,
-      { method: "GET", credentials: "include" }
-    );
-    if (!res.ok) throw new Error("Failed to fetch pending bookings");
-    const data = await res.json();
-    //console.log("Pending bookings:", data.bookings);
-    setPendingBookings(data.bookings || []);
-  } catch (err) {
-    console.error("Error fetching pending bookings:", err);
-    setPendingBookings([]);
-  }
-};
+  // ---------- Fetch pending bookings (ForApprovalTab) ----------
+  const fetchPendingBookings = async () => {
+    if (!id || !userRole) return;
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/room_bookings/pending?userRole=${userRole}&userId=${id}`,
+        { method: "GET", credentials: "include" }
+      );
+      if (!res.ok) throw new Error("Failed to fetch pending bookings");
+      const data = await res.json();
+      setPendingBookings(data.bookings || []);
+    } catch (err) {
+      console.error("Error fetching pending bookings:", err);
+      setPendingBookings([]);
+    }
+  };
 
   useEffect(() => {
-    fetchPendingBookings();
-  }, [id]);
+    if (id && userRole) fetchPendingBookings();
+  }, [id, userRole]);
 
-  // ---------- Fetch cancelled_not_approved_before_start bookings (RejectedTab for role 3) ----------
-const fetchRejectedBookings = async () => {
-  if (!id || !userRole) return;
-
-  try {
-    const res = await fetch(
-      `http://localhost:5000/api/room_bookings/rejected?userRole=${userRole}&userId=${id}`,
-      { method: "GET", credentials: "include" }
-    );
-    if (!res.ok) throw new Error("Failed to fetch cancelled_not_approved_before_start bookings");
-    const data = await res.json();
-    //console.log("Pending bookings:", data.bookings);
-    setRejectedBookings(data.bookings || []);
-  } catch (err) {
-    console.error("Error fetching pending bookings:", err);
-    setRejectedBookings([]);
-  }
-};
+  // ---------- Fetch rejected bookings ----------
+  const fetchRejectedBookings = async () => {
+    if (!id || !userRole) return;
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/room_bookings/rejected?userRole=${userRole}&userId=${id}`,
+        { method: "GET", credentials: "include" }
+      );
+      if (!res.ok) throw new Error("Failed to fetch rejected bookings");
+      const data = await res.json();
+      setRejectedBookings(data.bookings || []);
+    } catch (err) {
+      console.error("Error fetching rejected bookings:", err);
+      setRejectedBookings([]);
+    }
+  };
 
   useEffect(() => {
-    fetchRejectedBookings();
-  }, [id]);
-
-
-
-// ---------- Call pending bookings only for admin/staff ----------
-useEffect(() => {
-  if (userRole && (userRole === 1 || userRole === 2)) {
-    fetchPendingBookings();
-  }
-}, [userRole]);
-
-// ---------- Call pending bookings only for admin/staff ----------
-useEffect(() => {
-  if (userRole && (userRole === 1 || userRole === 2)) {
-    fetchRejectedBookings();
-  }
-}, [userRole]);
-
+    if (id && userRole) fetchRejectedBookings();
+  }, [id, userRole]);
 
   // ---------- Logout ----------
   const handleLogout = async () => {
@@ -263,36 +233,7 @@ useEffect(() => {
       alert("Failed to update role. Check console for details.");
     }
   };
-/*
-  // ---------- Add room ----------
-  const handleAddRoom = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/rooms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(newRoom),
-      });
 
-      if (!res.ok) throw new Error("Failed to add room");
-
-      await fetchRooms();
-      setShowAddRoomModal(false);
-      setNewRoom({
-        room_number: "",
-        room_name: "",
-        room_description: "",
-        building_name: "",
-        floor_number: 1,
-        chairs: 0,
-      });
-    } catch (err) {
-      console.error("Error adding room:", err);
-      alert("Failed to add room. Check console for details.");
-    }
-  };
-
-  */
   // ---------- Cancel reservation ----------
   const cancelReservation = async (id: number) => {
     try {
@@ -312,9 +253,10 @@ useEffect(() => {
   // ---------- Helpers ----------
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return `${(d.getMonth() + 1)
+    return `${(d.getMonth() + 1).toString().padStart(2, "0")}-${d
+      .getDate()
       .toString()
-      .padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}-${d.getFullYear()}`;
+      .padStart(2, "0")}-${d.getFullYear()}`;
   };
 
   const formatTime = (start: string, end: string, dateStr: string) => {
@@ -333,88 +275,68 @@ useEffect(() => {
     return `${startDate.toLocaleTimeString([], options)} - ${endDate.toLocaleTimeString([], options)}`;
   };
 
-//console.log("UserRole in AdminDashboard: ", userRole)
+  if (loadingUser) return <div>Loading...</div>;
+
   // ---------- Render ----------
   return (
-
-
-
-<div className={`dashboard-container ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
+    <div className={`dashboard-container ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
       {/* Sidebar */}
       <div className="dashboard-sidebar">
-         <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-    ☰
-  </button>
+        <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          ☰
+        </button>
         <img src="/images/logo.png" alt="School Logo" className="login-logo" />
-     <>
-      <ToastContainer position="top-right" autoClose={5000} />
-      {/* other components */}
-    </>
+        <ToastContainer position="top-right" autoClose={5000} />
 
         {/* Admin-only menu options */}
         {userRole && (userRole === 1 || userRole === 2) && (
           <>
-   
-
             <button
-               className={`sidebar-btn ${activeTab === "Admin" ? "active" : ""}`}
+              className={`sidebar-btn ${activeTab === "Admin" ? "active" : ""}`}
               onClick={() => setActiveTab("Admin")}
             >
-             <span className="icon"><FaUsers /></span>
-            <span className="label">Management Users</span>
+              <span className="icon"><FaUsers /></span>
+              <span className="label">Management Users</span>
             </button>
           </>
         )}
 
         {/* For Approval menu */}
-  
-          <button
-           className={`sidebar-btn ${activeTab === "ForApproval" ? "active" : ""}`}
-          
-            onClick={() => setActiveTab("ForApproval")}
-          >
-            <span className="icon"><FaCheckCircle /></span>
-            <span className="label">For Approval</span>
-          </button>
-    
+        <button
+          className={`sidebar-btn ${activeTab === "ForApproval" ? "active" : ""}`}
+          onClick={() => setActiveTab("ForApproval")}
+        >
+          <span className="icon"><FaCheckCircle /></span>
+          <span className="label">For Approval</span>
+        </button>
 
         <button
-           className={`sidebar-btn ${activeTab === "Rooms" ? "active" : ""}`}
+          className={`sidebar-btn ${activeTab === "Rooms" ? "active" : ""}`}
           onClick={() => setActiveTab("Rooms")}
         >
-            <span className="icon"><FaDoorOpen /></span>
-            <span className="label">Rooms</span>
+          <span className="icon"><FaDoorOpen /></span>
+          <span className="label">Rooms</span>
         </button>
 
-          <button
-            className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
-            onClick={() => setActiveTab("MyBookings")}
-          >
-            <span className="icon"><FaCalendarCheck /></span>
-            <span className="label">{userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}</span>
-          </button>
-
-{/*
         <button
-           className={`sidebar-btn ${activeTab === "MyProfile" ? "active" : ""}`}
-          onClick={() => setActiveTab("MyProfile")}
+          className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
+          onClick={() => setActiveTab("MyBookings")}
         >
-          My Profile
+          <span className="icon"><FaCalendarCheck /></span>
+          <span className="label">{userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}</span>
         </button>
-*/}
-             <button
-           className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}
+
+        <button
+          className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}
           onClick={() => setActiveTab("Rejected")}
         >
-            <span className="icon"><FaTimesCircle /></span>
-            <span className="label">Rejected</span>
-          
+          <span className="icon"><FaTimesCircle /></span>
+          <span className="label">Rejected</span>
         </button>
 
-        <Button  className='sidebar-btn' variant="secondary"  onClick={handleLogout}>
-            <span className="icon"><FaSignOutAlt /></span>
-            <span className="label">Log Out</span>
-          
+        <Button className='sidebar-btn' variant="secondary" onClick={handleLogout}>
+          <span className="icon"><FaSignOutAlt /></span>
+          <span className="label">Log Out</span>
         </Button>
       </div>
 
@@ -425,54 +347,45 @@ useEffect(() => {
         </h1>
 
         {/* Tabs */}
-        {activeTab === "Admin" &&
-          userRole &&
-          (userRole === 1 || userRole === 2) && (
-            <AdminTab
-              users={users}
-              editingUserId={editingUserId}
-              selectedRole={selectedRole}
-              roleLabels={roleLabels}
-              handleEditClick={handleEditClick}
-              handleSaveRole={handleSaveRole}
-              setSelectedRole={setSelectedRole}
-              currentUserRole = {userRole}
-            
-            />
-          )}
-
-  
-        {activeTab === "ForApproval" &&
-           userRole &&
-               (userRole === 1 || userRole === 2 || userRole === 3) && (
-              <ForApprovalTab
-                pendingBookings={pendingBookings}
-                 refreshPendingBookings={fetchPendingBookings}
-                  userRole={userRole}
-                  currentUserId = {id}
-             />
+        {userRole !== null && activeTab === "Admin" && (userRole === 1 || userRole === 2) && (
+          <AdminTab
+            users={users}
+            editingUserId={editingUserId}
+            selectedRole={selectedRole}
+            roleLabels={roleLabels}
+            handleEditClick={handleEditClick}
+            handleSaveRole={handleSaveRole}
+            setSelectedRole={setSelectedRole}
+            currentUserRole={userRole}
+          />
         )}
 
+        {userRole !== null && activeTab === "ForApproval" && (userRole === 1 || userRole === 2 || userRole === 3) && (
+          <ForApprovalTab
+            pendingBookings={pendingBookings}
+            refreshPendingBookings={fetchPendingBookings}
+            userRole={userRole}
+            currentUserId={id}
+          />
+        )}
 
-
-        {activeTab === "Rooms" && (
+        {userRole !== null && activeTab === "Rooms" && (
           <RoomsTab
             rooms={rooms}
             userRole={userRole}
             name={name}
             id={id}
             onBookingSuccess={fetchMyBookings}
-           // setShowAddRoomModal={setShowAddRoomModal}
             formatDate={formatDate}
             formatTime={formatTime}
-             refreshPendingBookings={fetchPendingBookings}
+            refreshPendingBookings={fetchPendingBookings}
             refreshMyBookings={fetchMyBookings}
           />
         )}
 
         {activeTab === "MyProfile" && <MyProfileTab />}
 
-        {activeTab === "MyBookings" && (
+        {userRole !== null && activeTab === "MyBookings" && (
           <MyBookingsTab
             myBookings={myBookings}
             cancelingId={cancelingId}
@@ -481,34 +394,16 @@ useEffect(() => {
             formatTime={formatTime}
             userRole={userRole}
             refreshMyBookings={fetchMyBookings}
-            currentUserId = {id}
+            currentUserId={id}
           />
         )}
 
-        {/* For Rejected menu */}
-  
-         {activeTab === "Rejected" &&
-           userRole &&
-               (userRole === 1 || userRole === 2 || userRole === 3) && (
-              <RejectedTab
-                rejectedBookings={rejectedBookings}
-                 //rejectedBookings={fetchRejectedBookings}
-                  userRole={userRole}
-             />
-        )}
-             
-    
-{/*
-        {showAddRoomModal && (
-          <AddRoomModal
-            newRoom={newRoom}
-            setNewRoom={setNewRoom}
-            //onClose = 
-            //handleAddRoom={handleAddRoom}
-           // setShowAddRoomModal={setShowAddRoomModal}
+        {userRole !== null && activeTab === "Rejected" && (userRole === 1 || userRole === 2 || userRole === 3) && (
+          <RejectedTab
+            rejectedBookings={rejectedBookings}
+            userRole={userRole}
           />
-         
-        )} */}
+        )}
       </div>
     </div>
   );

@@ -95,7 +95,7 @@ export default function AddUserModal({ onClose, onSuccess }: AddUserModalProps) 
           <Button onClick={handleSubmit} disabled={loading}>
             {loading ? "Saving..." : "Save"}
           </Button>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary"  className="btn-cancel" onClick={onClose}>
             Cancel
           </Button>
         </div>

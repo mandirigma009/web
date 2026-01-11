@@ -57,7 +57,7 @@ export default function UpdateStatusModal({
           <Button variant="primary" onClick={handleSave}>
             Save
           </Button>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary"  className="btn-cancel" onClick={onClose}>
             Cancel
           </Button>
         </div>

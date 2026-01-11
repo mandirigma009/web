@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Room } from "../../../types.tsx";
 import EditBookingModal from "../Modals/EditBookingModal.tsx";
 import ReservationTable from "../Modals/ReservationTable.tsx";
-import CalendarEventsModal from "../Modals/calendarEventsModal.tsx";
+
 import "../../../styles/dashboard.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -18,7 +18,7 @@ interface ForApprovalTabProps {
 
 export default function ForApprovalTab({ pendingBookings, refreshPendingBookings, userRole, currentUserId }: ForApprovalTabProps) {
   const [editingBooking, setEditingBooking] = useState<Room | null>(null);
-  const [calendarBooking, setCalendarBooking] = useState<Room | null>(null);
+
 
   const handleApprove = async (id: number) => {
     toast.success("Please wait!");
@@ -56,7 +56,7 @@ export default function ForApprovalTab({ pendingBookings, refreshPendingBookings
         isForApproval
         formatTime={(s, e) => `${s} - ${e}`}
         refreshMyBookings={refreshPendingBookings}
-        openCalendar={setCalendarBooking}
+
       />
 
       {editingBooking && (
@@ -70,19 +70,7 @@ export default function ForApprovalTab({ pendingBookings, refreshPendingBookings
         />
       )}
 
-      {calendarBooking && (
-        <CalendarEventsModal
-          booking={calendarBooking}
-          onClose={() => setCalendarBooking(null)}
-          formatTimePH={(s, e) => `${s} - ${e}`}
-          userRole={userRole}
-          activeTab="pending"
-          onApprove={handleApprove}
-          onReject={handleReject}
-          onCancel={handleCancel}
-          onEdit={setEditingBooking}
-        />
-      )}
+
 
       <ToastContainer position="top-right" autoClose={3000} />
     </>

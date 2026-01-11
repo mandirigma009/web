@@ -130,7 +130,7 @@ export default function EditRoomModal({ room, onClose, onSuccess }: Props) {
           <Button variant="primary" onClick={save} disabled={saving}>
             {saving ? "Saving..." : "Save Changes"}
           </Button>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary"  className="btn-cancel" onClick={onClose}>Cancel</Button>
         </div>
       </div>
     </div>

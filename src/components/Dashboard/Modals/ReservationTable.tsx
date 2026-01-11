@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 // src/components/Dashboard/ReservationTable.tsx
-import { useState, useRef} from "react";
+import { useState, useRef } from "react";
 import { formatToPhilippineDate } from "../../../../server/utils/dateUtils";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -9,22 +10,22 @@ import interactionPlugin from "@fullcalendar/interaction";
 import bootstrap5Plugin from "@fullcalendar/bootstrap5";
 import type { Room } from "../../../types.tsx";
 import EditBookingModal from "./EditBookingModal";
-import "../../../styles/modal.css";
-import "../../../styles/dashboard.css";
+import CalendarEventsModal from "../../Dashboard/Modals/calendarEventsModal.tsx";
 import CancelReasonModal from "./CancelReasonModal";
-import CalendarEventsModal from "../Modals/calendarEventsModal";
+import ActionMenu from "../../../components/ActionMenu.tsx";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { toast, ToastContainer } from "react-toastify";
-import ActionMenu from "../../../components/ActionMenu.tsx"
+import "../../../styles/modal.css";
+import "../../../styles/dashboard.css";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 interface ReservationTableProps {
   reservations: Room[];
-  userRole: (number);
+  userRole: number;
   deleteReservation?: (id: number) => void;
   editBooking?: (booking: Room) => void;
   approveBooking?: (id: number) => void;
@@ -33,9 +34,7 @@ interface ReservationTableProps {
   isForApproval?: boolean;
   isMyBookings?: boolean;
   refreshMyBookings: () => void;
-  openCalendar?: (booking: Room) => void;
   currentUserId: number | null;
-
 }
 
 export default function ReservationTable({
@@ -49,7 +48,7 @@ export default function ReservationTable({
   isMyBookings,
   currentUserId,
   refreshMyBookings,
-
+  formatTime,
 }: ReservationTableProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [editingBooking, setEditingBooking] = useState<Room | null>(null);
@@ -57,331 +56,164 @@ export default function ReservationTable({
   const [cancelReasonModal, setCancelReasonModal] = useState<{ id: number | null } | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
-// Sorting state
-    const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
-      key: "",
-      direction: "asc",
-    });
 
-const handleSort = (key: string) => {
-  setSortConfig((prev) => {
-    if (prev.key === key) {
-      return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
-    } else {
-      return { key, direction: "asc" };
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "", direction: "asc" });
+
+  const handleSort = (key: string) => setSortConfig(prev => prev.key === key ? { key, direction: prev.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" });
+
+  const activeTab = isForApproval ? "pending" : isMyBookings ? "approved" : "rejected";
+
+  // ----------------------------
+  const visibleReservations = (reservations || []).filter(b => {
+    if (isMyBookings) {
+      if (userRole === 1) return true;
+      if (userRole === 3 && currentUserId) return b.user_id === currentUserId;
     }
+    return true;
   });
-};
 
+  const sortedReservations = [...visibleReservations].sort((a, b) => {
+    const { key, direction } = sortConfig;
+    if (!key) return 0;
+    const valA = (a as any)[key]; const valB = (b as any)[key];
+    if (valA < valB) return direction === "asc" ? -1 : 1;
+    if (valA > valB) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
 
-  
-  // ----------------------------
-  // Cancel logic
-  const openCancelModal = (id: number) => setCancelReasonModal({ id });
-
-
-  const handleCancelWithReason = async (bookingId: number, reason: string) => {
+  const events = visibleReservations.map(b => {
     try {
-      const response = await fetch(`http://localhost:5000/api/room_bookings/cancel/${bookingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reject_reason: reason }),
-      });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        return alert(err.message || "Failed to cancel reservation.");
-      }
-      toast.success("Reservation cancelled successfully!");
-      setCancelReasonModal(null);
-      refreshMyBookings(); // refresh table & calendar immediately
-    } catch (err) {
-      console.error(err);
-      alert("Error during cancellation.");
-    }
-  };
+      const dateUTC = dayjs.utc(b.date_reserved);
+      const datePH = dateUTC.tz("Asia/Manila");
+      const startTime = b.reservation_start?.length === 5 ? `${b.reservation_start}:00` : b.reservation_start;
+      const endTime = b.reservation_end?.length === 5 ? `${b.reservation_end}:00` : b.reservation_end;
+      return {
+        id: String(b.id),
+        title: `${startTime}-${endTime}`,
+        start: dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila").toDate(),
+        end: dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila").toDate(),
+        backgroundColor: "#007bff",
+        borderColor: "#007bff",
+      };
+    } catch { return null; }
+  }).filter(e => e !== null);
 
-//console.log("current user role : ", userRole)
-//console.log("currentUserId:", currentUserId)
-
-const visibleReservations = (reservations || []).filter((b) => {
-  if (isMyBookings) {
-    if (userRole === 1) return true; // admin sees everything
-    if (userRole === 3 && currentUserId) return b.user_id === currentUserId;
-  }
-  return true;
-});
-
-//Filter reservations depending on role
-const sortedReservations = [...visibleReservations].sort((a, b) => {
-  const { key, direction } = sortConfig;
-  if (!key) return 0;
-
-  const valA = (a as any)[key];
-  const valB = (b as any)[key];
-
-  if (valA < valB) return direction === "asc" ? -1 : 1;
-  if (valA > valB) return direction === "asc" ? 1 : -1;
-  return 0;
-});
-
-
-  // ----------------------------
-  // Calendar events mapping
-  const events = visibleReservations
-  .map((b) => {
-      try {
-        const dateUTC = dayjs.utc(b.date_reserved);
-        const datePH = dateUTC.tz("Asia/Manila");
-        const startTime = b.reservation_start?.length === 5 ? `${b.reservation_start}:00` : b.reservation_start;
-        const endTime = b.reservation_end?.length === 5 ? `${b.reservation_end}:00` : b.reservation_end;
-        const startPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
-        const endPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila");
-        return {
-          id: String(b.id),
-          title: `${startTime}-${endTime}`,
-          start: startPH.toDate(),
-          end: endPH.toDate(),
-          backgroundColor: "#007bff",
-          borderColor: "#007bff",
-        };
-      } catch {
-        return null;
-      }
-    })
-     .filter((e) => e !== null);
-
-  // ----------------------------
   const isCancelable = (booking: Room) => {
     if (userRole === 1) return true;
     if (userRole === 3) {
       const nowPH = dayjs().tz("Asia/Manila");
-      const dateUTC = dayjs.utc(booking.date_reserved);
-      const datePH = dateUTC.tz("Asia/Manila");
+      const datePH = dayjs.utc(booking.date_reserved).tz("Asia/Manila");
       const startTime = booking.reservation_start?.length === 5 ? `${booking.reservation_start}:00` : booking.reservation_start;
       const combinedPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
-      if (!combinedPH.isValid()) return false;
-      
-  //    console.log("combinedPH.diff >= 30", combinedPH.diff(nowPH, "minute") >= 30)
-      return combinedPH.diff(nowPH, "minute") >= 30;
+      return combinedPH.isValid() && combinedPH.diff(nowPH, "minute") >= 30;
     }
     return false;
   };
 
   const handleAction = async (action: string, booking: Room) => {
-  try {
-    switch (action) {
-      case "edit":
-        if (editBooking) editBooking(booking);
-        break;
+    try {
+      switch (action) {
+        case "edit": editBooking?.(booking); break;
+        case "approve": approveBooking && await approveBooking(booking.id); break;
+        case "reject": rejectBooking && await rejectBooking(booking.id); break;
+        case "cancel": isCancelable(booking) && isMyBookings && setCancelReasonModal({ id: booking.id }); break;
+        case "delete": 
+          if (deleteReservation && isCancelable(booking) && window.confirm("Are you sure you want to cancel this reservation?")) {
+            await deleteReservation(booking.id);
+          } 
+          break;
+      }
+    } catch (err) { console.error(err); } 
+    finally { refreshMyBookings(); }
+  };
 
-      case "approve":
-        if (approveBooking) await approveBooking(booking.id);
-        break;
+  const getAvailableActions = (booking: Room) => {
+    const actions: { key: "approve" | "reject" | "edit" | "delete" | "cancel"; onClick: () => void; disabled?: boolean; title?: string }[] = [];
 
-      case "reject":
-        if (rejectBooking) await rejectBooking(booking.id);
-        break;
-
-      case "cancel":
-        if (isCancelable(booking)) {
-          if (isMyBookings) openCancelModal(booking.id); // ✅ Only here
-        }
-        break;
-
-      case "delete":
-        if (deleteReservation && isCancelable(booking)) {
-          const confirmed = window.confirm(
-            "Are you sure you want to cancel this reservation?"
-          );
-          if (confirmed) await deleteReservation(booking.id);
-        }
-        break;
-
-      default:
-        console.warn("Unhandled action:", action);
-        break;
-    }
-  } catch (err) {
-    console.error("Error in handleAction:", err);
-  } finally {
-    refreshMyBookings();
-  }
-};
-
-
-  const activeTab = isForApproval ? "pending" : isMyBookings ? "approved" : "rejected";
-
-const getAvailableActions = (booking: Room) => {
-  const actions: {
-    key: "approve" | "reject" | "edit" | "delete" | "cancel";
-    onClick: () => void;
-    disabled?: boolean;
-    title?: string;
-  }[] = [];
-
-  if (isForApproval) {
-    if (userRole === 1 || userRole === 2) {
-      actions.push({
-        key: "approve",
-        onClick: () => handleAction("approve", booking),
-      });
-      actions.push({
-        key: "reject",
-        onClick: () => handleAction("reject", booking),
-      });
+    if (isForApproval) {
+      if (userRole === 1 || userRole === 2) {
+        actions.push({ key: "approve", onClick: () => handleAction("approve", booking) });
+        actions.push({ key: "reject", onClick: () => handleAction("reject", booking) });
+      }
+      if (userRole === 3) {
+        actions.push({ key: "edit", onClick: () => handleAction("edit", booking) });
+        actions.push({ key: "delete", onClick: () => handleAction("delete", booking), disabled: !isCancelable(booking), title: "Cancel booking (30 min rule)" });
+      }
     }
 
-    if (userRole === 3) {
-      actions.push({
-        key: "edit",
-        onClick: () => handleAction("edit", booking),
-      });
-
-      actions.push({
-        key: "delete",
-        onClick: () => handleAction("delete", booking),
-        disabled: !isCancelable(booking),
-        title: "Cancel booking (30 min rule)",
-      });
+    if (isMyBookings && userRole === 3) {
+      actions.push({ key: "cancel", onClick: () => handleAction("cancel", booking), disabled: !isCancelable(booking), title: "Cancel booking (30 min rule)" });
     }
-  }
 
-  if (isMyBookings && userRole === 3) {
-    actions.push({
-      key: "cancel",
-      onClick: () => handleAction("cancel", booking),
-      disabled: !isCancelable(booking),
-      title: "Cancel booking (30 min rule)",
-    });
-  }
+    return actions;
+  };
 
-  return actions;
-};
+  // ----------------------------
+  const openCancelModal = (id: number) => setCancelReasonModal({ id });
+  const handleCancelWithReason = async (bookingId: number, reason: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/room_bookings/cancel/${bookingId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reject_reason: reason })
+      });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); return alert(err.message || "Failed to cancel reservation."); }
+      toast.success("Reservation cancelled successfully!");
+      setCancelReasonModal(null);
+      refreshMyBookings();
+    } catch (err) { console.error(err); alert("Error during cancellation."); }
+  };
 
-
-              // ----------------------------
-              return (
-                <div>
-                  <div className="flex justify-between items-center">
-                      <h2>
-                        {isMyBookings
-                          ? userRole === 1 || userRole === 2
-                            ? "All Bookings"
-                            : "My Bookings"
-                          : isForApproval
-                          ? userRole === 3
-                            ? "My Pending Reservations"
-                            : "All Pending Reservations"
-                          : "Reservations"}
-                      </h2>
-
-
-                      <button className="btn btn-outline-primary btn-sm" onClick={() => setViewMode(viewMode === "table" ? "calendar" : "table")}>
-                        {viewMode === "table" ? "📅 Calendar View" : "📋 Table View"}
-                      </button>
-                  </div>
-                  <div style={{ overflowX: "auto", marginTop: "10px", maxHeight: "500px" }}>
-                  {/* ---------- TABLE VIEW ---------- */}
-                  {viewMode === "table" && (
-                    <>
-                      {(!reservations || reservations.length === 0) ? (
-                      <p>No reservations.</p>
-                        ) : (
-                      
-                      <table
-                        id="my-bookings-table"
-                        className="dashboard-table"
-                        style={{ width: "100%", marginTop: "10px", minWidth: "1200px" }}
-                      >
-                      <thead>
-                        <tr >
-                        {[
-                          { key: "room_number", label: "Room #" },
-                          { key: "room_name", label: "Name" },
-                          { key: "room_description", label: "Description" },
-                          { key: "building_name", label: "Building" },
-                          { key: "floor_number", label: "Floor" },
-                          { key: "subject", label: "Subject" }, 
-                          { key: "date_reserved", label: "Date Reserved" },
-                          { key: "reservation_start", label: "Time" },
-                          
-                          { key: "notes", label: "Notes" },
-                        ].map(({ key, label }) => (
-                          <th key={key} style={{ whiteSpace: "nowrap" }}>
-                            <div >
-                              <span>{label} {"   "}</span>
-                            
-                                <span
-                                  style={{
-                                    fontSize: "10px",
-                                    opacity: sortConfig.key === key && sortConfig.direction === "asc" ? 1 : 0.3,
-                                  }}
-                                  onClick={() => handleSort(key)}
-                                >
-                                  ▲
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: "10px",
-                                    opacity: sortConfig.key === key && sortConfig.direction === "desc" ? 1 : 0.3,
-                                  }}
-                                  onClick={() => handleSort(key)}
-                                >
-                                  ▼
-                                </span>
-                            
-                            </div>
-                          </th>
-                        ))}
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-
-
-                    <tbody>
-                      {sortedReservations.map((booking) => (
-                        <tr key={booking.id} className={selectedRowId === booking.id ? "highlighted" : ""} onClick={() => setSelectedRowId(booking.id)}>
-                          <td>{booking.room_number}</td>
-                          <td>{booking.room_name}</td>
-                          <td>
-                            <strong>{booking.room_description || "No description"}</strong>
-                            <br />
-                            <span style={{ fontSize: "0.9em", color: selectedRowId === booking.id ? "#000" : "#000" }}>
-                              {booking.chairs ? `${booking.chairs} Chair${booking.chairs > 1 ? "s" : ""}` : "No Chairs"},
-                              TV: {booking.has_tv ? "Yes" : "No"} | Tables: {booking.has_table ? "Yes" : "No"} | Projector: {booking.has_projector ? "Yes" : "No"}
-                            </span>
-                          </td>
-                          <td>{booking.building_name}</td>
-                          <td>{booking.floor_number}</td>
-                          <td>{booking.subject || "—"}</td>
-                          <td>{booking.date_reserved ? formatToPhilippineDate(booking.date_reserved) : "—"}</td>
-                          <td>{booking.reservation_start && booking.reservation_end ? `${booking.reservation_start}-${booking.reservation_end}` : "—"}</td>
-                          <td>{booking.notes || "—"}</td>
-                 
-                                <td className="text-center">
-                                  {(() => {
-                                    const actions = getAvailableActions(booking);
-
-                                    if (actions.length === 0) return <span>—</span>;
-
-                                    return <ActionMenu actions={actions} />;
-                                  })()}
-                                </td>
-
-                  
-
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                
-                )}
-              </>
-              
-            )}
+  // ----------------------------
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2>{isMyBookings ? (userRole <= 2 ? "All Bookings" : "My Bookings") : (isForApproval ? (userRole === 3 ? "My Pending Reservations" : "All Pending Reservations") : "Reservations")}</h2>
+        <button className="btn btn-outline-primary btn-sm" onClick={() => setViewMode(viewMode === "table" ? "calendar" : "table")}>
+          {viewMode === "table" ? "📅 Calendar View" : "📋 Table View"}
+        </button>
       </div>
 
-      {/* ---------- CALENDAR VIEW ---------- */}
+      {/* Table View */}
+      {viewMode === "table" && (
+        <div style={{ overflowX: "auto", marginTop: "10px", maxHeight: "500px" }}>
+          {sortedReservations.length === 0 ? <p>No reservations.</p> :
+            <table className="dashboard-table" style={{ width: "100%", marginTop: "10px", minWidth: "1200px" }}>
+              <thead>
+                <tr>
+                  {["room_number", "room_name", "room_description", "building_name", "floor_number", "subject", "date_reserved", "reservation_start", "notes"].map(key => (
+                    <th key={key} style={{ whiteSpace: "nowrap" }}>{key}</th>
+                  ))}
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedReservations.map(booking => (
+                  <tr key={booking.id} className={selectedRowId === booking.id ? "highlighted" : ""} onClick={() => setSelectedRowId(booking.id)}>
+                    <td>{booking.room_number}</td>
+                    <td>{booking.room_name}</td>
+                    <td>
+                      <strong>{booking.room_description || "No description"}</strong>
+                      <br/>
+                      <span style={{ fontSize: "0.9em" }}>
+                        {booking.chairs ? `${booking.chairs} Chair${booking.chairs > 1 ? "s" : ""}` : "No Chairs"}, TV: {booking.has_tv ? "Yes" : "No"} | Tables: {booking.has_table ? "Yes" : "No"} | Projector: {booking.has_projector ? "Yes" : "No"}
+                      </span>
+                    </td>
+                    <td>{booking.building_name}</td>
+                    <td>{booking.floor_number}</td>
+                    <td>{booking.subject || "—"}</td>
+                    <td>{booking.date_reserved ? formatToPhilippineDate(booking.date_reserved) : "—"}</td>
+                    <td>{booking.reservation_start && booking.reservation_end ? `${booking.reservation_start}-${booking.reservation_end}` : "—"}</td>
+                    <td>{booking.notes || "—"}</td>
+                    <td className="text-center"><ActionMenu actions={getAvailableActions(booking)} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          }
+        </div>
+      )}
+
+      {/* Calendar View */}
       {viewMode === "calendar" && (
         <div style={{ marginTop: "20px" }}>
           <FullCalendar
@@ -390,73 +222,22 @@ const getAvailableActions = (booking: Room) => {
             initialView="dayGridMonth"
             ref={calendarRef}
             height="auto"
-            eventDidMount={(info) => {
-                info.el.style.cursor = "pointer";
-              }}
             events={events}
-            headerToolbar={{
-              right: "prev,next today",
-              center: "title",
-              left: "dayGridMonth,timeGridWeek,timeGridDay",
+            eventDidMount={info => info.el.style.cursor = "pointer"}
+            headerToolbar={{ right: "prev,next today", center: "title", left: "dayGridMonth,timeGridWeek,timeGridDay" }}
+            eventClick={info => {
+              info.jsEvent.preventDefault(); info.jsEvent.stopPropagation();
+              const booking = reservations.find(b => b.id === Number(info.event.id));
+              if (booking) setSelectedBooking(booking);
             }}
-           eventClick={(info) => {
-              info.jsEvent.preventDefault(); // Prevent FullCalendar from triggering navigation
-              info.jsEvent.stopPropagation(); // Prevent bubbling issues
-
-              const bookingId = Number(info.event.id);
-              const booking = reservations.find((b) => b.id === bookingId);
-              
-              if (booking) {
-                // Add a small delay to ensure React state stabilizes before opening modal
-                setTimeout(() => {
-                  setSelectedBooking(booking);
-                }, 100);
-              }
-            }}
-
           />
         </div>
       )}
 
-      {/* Cancel modal */}
-      {cancelReasonModal && cancelReasonModal.id && (
-        <CancelReasonModal
-          bookingId={cancelReasonModal.id}
-          onClose={() => setCancelReasonModal(null)}
-          onCancelConfirmed={handleCancelWithReason}
-        />
-      )}
-
-
-
-      {/* Calendar event modal */}
-      {selectedBooking && (
-        <CalendarEventsModal
-          booking={selectedBooking}
-          onClose={() => setSelectedBooking(null)}
-          formatTimePH={(s, e) => `${s} - ${e}`}
-          userRole={userRole}
-          activeTab={activeTab}
-          onApprove={() => handleAction("approve", selectedBooking)}
-          onReject={() => handleAction("reject", selectedBooking)}
-          onCancel={() => handleAction("cancel", selectedBooking)}
-          onEdit={() => handleAction("edit", selectedBooking)}
-          onDelete={() => handleAction("delete", selectedBooking)}
-        />
-      )}
-
-
-      {/* Edit booking modal */}
-      {editingBooking && (
-        <EditBookingModal
-          booking={editingBooking}
-          onClose={() => setEditingBooking(null)}
-          onUpdateSuccess={() => {
-            setEditingBooking(null);
-            refreshMyBookings(); // refresh table & calendar automatically
-          }}
-        />
-      )}
+      {/* Modals */}
+      {cancelReasonModal?.id && <CancelReasonModal bookingId={cancelReasonModal.id} onClose={() => setCancelReasonModal(null)} onCancelConfirmed={handleCancelWithReason} />}
+      {selectedBooking && <CalendarEventsModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} actions={getAvailableActions(selectedBooking)} />}
+      {editingBooking && <EditBookingModal booking={editingBooking} onClose={() => setEditingBooking(null)} onUpdateSuccess={() => { setEditingBooking(null); refreshMyBookings(); }} />}
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );

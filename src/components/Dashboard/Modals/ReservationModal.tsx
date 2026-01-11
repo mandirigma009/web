@@ -535,7 +535,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
 
             <div style={{ marginTop: "15px", display: "flex", justifyContent: "space-between" }}>
             <button type="submit" className="bg-yellow-500 text-white px-3 py-2 rounded">Submit</button>
-             <button type="button" onClick={onClose}>Cancel</button>
+             <button type="button"  className="btn-cancel" onClick={onClose}>Cancel</button>
             </div>
           </form>
         )}

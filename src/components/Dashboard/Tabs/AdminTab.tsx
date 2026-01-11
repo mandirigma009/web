@@ -4,6 +4,9 @@ import type { User } from "../../../types";
 import "../../../styles/modal.css";
 import "../../../styles/dashboard.css";
 import AddUserModal from "../Modals/AddUserModal";
+import ActionMenu from "../../ActionMenu";
+import type { ActionKey } from "../../../utils/actionStyles";
+import { FaPlus } from "react-icons/fa";
 
 interface AdminTabProps {
   users?: User[];
@@ -120,6 +123,7 @@ const handleRejectUser = async (userId: number) => {
         <h2>User Management</h2>
         {currentUserRole === 1 && (
           <button className="primary" onClick={() => setShowAddModal(true)}>
+            <FaPlus />
             Add User
           </button>
         )}
@@ -172,21 +176,21 @@ const handleRejectUser = async (userId: number) => {
                       <span className="font-semibold text-orange-600">Pending</span>
 
                       {(currentUserRole === 1 || currentUserRole === 2) && (
-                        <div className="flex gap-2 justify-center">
-                          <button
-                            className="primary px-3 py-1"
-                            onClick={() => handleActivateUser(u.id)}
-                          >
-                            Activate
-                          </button>
+                       <ActionMenu
+                          actions={[
+                            {
+                              key: "approve" as ActionKey,
+                              title: "Activate User",
+                              onClick: () => handleActivateUser(u.id),
+                            },
+                            {
+                              key: "reject" as ActionKey,
+                              title: "Reject User",
+                              onClick: () => handleRejectUser(u.id),
+                            },
+                          ]}
+                        />
 
-                          <button
-                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                            onClick={() => handleRejectUser(u.id)}
-                          >
-                            Reject
-                          </button>
-                        </div>
                       )}
                     </div>
                   )}
@@ -202,12 +206,16 @@ const handleRejectUser = async (userId: number) => {
                       <span className="font-semibold text-red-600">Rejected</span>
 
                       {(currentUserRole === 1 || currentUserRole === 2) && (
-                        <button
-                          className="primary px-3 py-1"
-                          onClick={() => handleActivateUser(u.id)}
-                        >
-                          Activate
-                        </button>
+                        <ActionMenu
+                          actions={[
+                            {
+                              key: "approve" as ActionKey,
+                              title: "Activate User",
+                              onClick: () => handleActivateUser(u.id),
+                            },
+                          ]}
+                        />
+
                       )}
                     </div>
                   )}
@@ -216,15 +224,19 @@ const handleRejectUser = async (userId: number) => {
 
 
             <td>
-              <button
-                className="border rounded px-2 py-1 bg-red-500 text-white hover:bg-red-600"
-                onClick={async () => {
-                  await handleDeleteUser(u.id);
-                  setSelectedRowId(null);
-                }}
-              >
-                Delete User
-              </button>
+             <ActionMenu
+                actions={[
+                  {
+                    key: "delete" as ActionKey,
+                    title: "Delete User",
+                    onClick: async () => {
+                      await handleDeleteUser(u.id);
+                      setSelectedRowId(null);
+                    },
+                  },
+                ]}
+              />
+
           </td>
 
             </tr>

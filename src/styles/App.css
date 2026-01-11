@@ -271,7 +271,7 @@ body,
   transition: all 0.2s ease;
 }
 
-.btn-approve, , .btn-save {
+.btn-approve, .btn-save {
   background-color: #85ed8f  !important;
   color: white  !important;
 }
@@ -291,11 +291,11 @@ body,
 
 
 .btn-cancel {
-  background-color: #f8d7da  !important;
-  color: #721c24  !important;
+  background-color: #ec616f  !important;
+  color:  #f8d7da 
 }
 .btn-cancel:hover {
-  background-color: #f5c6cb;
+  background-color: #721c24  !important;
 }
 
 .btn-delete, .btn-reject {
@@ -312,4 +312,22 @@ body,
 }
 .btn-book:hover {
   background-color: #06386c !important;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 50;
+  background-color: #f87171 !important;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.modal-close-btn:hover {
+  background-color: #ef4444 !important;
 }
