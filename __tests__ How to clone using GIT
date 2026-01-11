@@ -1,0 +1,30 @@
+step-by-step guide to clone a Git repository using your URL: https://github.com/mandirigma009/web.git. 
+
+Step 1: 
+Install Git (if you haven’t already)
+Go to Git official website
+Download the installer for your OS (Windows, Mac, Linux).
+Run the installer with default options (it will install Git Bash and Git command line).
+After installation, open Command Prompt or Git Bash.
+
+Step 2: 
+Navigate to the folder where you want the project
+Open Command Prompt or Git Bash.
+Use the cd command to go to your desired folder. 
+For example: cd C:\Users\YourName\Documents
+
+This will be the folder where your project will be cloned.
+
+Step 3: 
+Clone the repository
+Use the git clone command followed by the repository URL:
+git clone https://github.com/mandirigma009/web.git
+Git will create a folder called web in your current directory.
+It will download all the code and Git history from the remote repository.
+
+Step 4: 
+Enter the cloned folder
+After cloning, move into the project folder:
+cd web
+
+Now you are inside the project folder and can start working with it.
