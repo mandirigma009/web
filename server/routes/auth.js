@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import db from "../db.js";
 import { sendEmail } from "../../src/utils/emailService.js";
+import { v4 as uuidv4 } from "uuid";
+
+
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -369,6 +372,8 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    
+
     // Check pending status for admin/teacher
     if ([2, 3].includes(user.role) && user.status !== "active") {
       return res.status(403).json({
@@ -378,6 +383,8 @@ router.post("/login", async (req, res) => {
         locked: false,
       });
     }
+
+
 
     // Generate tokens
     const accessToken = jwt.sign(
@@ -391,23 +398,28 @@ router.post("/login", async (req, res) => {
       { expiresIn: "12h" }
     );
 
-    res.cookie("accessToken", accessToken, cookieOptions(60 * 60 * 1000));
-    res.cookie("refreshToken", refreshToken, cookieOptions(12 * 60 * 60 * 1000));
 
-    return res.json({
-      message: "Login successful",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        verified: user.verified,
-      },
-      failedAttempts: 0,
-      remainingAttempts: 5,
-      locked: false,
-    });
+    // inside /login route, after verifying credentials
+const sessionToken = uuidv4();
+
+await db.promise().query(
+  `INSERT INTO user_sessions (user_id, session_token) VALUES (?, ?)`,
+  [user.id, sessionToken]
+);
+
+res.cookie("accessToken", accessToken, cookieOptions(60 * 60 * 1000));
+res.cookie("refreshToken", refreshToken, cookieOptions(12 * 60 * 60 * 1000));
+
+// <-- Add this cookie for sessionToken
+res.cookie("sessionToken", sessionToken, cookieOptions(12 * 60 * 60 * 1000)); // same expiry as refresh
+
+
+return res.json({
+  message: "Login successful",
+  user: { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, verified: user.verified },
+  sessionToken,
+});
+
   } catch (err) {
     console.error("Login error:", err);
     return res.status(500).json({
@@ -511,16 +523,41 @@ router.post("/refresh", (req, res) => {
 });
 
 
-// ---------------- LOGOUT ----------------
-router.post("/logout", (req, res) => {
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    secure: false, // 🔹 true in production with HTTPS
-    sameSite: "strict",
-  });
+router.post("/logout", async (req, res) => {
+  try {
+    const sessionToken = req.cookies?.sessionToken;
 
-  return res.json({ message: "Logged out" });
+    if (sessionToken) {
+      await db.promise().query(
+        "DELETE FROM user_sessions WHERE session_token = ?",
+        [sessionToken]
+      );
+    }
+
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+    });
+    res.clearCookie("sessionToken", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+    });
+
+    return res.json({ message: "Logged out" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ message: "Logout failed" });
+  }
 });
+
+
 
 
 // ---------------- ME ----------------

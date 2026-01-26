@@ -89,7 +89,7 @@ input:focus {
    ========================================================= */
 .login-btn {
   width: 100%;
-  background: linear-gradient(135deg, #00e676, #00c853);
+   background: linear-gradient(135deg, #00ffa6, #00e676);
   color: #fff;
   border: none;
   padding: 12px 0;
@@ -102,7 +102,8 @@ input:focus {
 }
 
 .login-btn:hover {
-  background: linear-gradient(135deg, #00ffa6, #00e676);
+   background: linear-gradient(135deg, #00e676, #00c853);
+
   transform: translateY(-2px);
 }
 
@@ -114,7 +115,7 @@ input:focus {
    SHOW PASSWORD & FOOTER
    ========================================================= */
 .show-password {
-  text-align: left;
+  text-align: center;
   margin-bottom: 15px;
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.9);
@@ -316,3 +317,21 @@ input:disabled {
   animation: shake 0.35s ease-in-out;
 }
 
+.show-forgot-container {
+  display: flex;
+  flex-direction: column; /* vertical stacking */
+  align-items: center;    /* center horizontally */
+  justify-content: center; /* center vertically within container if it has height */
+  gap: 8px; /* space between Show Password and Forgot Password */
+  margin-top: 16px; /* optional spacing from above elements */
+}
+
+.show-password input {
+  margin-right: 6px; /* space between checkbox and text */
+}
+
+.forgot-password-label {
+  cursor: pointer;
+  color: #007bff;
+  text-decoration: underline;
+}

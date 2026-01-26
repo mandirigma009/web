@@ -1,135 +1,162 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Dashboard/AdminTab.tsx
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { User } from "../../../types";
 import "../../../styles/modal.css";
 import "../../../styles/dashboard.css";
 import AddUserModal from "../Modals/AddUserModal";
 import ActionMenu from "../../ActionMenu";
 import type { ActionKey } from "../../../utils/actionStyles";
-import { FaPlus } from "react-icons/fa";
 
 interface AdminTabProps {
-  users?: User[];
+  currentUserRole: number;
+  roleLabels: Record<number, string>;
+  setActiveTab: (tab: "Admin" | "Rooms" | "ForApproval" | "Rejected") => void;
+
+    users: User[];
   editingUserId: number | null;
   selectedRole: number;
   handleEditClick: (user: User) => void;
-  handleSaveRole: (id: number) => void;
-  setSelectedRole: (role: number) => void;
-  currentUserRole: number; // Current logged-in user's role
-  roleLabels: Record<number, string>;
+  handleSaveRole: (id: number) => Promise<void>;
+  setSelectedRole: React.Dispatch<React.SetStateAction<number>>;
 }
 
-export default function AdminTab({ currentUserRole, roleLabels }: AdminTabProps) {
+
+
+
+interface AdminMetrics {
+  activeUsers: number;
+  pendingUsers: number;
+  pendingBookings: number;
+  availableRooms: number;
+}
+
+export default function AdminTab({
+  currentUserRole,
+  roleLabels,
+  setActiveTab,
+}: AdminTabProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [users, setUsers] = useState<User[]>([]);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [localUsers, setLocalUsers] = useState<User[]>([]);
+  const [metrics, setMetrics] = useState<AdminMetrics>({
+    activeUsers: 0,
+    pendingUsers: 0,
+    pendingBookings: 0,
+    availableRooms: 0,
+  });
 
-  // Fetch users from API
+  // ------------------ Fetch Users ------------------
   const fetchUsers = async () => {
     try {
       const res = await fetch("http://localhost:5000/api/users");
       if (!res.ok) throw new Error("Failed to fetch users");
       const data = await res.json();
-      setLocalUsers(data.users || []);
+      setUsers(data.users || []);
     } catch (err) {
       console.error("Error fetching users:", err);
     }
   };
 
+  // ------------------ Fetch Metrics ------------------
+  const fetchAdminMetrics = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/metrics");
+      if (!res.ok) throw new Error("Failed to fetch admin metrics");
+      const data = await res.json();
+      setMetrics(data);
+    } catch (err) {
+      console.error("Error fetching admin metrics:", err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchAdminMetrics();
+    const interval = setInterval(fetchAdminMetrics, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Outside click to unhighlight
+  // ------------------ Outside Click ------------------
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setSelectedRowId(null);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Delete user
-  const handleDeleteUser = async (userId: number) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-    try {
-      const res = await fetch(`http://localhost:5000/api/users/${userId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete user");
-      alert("User deleted!");
-      fetchUsers();
-      setSelectedRowId(null);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete user");
-    }
-  };
-
-  // Activate user
-  const handleActivateUser = async (userId: number) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/users/${userId}/activate`, { method: "PUT" });
-      if (!res.ok) throw new Error("Failed to activate user");
-      alert("User activated!");
-      fetchUsers();
-    } catch (err) {
-      console.error(err);
-      alert("Error activating user");
-    }
-  };
-
-  // Reject user
-const handleRejectUser = async (userId: number) => {
-  try {
-    const res = await fetch(`http://localhost:5000/api/users/${userId}/reject`, {
-      method: "PUT",
-    });
-    if (!res.ok) throw new Error("Failed to reject user");
+  // ------------------ User Actions ------------------
+  const handleDeleteUser = async (id: number) => {
+    if (!confirm("Delete this user?")) return;
+    await fetch(`http://localhost:5000/api/users/${id}`, { method: "DELETE" });
     fetchUsers();
-  } catch (err) {
-    console.error(err);
-    alert("Failed to reject user");
-  }
-};
-
-
-
-
-  // Save role immediately when changed
-  const handleSaveRole = async (userId: number, newRole: number) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/users/${userId}/role`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole }),
-      });
-      if (!res.ok) throw new Error("Failed to update role");
-
-      // Update local state immediately
-      setLocalUsers((prev) =>
-        prev.map((user) => (user.id === userId ? { ...user, role: newRole } : user))
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Error updating role");
-    }
   };
+
+  const handleActivateUser = async (id: number) => {
+    await fetch(`http://localhost:5000/api/users/${id}/activate`, { method: "PUT" });
+    fetchUsers();
+    fetchAdminMetrics();
+  };
+
+  const handleRejectUser = async (id: number) => {
+    await fetch(`http://localhost:5000/api/users/${id}/reject`, { method: "PUT" });
+    fetchUsers();
+    fetchAdminMetrics();
+  };
+
+  const handleSaveRole = async (id: number, role: number) => {
+    await fetch(`http://localhost:5000/api/users/${id}/role`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    });
+    fetchUsers();
+  };
+
+  // ------------------ Metric Cards ------------------
+  const metricCards = [
+    { label: "Active Users", value: metrics.activeUsers, tab: "Admin" },
+    { label: "Pending Reservations", value: metrics.pendingBookings, tab: "ForApproval" },
+    { label: "Available Rooms", value: metrics.availableRooms, tab: "Rooms" },
+    { label: "Pending User Approvals", value: metrics.pendingUsers, tab: "Admin" },
+  ];
 
   return (
     <div ref={dropdownRef}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
         <h2>User Management</h2>
         {currentUserRole === 1 && (
           <button className="primary" onClick={() => setShowAddModal(true)}>
-            <FaPlus />
             Add User
           </button>
         )}
       </div>
 
-      <table id="my-bookings-table" className="dashboard-table">
+      {/* Metric Cards */}
+      <div className="dashboard-metrics-grid">
+        {metricCards.map((m, i) => (
+          <div
+            key={i}
+            className="metric-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => {
+              if (m.tab) setActiveTab(m.tab as any); // <-- call parent to switch tab
+            }}
+          >
+            <h4>{m.label}</h4>
+            <strong>{m.value}</strong>
+          </div>
+        ))}
+      </div>
+
+      {/* Users Table */}
+      <table className="dashboard-table">
         <thead>
           <tr>
             <th>Name</th>
@@ -137,11 +164,11 @@ const handleRejectUser = async (userId: number) => {
             <th>Role</th>
             <th>Verified</th>
             <th>Status</th>
-            <th>Action</th>
+            <th />
           </tr>
         </thead>
         <tbody>
-          {localUsers.map((u) => (
+          {users.map((u) => (
             <tr
               key={u.id}
               onClick={() => setSelectedRowId(u.id)}
@@ -153,98 +180,59 @@ const handleRejectUser = async (userId: number) => {
                 {currentUserRole === 1 ? (
                   <select
                     value={u.role}
-                    onChange={async (e) => {
-                      const newRole = Number(e.target.value);
-                      await handleSaveRole(u.id, newRole);
-                    }}
+                    onChange={(e) => handleSaveRole(u.id, Number(e.target.value))}
                   >
-                    {Object.entries(roleLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
+                    {Object.entries(roleLabels).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
                       </option>
                     ))}
                   </select>
                 ) : (
-                  roleLabels[u.role] || "Unknown"
+                  roleLabels[u.role]
                 )}
               </td>
-              <td>{Number(u.verified) === 1 ? "Yes" : "No"}</td>
+              <td>{u.verified ? "Yes" : "No"}</td>
+              <td>{u.status}</td>
+              <td>
+                  <ActionMenu
+                    actions={
+                      [
+                        u.status === "pending" && {
+                          key: "approve" as ActionKey,
+                          title: "Activate",
+                          onClick: () => handleActivateUser(u.id),
+                        },
+                        u.status === "pending" && {
+                          key: "reject" as ActionKey,
+                          title: "Reject",
+                          onClick: () => handleRejectUser(u.id),
+                        },
+                        {
+                          key: "delete" as ActionKey,
+                          title: "Delete",
+                          onClick: () => handleDeleteUser(u.id),
+                        },
+                      ].filter((a): a is { key: ActionKey; title: string; onClick: () => Promise<void> } => Boolean(a))
+                    }
+                  />
 
-                <td className="text-center">
-                  {u.status === "pending" && (
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="font-semibold text-orange-600">Pending</span>
-
-                      {(currentUserRole === 1 || currentUserRole === 2) && (
-                       <ActionMenu
-                          actions={[
-                            {
-                              key: "approve" as ActionKey,
-                              title: "Activate User",
-                              onClick: () => handleActivateUser(u.id),
-                            },
-                            {
-                              key: "reject" as ActionKey,
-                              title: "Reject User",
-                              onClick: () => handleRejectUser(u.id),
-                            },
-                          ]}
-                        />
-
-                      )}
-                    </div>
-                  )}
-
-                  {u.status === "active" && (
-                    <div className="flex justify-center">
-                      <span className="font-semibold text-green-600">Active</span>
-                    </div>
-                  )}
-
-                  {u.status === "rejected" && (
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="font-semibold text-red-600">Rejected</span>
-
-                      {(currentUserRole === 1 || currentUserRole === 2) && (
-                        <ActionMenu
-                          actions={[
-                            {
-                              key: "approve" as ActionKey,
-                              title: "Activate User",
-                              onClick: () => handleActivateUser(u.id),
-                            },
-                          ]}
-                        />
-
-                      )}
-                    </div>
-                  )}
-                </td>
-
-
-
-            <td>
-             <ActionMenu
-                actions={[
-                  {
-                    key: "delete" as ActionKey,
-                    title: "Delete User",
-                    onClick: async () => {
-                      await handleDeleteUser(u.id);
-                      setSelectedRowId(null);
-                    },
-                  },
-                ]}
-              />
-
-          </td>
-
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {showAddModal && <AddUserModal onClose={() => setShowAddModal(false)} onSuccess={fetchUsers} />}
+      {/* Add User Modal */}
+      {showAddModal && (
+        <AddUserModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => {
+            fetchUsers();
+            fetchAdminMetrics();
+          }}
+        />
+      )}
     </div>
   );
 }

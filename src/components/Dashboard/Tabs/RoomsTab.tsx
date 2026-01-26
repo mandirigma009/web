@@ -1,3 +1,5 @@
+/* eslint-disable no-case-declarations */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Dashboard/RoomsTab.tsx
 import { useState, useEffect } from "react";
@@ -27,6 +29,20 @@ interface RoomsTabProps {
   isAdmin?: boolean;
   refreshPendingBookings: () => void;
   refreshMyBookings: () => void;
+  metrics?: {
+    activeUsers: number;
+    pendingUsers: number;
+    pendingBookings: number;
+    availableRooms: number;
+  };
+  setActiveTab?: (tab: "Admin" | "Rooms" | "ForApproval" | "Rejected") => void;
+}
+
+interface AdminMetrics {
+  activeUsers: number;
+  pendingUsers: number;
+  pendingBookings: number;
+  availableRooms: number;
 }
 
 export default function RoomsTab({
@@ -38,6 +54,8 @@ export default function RoomsTab({
   isAdmin = false,
   refreshPendingBookings,
   refreshMyBookings,
+      
+  setActiveTab,  
 }: RoomsTabProps) {
   const [roomList, setRoomList] = useState<Room[]>([]);
   const [allBuildings, setAllBuildings] = useState<Building[]>([]);
@@ -53,6 +71,12 @@ export default function RoomsTab({
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusRoom, setStatusRoom] = useState<Room | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+    const [metrics, setMetrics] = useState<AdminMetrics>({
+      activeUsers: 0,
+      pendingUsers: 0,
+      pendingBookings: 0,
+      availableRooms: 0,
+    });
 
   const room = roomList.find((r) => r.id === Number(selectedRoom));
 
@@ -64,6 +88,18 @@ export default function RoomsTab({
   const [filterHasTable, setFilterHasTable] = useState(false);
   const [filterHasProjector, setFilterHasProjector] = useState(false);
 
+    // ------------------ Fetch Metrics ------------------
+  const fetchAdminMetrics = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/metrics");
+      if (!res.ok) throw new Error("Failed to fetch admin metrics");
+      const data = await res.json();
+      setMetrics(data);
+    } catch (err) {
+      console.error("Error fetching admin metrics:", err);
+    }
+  };
+
   // ----------------------------
   // Load initial rooms only once
   useEffect(() => {
@@ -72,11 +108,14 @@ export default function RoomsTab({
 
   // Fetch buildings
   useEffect(() => {
+    fetchAdminMetrics();
     fetch("/api/buildings")
       .then((res) => res.json())
       .then((data: Building[]) => setAllBuildings(data))
       .catch(console.error);
   }, []);
+
+
 
   // ----------------------------
   // Handlers
@@ -115,9 +154,34 @@ export default function RoomsTab({
     setShowBuildingModal(false);
   };
 
+
+    // ------------------ Metric Cards ------------------
+  const metricCards = [
+    { label: "Pending Reservations", value: metrics.pendingBookings, tab: "ForApproval" },
+    { label: "Available Rooms", value: metrics.availableRooms, tab: "Rooms" },
+  ];
+
   // ----------------------------
   return (
     <div className="text-black">
+              {/* Metric Cards for Role 3 */}
+{userRole === 3 && metrics && setActiveTab && (
+<div className="dashboard-metrics-grid">
+        {metricCards.map((m, i) => (
+          <div
+            key={i}
+            className="metric-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => {
+              if (m.tab) setActiveTab(m.tab as any); // <-- call parent to switch tab
+            }}
+          >
+            <h4>{m.label}</h4>
+            <strong>{m.value}</strong>
+          </div>
+        ))}
+      </div>
+)}
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h2>Rooms</h2>

@@ -51,6 +51,13 @@ function Dashboard() {
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [, setCurrentTime] = useState(new Date());
   const [loadingUser, setLoadingUser] = useState(true);
+  const metrics = {
+  activeUsers: users.length,
+  pendingUsers: users.filter(u => u.role === 3).length, // example
+  pendingBookings: pendingBookings.length,
+  availableRooms: rooms.filter(r => r.status === 1).length,
+};
+
 
   const navigate = useNavigate();
 
@@ -302,6 +309,7 @@ function Dashboard() {
         )}
 
         {/* For Approval menu */}
+        {userRole && userRole !== 4 && (
         <button
           className={`sidebar-btn ${activeTab === "ForApproval" ? "active" : ""}`}
           onClick={() => setActiveTab("ForApproval")}
@@ -309,7 +317,7 @@ function Dashboard() {
           <span className="icon"><FaCheckCircle /></span>
           <span className="label">For Approval</span>
         </button>
-
+)}
         <button
           className={`sidebar-btn ${activeTab === "Rooms" ? "active" : ""}`}
           onClick={() => setActiveTab("Rooms")}
@@ -325,7 +333,7 @@ function Dashboard() {
           <span className="icon"><FaCalendarCheck /></span>
           <span className="label">{userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}</span>
         </button>
-
+{userRole && userRole !== 4 && (
         <button
           className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}
           onClick={() => setActiveTab("Rejected")}
@@ -333,7 +341,7 @@ function Dashboard() {
           <span className="icon"><FaTimesCircle /></span>
           <span className="label">Rejected</span>
         </button>
-
+)}
         <Button className='sidebar-btn' variant="secondary" onClick={handleLogout}>
           <span className="icon"><FaSignOutAlt /></span>
           <span className="label">Log Out</span>
@@ -356,11 +364,12 @@ function Dashboard() {
             handleEditClick={handleEditClick}
             handleSaveRole={handleSaveRole}
             setSelectedRole={setSelectedRole}
+            setActiveTab = {setActiveTab}
             currentUserRole={userRole}
           />
         )}
 
-        {userRole !== null && activeTab === "ForApproval" && (userRole === 1 || userRole === 2 || userRole === 3) && (
+        {userRole !== null && activeTab === "ForApproval" && (userRole !=  4) && (
           <ForApprovalTab
             pendingBookings={pendingBookings}
             refreshPendingBookings={fetchPendingBookings}
@@ -380,6 +389,8 @@ function Dashboard() {
             formatTime={formatTime}
             refreshPendingBookings={fetchPendingBookings}
             refreshMyBookings={fetchMyBookings}
+              metrics={metrics} // pass metrics here
+    setActiveTab={setActiveTab} // so cards can switch tab
           />
         )}
 
@@ -398,7 +409,7 @@ function Dashboard() {
           />
         )}
 
-        {userRole !== null && activeTab === "Rejected" && (userRole === 1 || userRole === 2 || userRole === 3) && (
+        {userRole !== null && activeTab === "Rejected" && (userRole !=  4) && (
           <RejectedTab
             rejectedBookings={rejectedBookings}
             userRole={userRole}

@@ -120,6 +120,33 @@ const handleSubmit = async (e: React.FormEvent) => {
           <Form onSubmit={handleSubmit}>
             {success && <p className="success-message">{success}</p>}
 
+<br></br>
+
+          <div className="role-selector">
+            <label className="role-option">
+              <input
+                type="radio"
+                name="role"
+                value="4"
+                checked={role === 4}
+                onChange={() => setRole(4)}
+              />
+              Student
+            </label>
+            <br />
+            <label className="role-option">
+              <input
+                type="radio"
+                name="role"
+                value="3"
+                checked={role === 3}
+                onChange={() => setRole(3)}
+              />
+              Instructor
+            </label>
+          </div>
+<br></br>
+
             <Input
               type="text"
               value={username}
@@ -177,45 +204,16 @@ const handleSubmit = async (e: React.FormEvent) => {
           />
 
           {/* Show Password Checkbox */}
-          <div className="show-password" style={{ marginBottom: "15px" }}>
+        <div className="show-forgot-container">
+          <label className="show-password">
             <input
               type="checkbox"
               checked={showPassword}
               onChange={() => setShowPassword((prev) => !prev)}
             />{" "}
             Show Password
-          </div>
-
-
-    
-          <div className="role-selector">
-            <label className="role-option">
-              <input
-                type="radio"
-                name="role"
-                value="4"
-                checked={role === 4}
-                onChange={() => setRole(4)}
-              />
-              Student
-            </label>
-            <br />
-            <label className="role-option">
-              <input
-                type="radio"
-                name="role"
-                value="3"
-                checked={role === 3}
-                onChange={() => setRole(3)}
-              />
-              Instructor
-            </label>
-          </div>
-
-
-<br></br>
-<br></br>
-
+          </label>
+        </div>
 
 
             <SubmitButton variant="primary" className="login-btn">
