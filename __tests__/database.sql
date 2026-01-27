@@ -90,7 +90,7 @@ CREATE TABLE `rooms` (
 
 INSERT INTO `rooms` (`id`, `room_number`, `room_name`, `room_description`, `floor_number`, `status`, `created_at`, `chairs`, `has_tv`, `has_projector`, `has_table`, `building_id`, `max_capacity`) VALUES
 (1, '125', 'R125', 'Classroom', 1, 1, '2025-09-21 23:16:26', 34, 0, 1, 1, 1, 40),
-(2, '412', 'R412', 'Classroom', 4, 1, '2025-09-22 21:12:51', 20, 0, 1, 0, 8, 35),
+(2, '412', 'R412', 'Classroom', 4, 1, '2025-09-22 21:12:51', 20, 0, 1, 0, 2, 35),
 (3, '317', 'R317', 'Classroom', 3, 1, '2025-10-05 09:51:38', 35, 0, 0, 1, 3, 50),
 (4, '314', 'R314', 'Classroom', 3, 1, '2025-10-06 00:38:10', 30, 1, 1, 1, 1, 45);
 
