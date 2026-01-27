@@ -28,7 +28,6 @@ USE `myapp`;
 
 --
 -- Table structure for table `buildings`
---
 
 CREATE TABLE `buildings` (
   `id` int(11) NOT NULL,
@@ -61,7 +60,7 @@ CREATE TABLE `cron_last_run` (
 --
 
 INSERT INTO `cron_last_run` (`id`, `last_processed`) VALUES
-(1, '2026-01-11 17:25:00');
+(1, '2026-01-28 01:26:00');
 
 -- --------------------------------------------------------
 
@@ -90,10 +89,10 @@ CREATE TABLE `rooms` (
 --
 
 INSERT INTO `rooms` (`id`, `room_number`, `room_name`, `room_description`, `floor_number`, `status`, `created_at`, `chairs`, `has_tv`, `has_projector`, `has_table`, `building_id`, `max_capacity`) VALUES
-(1, '125', 'R125', 'Classroom', 1, 1, '2025-09-21 23:16:26', 0, 0, 1, 1, 1, 0),
-(2, '412', 'R412', 'Classroom', 4, 3, '2025-09-22 21:12:51', 0, 0, 1, 0, 2, 0),
-(3, '317', 'R317', 'Classroom', 3, 1, '2025-10-05 09:51:38', 0, 0, 0, 1, 3, 0),
-(4, '314', 'R314', 'Classroom', 3, 1, '2025-10-06 00:38:10', 30, 1, 1, 1, 1, 0);
+(1, '125', 'R125', 'Classroom', 1, 1, '2025-09-21 23:16:26', 34, 0, 1, 1, 1, 40),
+(2, '412', 'R412', 'Classroom', 4, 1, '2025-09-22 21:12:51', 20, 0, 1, 0, 8, 35),
+(3, '317', 'R317', 'Classroom', 3, 1, '2025-10-05 09:51:38', 35, 0, 0, 1, 3, 50),
+(4, '314', 'R314', 'Classroom', 3, 1, '2025-10-06 00:38:10', 30, 1, 1, 1, 1, 45);
 
 -- --------------------------------------------------------
 
@@ -126,12 +125,6 @@ CREATE TABLE `room_bookings` (
   `rejected_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `room_bookings`
---
-
-INSERT INTO `room_bookings` (`id`, `room_id`, `reserved_by`, `user_id`, `email`, `date_reserved`, `reservation_start`, `reservation_end`, `notes`, `subject`, `created_at`, `room_number`, `room_name`, `room_description`, `building_name`, `floor_number`, `assigned_by`, `status`, `is_archived`, `approved_at`, `reject_reason`, `rejected_at`) VALUES
-(1, 30, 'test teacher', 4, 'yiyeujifoinau-7319@yopmail.com', '2026-01-16', '01:16:00', '01:30:00', 'test with subject', 'math1', '2026-01-09 15:42:22', '211', 'test room capacity', 'testing room capacity 2', 'test building 3', 2, 'Admin1 test', 'cancelled', 0, NULL, 'this is sample cancel', '2026-01-11 17:10:36');
 -- --------------------------------------------------------
 
 --
@@ -162,6 +155,13 @@ CREATE TABLE `room_bookings_archive` (
   `rejected_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `room_bookings_archive`
+--
+
+INSERT INTO `room_bookings_archive` (`id`, `room_id`, `reserved_by`, `user_id`, `email`, `date_reserved`, `reservation_start`, `reservation_end`, `notes`, `created_at`, `room_number`, `room_name`, `room_description`, `building_name`, `floor_number`, `assigned_by`, `status`, `is_archived`, `approved_at`, `reject_reason`, `rejected_at`) VALUES
+(1, 30, 'test teacher', 4, 'yiyeujifoinau-7319@yopmail.com', '2026-01-16', '01:16:00', '01:30:00', 'test with subject', '2026-01-09 15:42:22', '211', 'test room capacity', 'testing room capacity 2', 'test building 3', 2, 'Admin1 test', 'cancelled', 1, NULL, 'this is sample cancel', '2026-01-11 17:10:36');
+
 -- --------------------------------------------------------
 
 --
@@ -191,6 +191,20 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `created_at`, `role`, `reset_code`, `reset_expires`, `status`, `verified`, `verification_token`, `verification_token_created_at`, `failed_attempts`, `locked_until`) VALUES
 (1, 'Admin1 test', 'AdminTest@mail.com', '$2b$10$7Pmq0nBpg8D2FZAXdZbHcOLsy8NnkSDdfJE01vPdma.ywGGSeqVcm', '2025-09-20 02:03:05', 1, NULL, NULL, 'active', 1, NULL, NULL, 0, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_sessions`
+--
+
+CREATE TABLE `user_sessions` (
+  `user_id` int(11) NOT NULL,
+  `session_token` varchar(255) NOT NULL,
+  `last_active` datetime DEFAULT current_timestamp(),
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -238,6 +252,12 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `email` (`email`);
 
 --
+-- Indexes for table `user_sessions`
+--
+ALTER TABLE `user_sessions`
+  ADD UNIQUE KEY `unique_session` (`user_id`,`session_token`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -245,41 +265,31 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `buildings`
 --
 ALTER TABLE `buildings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `rooms`
 --
 ALTER TABLE `rooms`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `room_bookings`
 --
 ALTER TABLE `room_bookings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `room_bookings_archive`
 --
 ALTER TABLE `room_bookings_archive`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `rooms`
---
-ALTER TABLE `rooms`
-  ADD CONSTRAINT `fk_rooms_building` FOREIGN KEY (`building_id`) REFERENCES `buildings` (`id`);
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
