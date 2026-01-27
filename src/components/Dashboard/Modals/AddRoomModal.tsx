@@ -47,7 +47,13 @@ const handleSaveRoom = async () => {
         newRoom.room_number
       )}&room_name=${encodeURIComponent(newRoom.room_name)}`
     );
-    const existingRooms: Room[] = await resCheck.json();
+   const raw = await resCheck.json();
+
+const existingRooms: Room[] = Array.isArray(raw)
+  ? raw
+  : Array.isArray(raw.data)
+  ? raw.data
+  : [];
 
     const duplicate = existingRooms.find(
       (r) =>
