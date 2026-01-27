@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import pool from "../pool.js";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "access_dev_secret";
-const IDLE_LIMIT = 2 * 60 * 1000; // 2 minutes (testing)
+const IDLE_LIMIT = 30 * 60 * 1000; // 30 minutes (testing)
 
 export async function authMiddleware(req, res, next) {
   const accessToken =
