@@ -10,7 +10,6 @@ import {
 console.log("[Cron] Auto-cancel cron job started. Running every minute...");
 
 
-
 cron.schedule("* * * * *", async () => {
   try {
     const nowPH = currentPHDateTime(); // YYYY-MM-DD HH:mm:ss PH time

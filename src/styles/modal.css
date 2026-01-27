@@ -207,3 +207,13 @@
   padding-top: 10px;
   border-top: 1px solid #ddd;
 }
+
+.back-btn {
+  background-color: #3394d0 !important;
+
+}
+
+.back-btn:hover {
+  background-color: #144a6b !important;
+
+}

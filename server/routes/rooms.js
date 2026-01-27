@@ -10,8 +10,6 @@ const pool = require('../pool');
 // GET all rooms
 // -----------------------
 
-
-// server/routes/rooms.js
 router.get("/", async (req, res) => {
   const [rows] = await pool.query(`
     SELECT r.*, b.building_name
@@ -120,9 +118,6 @@ router.put("/:id/status", async (req, res) => {
 
 
 
-
-
-
 // POST /api/rooms - create a new room
 router.post("/", async (req, res) => {
   const {
@@ -160,7 +155,16 @@ router.post("/", async (req, res) => {
       ]
     );
 
-    res.status(201).json({ id: result.insertId });
+    // ✅ Fetch full inserted row with building_name
+    const [rows] = await pool.query(
+      `SELECT r.*, b.building_name
+       FROM rooms r
+       JOIN buildings b ON b.id = r.building_id
+       WHERE r.id = ?`,
+      [result.insertId]
+    );
+
+    res.status(201).json(rows[0]); // <-- return full room object
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
@@ -171,6 +175,7 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 
 // GET /api/rooms/:id - fetch single room

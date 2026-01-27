@@ -8,7 +8,7 @@ const router = express.Router();
 
 /* ----------------------------------------
    Utility helpers used by /available-times
----------------------------------------- */
+----------------------------------------
 function timeToMinutes(t) {
   // accepts "HH:MM" or "HH:MM:SS"
   const parts = (t || "00:00").split(":").map(Number);
@@ -22,6 +22,7 @@ function minutesToTime(mins) {
   const m = Math.floor(mins % 60);
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
+   */
 
 /* ----------------------------------------
    GET /?room_id=...&date=...

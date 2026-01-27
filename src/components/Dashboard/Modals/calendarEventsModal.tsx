@@ -3,6 +3,7 @@ import "../../../styles/modal.css";
 import type { Room } from "../../../types.tsx";
 import ActionMenu from "../../../components/ActionMenu.tsx";
 import { formatToPhilippineDate } from "../../../../server/utils/dateUtils";
+import { format12Hour } from "../../../utils/timeUtils.ts";
 
 interface CalendarEventsModalProps {
   booking: Room;
@@ -54,7 +55,7 @@ export default function CalendarEventsModal({
           <p><strong>Status:</strong> {booking.status}</p>
            <p><strong>Date:</strong> {formatToPhilippineDate(booking?.date_reserved)}</p>
           <p>
-            <strong>Time:</strong> {booking.reservation_start}-{booking.reservation_end} <br/>
+            <strong>Time:</strong> {format12Hour(booking.reservation_start)} - {format12Hour(booking.reservation_end)} <br/>
             {booking.chairs ? `${booking.chairs} Chair${booking.chairs > 1 ? "s" : ""}` : "No Chairs"}, 
             TV: {booking.has_tv ? "Yes" : "No"} | Tables: {booking.has_table ? "Yes" : "No"} | Projector: {booking.has_projector ? "Yes" : "No"}
           </p>

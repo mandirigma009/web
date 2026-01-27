@@ -19,6 +19,7 @@ import timezone from "dayjs/plugin/timezone";
 import { toast, ToastContainer } from "react-toastify";
 import "../../../styles/modal.css";
 import "../../../styles/dashboard.css";
+import { format12Hour } from "../../../utils/timeUtils.ts";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -48,20 +49,21 @@ export default function ReservationTable({
   isMyBookings,
   currentUserId,
   refreshMyBookings,
-  formatTime,
+ // formatTime,
 }: ReservationTableProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [editingBooking, setEditingBooking] = useState<Room | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
   const [cancelReasonModal, setCancelReasonModal] = useState<{ id: number | null } | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
 
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "", direction: "asc" });
+  const [sortConfig, ] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "", direction: "asc" });
 
-  const handleSort = (key: string) => setSortConfig(prev => prev.key === key ? { key, direction: prev.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" });
+ // const handleSort = (key: string) => setSortConfig(prev => prev.key === key ? { key, direction: prev.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" });
 
-  const activeTab = isForApproval ? "pending" : isMyBookings ? "approved" : "rejected";
+ // const activeTab = isForApproval ? "pending" : isMyBookings ? "approved" : "rejected";
 
   // ----------------------------
   const visibleReservations = (reservations || []).filter(b => {
@@ -89,7 +91,7 @@ export default function ReservationTable({
       const endTime = b.reservation_end?.length === 5 ? `${b.reservation_end}:00` : b.reservation_end;
       return {
         id: String(b.id),
-        title: `${startTime}-${endTime}`,
+       title: `${b.room_name} – ${b.building_name}`,
         start: dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila").toDate(),
         end: dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila").toDate(),
         backgroundColor: "#007bff",
@@ -149,7 +151,7 @@ export default function ReservationTable({
   };
 
   // ----------------------------
-  const openCancelModal = (id: number) => setCancelReasonModal({ id });
+  //const openCancelModal = (id: number) => setCancelReasonModal({ id });
   const handleCancelWithReason = async (bookingId: number, reason: string) => {
     try {
       const res = await fetch(`http://localhost:5000/api/room_bookings/cancel/${bookingId}`, {
@@ -161,6 +163,15 @@ export default function ReservationTable({
       refreshMyBookings();
     } catch (err) { console.error(err); alert("Error during cancellation."); }
   };
+
+    const dateToTime24 = (date?: Date) => {
+  if (!date) return "";
+  return date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
 
   // ----------------------------
   return (
@@ -202,7 +213,7 @@ export default function ReservationTable({
                     <td>{booking.floor_number}</td>
                     <td>{booking.subject || "—"}</td>
                     <td>{booking.date_reserved ? formatToPhilippineDate(booking.date_reserved) : "—"}</td>
-                    <td>{booking.reservation_start && booking.reservation_end ? `${booking.reservation_start}-${booking.reservation_end}` : "—"}</td>
+                    <td>{booking.reservation_start && booking.reservation_end ? `${format12Hour(booking.reservation_start)} - ${format12Hour(booking.reservation_end)}` : "—"}</td>
                     <td>{booking.notes || "—"}</td>
                     <td className="text-center"><ActionMenu actions={getAvailableActions(booking)} /></td>
                   </tr>
@@ -216,21 +227,76 @@ export default function ReservationTable({
       {/* Calendar View */}
       {viewMode === "calendar" && (
         <div style={{ marginTop: "20px" }}>
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
-            themeSystem="bootstrap5"
-            initialView="dayGridMonth"
-            ref={calendarRef}
-            height="auto"
-            events={events}
-            eventDidMount={info => info.el.style.cursor = "pointer"}
-            headerToolbar={{ right: "prev,next today", center: "title", left: "dayGridMonth,timeGridWeek,timeGridDay" }}
-            eventClick={info => {
-              info.jsEvent.preventDefault(); info.jsEvent.stopPropagation();
-              const booking = reservations.find(b => b.id === Number(info.event.id));
-              if (booking) setSelectedBooking(booking);
-            }}
-          />
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
+              themeSystem="bootstrap5"
+              initialView="dayGridMonth"
+              height="auto"
+              events={events}
+
+              /* 🖱 pointer cursor */
+              eventDidMount={(info) => {
+                info.el.style.cursor = "pointer";
+              }}
+
+              /* ⏱ Left-side time axis (Week / Day view) */
+              slotLabelFormat={{
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              }}
+
+              /* 📌 Ensures 12-hour format in day/week headers */
+              eventTimeFormat={{
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              }}
+
+              /* ✅ Unified event rendering (Month / Week / Day) */
+              eventContent={(arg) => {
+                const start24 = dateToTime24(arg.event.start!);
+                const end24 = dateToTime24(arg.event.end!);
+
+                return (
+                  <div>
+                    <div style={{ fontSize: "0.8em", fontWeight: 600 }}>
+                      {format12Hour(start24)} - {format12Hour(end24)}
+                    </div>
+                    <div>{arg.event.title}</div>
+                  </div>
+                );
+              }}
+
+              headerToolbar={{
+                left: "dayGridMonth,timeGridWeek,timeGridDay",
+                center: "title",
+                right: "prev,next today",
+              }}
+
+              /* 📌 Event click → modal */
+              eventClick={(info) => {
+                info.jsEvent.preventDefault();
+                info.jsEvent.stopPropagation();
+
+                const booking = reservations.find(
+                  (b) => b.id === Number(info.event.id)
+                );
+                if (booking) setSelectedBooking(booking);
+              }}
+
+              /* 📅 Day cell selection */
+              dateClick={(info) => {
+                setSelectedDate(info.dateStr);
+              }}
+
+              dayCellClassNames={(arg) => {
+                const dateStr = dayjs(arg.date).format("YYYY-MM-DD");
+                return dateStr === selectedDate ? ["selected-day"] : [];
+              }}
+            />
+
         </div>
       )}
 

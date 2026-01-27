@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Dashboard/AdminTab.tsx
 import { useEffect, useRef, useState } from "react";
@@ -12,14 +13,9 @@ interface AdminTabProps {
   currentUserRole: number;
   roleLabels: Record<number, string>;
   setActiveTab: (tab: "Admin" | "Rooms" | "ForApproval" | "Rejected") => void;
-
-    users: User[];
-  editingUserId: number | null;
-  selectedRole: number;
-  handleEditClick: (user: User) => void;
-  handleSaveRole: (id: number) => Promise<void>;
-  setSelectedRole: React.Dispatch<React.SetStateAction<number>>;
+  id: number | null;
 }
+
 
 
 
@@ -35,7 +31,9 @@ export default function AdminTab({
   currentUserRole,
   roleLabels,
   setActiveTab,
+  id,
 }: AdminTabProps) {
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [users, setUsers] = useState<User[]>([]);
@@ -63,7 +61,10 @@ export default function AdminTab({
   // ------------------ Fetch Metrics ------------------
   const fetchAdminMetrics = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/admin/metrics");
+      const res = await fetch(`http://localhost:5000/api/admin/metrics?userRole=${currentUserRole}&userId=${id}`, {
+  credentials: "include",
+});
+
       if (!res.ok) throw new Error("Failed to fetch admin metrics");
       const data = await res.json();
       setMetrics(data);

@@ -30,6 +30,15 @@ interface ReservationModalProps {
   has_projector?: number;
 }
 
+
+const format12Hour = (time24: string) => {
+  const [h, m] = time24.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+};
+
+
 const generateStartSlots = () => {
   const ts: string[] = [];
   for (let h = 0; h < 24; h++)
@@ -469,13 +478,23 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
               disabled={new Date(date) < new Date(new Date().toISOString().split("T")[0])} // disable if date is in past
               >
               <option value="">-- Select Start --</option>
-              {availableStartTimes.map(t => <option key={t} value={t}>{t}</option>)}
+              {availableStartTimes.map(t => (
+                  <option key={t} value={t}>
+                    {format12Hour(t)}
+                  </option>
+                ))}
+
             </select>
 
             <label>End Time:</label>
             <select value={endTime} onChange={e => setEndTime(e.target.value)} disabled={!startTime}>
               <option value="">-- Select End --</option>
-              {availableEndTimes.map(t => <option key={t} value={t}>{t}</option>)}
+              {availableEndTimes.map(t => (
+                <option key={t} value={t}>
+                  {format12Hour(t)}
+                </option>
+              ))}
+
             </select>
 
             <label>Subject:</label>
@@ -523,7 +542,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
                               })
                               .map((i) => (
                                 <li key={i.start + i.end + i.reserved_by} style={{ padding: "2px 0" }}>
-                                  {i.start} - {i.end} ({i.reserved_by})
+                                  {format12Hour(i.start)} - {format12Hour(i.end)} ({i.reserved_by})
                                 </li>
                               ))}
                           </ul>
@@ -553,7 +572,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
                   {recurrenceDays.length > 0 && <div><strong>Days:</strong> {recurrenceDays.join(", ")}</div>}
                 </>
               )}
-              <div><strong>Time:</strong> {startTime} - {endTime}</div>
+              <div><strong>Time:</strong> {format12Hour(startTime)} - {format12Hour(endTime)}</div>
               <div><strong>Reserved By:</strong> {isAdmin ? selectedTeacherName : reservedBy}</div>
               <div><strong>Email:</strong> {email || "N/A"}</div>
               <div><strong>Subject:</strong> {subject || "N/A"}</div>
@@ -561,7 +580,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
               <div><strong>Notes:</strong> {notes || "None"}</div>
             </div>
             <div style={{ marginTop: "15px", display: "flex", justifyContent: "space-between" }}>
-              <button onClick={() => setShowConfirm(false)}>Back</button>
+              <button className="back-btn"onClick={() => setShowConfirm(false)}>Back</button>
               <button onClick={handleReserve} className="bg-green-500 text-white px-3 py-2 rounded">Confirm</button>
             </div>
           </div>

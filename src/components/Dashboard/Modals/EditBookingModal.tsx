@@ -13,22 +13,35 @@ interface EditBookingModalProps {
   onUpdateSuccess: () => void; // triggers table & calendar refresh
 }
 
+const format12Hour = (time24: string) => {
+  const [h, m] = time24.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+};
+
 // Generate time slots
 const generateStartSlots = () => {
   const ts: string[] = [];
-  for (let h = 0; h < 24; h++) [1, 16, 31, 46].forEach((m) => {
-    if (m < 60) ts.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
-  });
+  for (let h = 0; h < 24; h++)
+    [1, 16, 31, 46].forEach((m) =>
+      ts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
+    );
   return ts;
 };
+
+
 const generateEndSlots = () => {
   const ts: string[] = [];
-  for (let h = 0; h < 24; h++) [15, 30, 45, 60].forEach((m) => {
-    if (m === 60 && h < 23) ts.push(`${String(h+1).padStart(2,"0")}:00`);
-    else if (m !== 60) ts.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
-  });
+  for (let h = 0; h < 24; h++)
+    [15, 30, 45, 60].forEach((m) => {
+      if (m === 60 && h < 23) ts.push(`${String(h + 1).padStart(2, "0")}:00`);
+      else if (m < 60) ts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    });
   return ts;
 };
+
+
 const ALL_START_SLOTS = generateStartSlots();
 const ALL_END_SLOTS = generateEndSlots();
 
@@ -40,6 +53,7 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ booking, onClose, o
   const [showForm, setShowForm] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [reservations, setReservations] = useState<any[]>([]);
+    const [subject, setSubject] = useState("");
 
   const fetchReservationsForDay = async () => {
     try {
@@ -133,6 +147,7 @@ const isSlotAvailable = (time: string) => {
           reservation_start: startTime,
           reservation_end: endTime,
           notes,
+          subject,
           status: "pending",
         }),
       });
@@ -159,7 +174,14 @@ const isSlotAvailable = (time: string) => {
     setShowForm(false); setShowConfirm(true);
   };
 
-  console.log ("booking.id)", booking.id)
+ 
+
+  useEffect(() => {
+  if (booking?.subject) {
+    setSubject(booking.subject);
+  }
+}, [booking]);
+
 
   return (
     <div className="modal-overlay">
@@ -180,24 +202,35 @@ const isSlotAvailable = (time: string) => {
             <label>Start:</label>
             <select value={startTime} onChange={(e) => { setStartTime(e.target.value); setEndTime(""); }}>
               <option value="">-- Select --</option>
-              {availableStartTimes.map((t) => <option key={t} value={t}>{t}</option>)}
+              {availableStartTimes.map((t) => <option key={t} value={t}>{format12Hour(t)}</option>)}
             </select>
             <label>End:</label>
             <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
               <option value="">-- Select --</option>
-              {availableEndTimes.map((t) => <option key={t} value={t}>{t}</option>)}
+              {availableEndTimes.map((t) => <option key={t} value={t}>{format12Hour(t)}</option>)}
             </select>
+                        <label>Subject:</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value.slice(0, 100))} // limit 100 chars
+                placeholder="Enter subject for the reservation"
+                maxLength={100}
+              />
+              <p style={{ fontSize: "0.8em", color: "#555", marginTop: "2px" }}>
+                {subject.length} / Max 100 characters
+              </p>
             <label>Notes:</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value.slice(0,250))} maxLength={250}></textarea>
- <p style={{ fontSize: "0.8em", color: "#555", marginTop: "2px" }}>
-  {notes.length} / Max 250 characters </p>
+               <textarea value={notes} onChange={(e) => setNotes(e.target.value.slice(0,250))} maxLength={250}></textarea>
+              <p style={{ fontSize: "0.8em", color: "#555", marginTop: "2px" }}>
+               {notes.length} / Max 250 characters </p>
             {reservations.length > 0 && (
               <div className="mb-2">
                 <br></br><strong>Already booked (approved):</strong>
                 <ul>
             {reservations.map(i => (
               <li key={i.id}>
-                {i.reservation_start || i.start_time} - {i.reservation_end || i.end_time} ({i.reserved_by})
+                {i.reservation_start || format12Hour(i.start_time)} - {i.reservation_end || format12Hour(i.end_time)} ({i.reserved_by})
               </li>
             ))}
           </ul>
@@ -216,10 +249,11 @@ const isSlotAvailable = (time: string) => {
         {showConfirm && (
           <div className="confirmation">
             <h4>Confirm Update</h4>
-            <p>{date} · {startTime}-{endTime}</p>
+            <p>{date} · {format12Hour(startTime)} - {format12Hour(endTime)}</p>
+            <div><strong>Subject:</strong> {subject || "N/A"}</div>
             <p>Notes: {notes || "None"}</p>
             <div className="modal-footer" style={{ display: "flex", justifyContent: "space-between" }}>
-            <div  className="left-buttons" ><button className="left-buttons" onClick={() => { setShowConfirm(false); setShowForm(true); }}>Back</button></div>
+            <div  className="left-buttons" ><button className="back-btn" onClick={() => { setShowConfirm(false); setShowForm(true); }}>Back</button></div>
             <div className="right-buttons"><button className="right-buttons" onClick={handleUpdate}>Update</button></div>
             </div>
           </div>

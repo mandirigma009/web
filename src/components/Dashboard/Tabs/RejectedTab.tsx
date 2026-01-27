@@ -15,6 +15,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import "@fullcalendar/bootstrap5";
 import "../../../styles/modal.css";
+import { format12Hour } from "../../../utils/timeUtils.ts";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -22,9 +23,10 @@ dayjs.extend(timezone);
 interface RejectedTabProps {
   rejectedBookings: Room[];
   userRole: number;
+  
 }
 
-export default function RejectedTab({ rejectedBookings, userRole}: RejectedTabProps) {
+export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
@@ -60,13 +62,16 @@ export default function RejectedTab({ rejectedBookings, userRole}: RejectedTabPr
     return 0;
   });
 
-  // -----------------------------
-  // Format time for table/calendar
-  const formatTimePH = (start: string, end: string) => {
-    const s = start.length === 5 ? `${start}:00` : start;
-    const e = end.length === 5 ? `${end}:00` : end;
-    return `${s} - ${e}`;
-  };
+
+  const dateToTime24 = (date?: Date) => {
+  if (!date) return "";
+  return date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
+
 
   // -----------------------------
   // Calendar events
@@ -90,7 +95,7 @@ export default function RejectedTab({ rejectedBookings, userRole}: RejectedTabPr
 
         return {
           id: String(b.id),
-          title: `${b.room_name} – ${formatTimePH(b.reservation_start || "", b.reservation_end || "")}`,
+          title: `${b.room_name} – ${b.building_name}`,
           start: startPH.toDate(),
           end: endPH.toDate(),
           backgroundColor: "#dc3545",
@@ -125,7 +130,7 @@ export default function RejectedTab({ rejectedBookings, userRole}: RejectedTabPr
     { key: "building_name", label: "Building" },
     { key: "floor_number", label: "Floor" },
     { key: "date_reserved", label: "Date Reserved" },
-    { key: "reservation_start", label: "Time" },
+    { key: "reservation_start", label: "Reservation Time" },
     { key: "notes", label: "Notes" },
     { key: "reserved_by", label: "Reserved By" },
     { key: "status", label: "Status" },
@@ -219,11 +224,7 @@ export default function RejectedTab({ rejectedBookings, userRole}: RejectedTabPr
                       <td>{booking.building_name}</td>
                       <td>{booking.floor_number}</td>
                       <td>{booking.date_reserved ? formatToPhilippineDate(booking.date_reserved) : "—"}</td>
-                      <td>
-                        {booking.reservation_start && booking.reservation_end
-                          ? formatTimePH(booking.reservation_start, booking.reservation_end)
-                          : "—"}
-                      </td>
+                      <td>{booking.reservation_start && booking.reservation_end ? `${format12Hour(booking.reservation_start)} - ${format12Hour(booking.reservation_end)}` : "—"}</td>
                       <td>{booking.notes || "—"}</td>
                       <td>{booking.reserved_by || "—"}</td>
                       <td>{booking.status || "Rejected"}</td>
@@ -247,43 +248,68 @@ export default function RejectedTab({ rejectedBookings, userRole}: RejectedTabPr
       {viewMode === "calendar" && (
         <div style={{ marginTop: "20px" }}>
           <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
-            themeSystem="bootstrap5"
-            initialView="dayGridMonth"
-            height="auto"
-            events={events}
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
-            }}
-            eventClick={(info) => {
-              const bookingId = Number(info.event.id);
-              const booking = rejectedBookings.find((b) => b.id === bookingId);
-              if (booking) setSelectedBooking(booking);
-            }}
-            dateClick={(info) => {
-            setSelectedDate(info.dateStr); // store selected day (YYYY-MM-DD)
-          }}
-          dayCellClassNames={(arg) => {
-            // arg.date is a Date object
-            const dateStr = dayjs(arg.date).format("YYYY-MM-DD");
-            if (dateStr === selectedDate) return ["selected-day"];
-            return [];
-          }}
-          />
+                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
+                  themeSystem="bootstrap5"
+                  initialView="dayGridMonth"
+                  height="auto"
+                  events={events}
+
+                  /* ⏱ Left-side time labels (Week / Day grid) */
+                  slotLabelFormat={{
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  }}
+
+                  /* 📌 Event rendering (Month / Week / Day) */
+                  eventContent={(arg) => {
+                    const start24 = dateToTime24(arg.event.start!);
+                    const end24 = dateToTime24(arg.event.end!);
+
+                    return (
+                      <div>
+                        <div style={{ fontSize: "0.8em", fontWeight: 600 }}>
+                          {format12Hour(start24)} - {format12Hour(end24)}
+                        </div>
+                        <div>{arg.event.title}</div>
+                      </div>
+                    );
+                  }}
+
+                  headerToolbar={{
+                      left: "dayGridMonth,timeGridWeek,timeGridDay",
+                      center: "title",
+                      right: "prev,next today",
+                  }}
+
+                  eventClick={(info) => {
+                    const bookingId = Number(info.event.id);
+                    const booking = rejectedBookings.find((b) => b.id === bookingId);
+                    if (booking) setSelectedBooking(booking);
+                  }}
+
+                  dateClick={(info) => {
+                    setSelectedDate(info.dateStr);
+                  }}
+
+                  dayCellClassNames={(arg) => {
+                    const dateStr = dayjs(arg.date).format("YYYY-MM-DD");
+                    return dateStr === selectedDate ? ["selected-day"] : [];
+                  }}
+            />
+
+
         </div>
       )}
 
-      {selectedBooking && (
-        <CalendarEventsModal
-          booking={selectedBooking}
-          onClose={() => setSelectedBooking(null)}
-          formatTimePH={formatTimePH}
-          userRole={userRole}
-          activeTab = 'rejected'
-        />
-      )}
+        {selectedBooking && (
+          <CalendarEventsModal
+            booking={selectedBooking}
+            onClose={() => setSelectedBooking(null)}
+            actions={[]}   // ✅ required prop
+          />
+        )}
+
     </div>
   );
 }

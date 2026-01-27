@@ -34,39 +34,58 @@ const validate = () =>
   newRoom.building_id !== "";
 
 
-  const handleSaveRoom = async () => {
-    if (!validate()) {
-      alert("Room number, name, and building are required.");
+const handleSaveRoom = async () => {
+  if (!validate()) {
+    alert("Room number, name, and building are required.");
+    return;
+  }
+
+  try {
+    // Check for duplicate room in the same building (case-insensitive)
+    const resCheck = await fetch(
+      `/api/rooms?building_id=${newRoom.building_id}&room_number=${encodeURIComponent(
+        newRoom.room_number
+      )}&room_name=${encodeURIComponent(newRoom.room_name)}`
+    );
+    const existingRooms: Room[] = await resCheck.json();
+
+    const duplicate = existingRooms.find(
+      (r) =>
+        r.room_number.toLowerCase() === newRoom.room_number.toLowerCase() &&
+        r.room_name.toLowerCase() === newRoom.room_name.toLowerCase() &&
+        r.building_id === Number(newRoom.building_id)
+    );
+
+    if (duplicate) {
+      alert(
+        "A room with the same number and name already exists in this building."
+      );
       return;
     }
 
-    try {
-      const res = await fetch("/api/rooms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newRoom,
-          building_id: Number(newRoom.building_id),
-        }),
-      });
+    // Save room
+    const res = await fetch("/api/rooms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...newRoom,
+        building_id: Number(newRoom.building_id),
+      }),
+    });
 
-      if (res.status === 409) {
-        alert("Room already exists in this building and floor.");
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(await res.text());
-      }
-
-      const saved: Room = await res.json();
-      onAddRoomSuccess(saved);
-      onClose();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to add room");
+    if (!res.ok) {
+      throw new Error(await res.text());
     }
-  };
+
+    const saved: Room = await res.json();
+    onAddRoomSuccess(saved);
+    onClose();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to add room");
+  }
+};
+
 
   return (
     <div className="modal-overlay">

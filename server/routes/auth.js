@@ -7,6 +7,13 @@ import jwt from "jsonwebtoken";
 import db from "../db.js";
 import { sendEmail } from "../../src/utils/emailService.js";
 import { v4 as uuidv4 } from "uuid";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+
+// server/routes/auth.js or wherever your router is
+
+import pool from "../pool.js"; // promise-based pool
+
+
 
 
 
@@ -407,7 +414,7 @@ await db.promise().query(
   [user.id, sessionToken]
 );
 
-res.cookie("accessToken", accessToken, cookieOptions(60 * 60 * 1000));
+res.cookie("accessToken", accessToken, cookieOptions(5 * 60 * 1000));
 res.cookie("refreshToken", refreshToken, cookieOptions(12 * 60 * 60 * 1000));
 
 // <-- Add this cookie for sessionToken
@@ -523,68 +530,36 @@ router.post("/refresh", (req, res) => {
 });
 
 
+
+// ---------------- logout ----------------
 router.post("/logout", async (req, res) => {
-  try {
-    const sessionToken = req.cookies?.sessionToken;
+  const sessionToken = req.cookies?.sessionToken;
 
-    if (sessionToken) {
-      await db.promise().query(
-        "DELETE FROM user_sessions WHERE session_token = ?",
-        [sessionToken]
-      );
-    }
-
-    res.clearCookie("accessToken", {
-      httpOnly: true,
-      secure: false,
-      sameSite: "strict",
-    });
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: false,
-      sameSite: "strict",
-    });
-    res.clearCookie("sessionToken", {
-      httpOnly: true,
-      secure: false,
-      sameSite: "strict",
-    });
-
-    return res.json({ message: "Logged out" });
-  } catch (err) {
-    console.error("Logout error:", err);
-    res.status(500).json({ message: "Logout failed" });
+  if (sessionToken) {
+    await pool.query(
+      "DELETE FROM user_sessions WHERE session_token = ?",
+      [sessionToken]
+    );
   }
-});
 
+  res.clearCookie("accessToken");
+  res.clearCookie("sessionToken");
+  res.json({ message: "Logged out successfully" });
+});
 
 
 
 // ---------------- ME ----------------
 // Returns basic current user info (if access token valid).
-router.get("/me", (req, res) => {
-  try {
-    const token =
-      req.cookies?.accessToken ||
-      (req.headers.authorization && req.headers.authorization.split(" ")[1]);
-    if (!token) return res.status(401).json({ message: "No access token" });
-
-    jwt.verify(token, ACCESS_SECRET, (err, payload) => {
-      if (err) return res.status(401).json({ message: "Invalid/expired access token" });
-
-      return res.json({
-        user: {
-          id: payload.id,
-          name: payload.name,
-          email: payload.email,
-          role: payload.role, // ✅ return role
-        },
-      });
-    });
-  } catch (err) {
-    console.error("Me error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+router.get("/me", authMiddleware, (req, res) => {
+  return res.json({
+    user: {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+    },
+  });
 });
 
 

@@ -23,9 +23,10 @@ import MyBookingsTab from "../components/Dashboard/Tabs/MyBookingsTab";
 import MyProfileTab from "../components/Dashboard/Tabs/MyProfileTab";
 import ForApprovalTab from "../components/Dashboard/Tabs/ForApprovalTab";
 import RejectedTab from "../components/Dashboard/Tabs/RejectedTab";
-
+import useAuthGuard from "../../server/routes/useIdleLogout"
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { formatTimeRange } from "../utils/timeUtils";
 
 const roleLabels: Record<number, string> = {
   2: "Staff",
@@ -34,12 +35,12 @@ const roleLabels: Record<number, string> = {
 };
 
 function Dashboard() {
+useAuthGuard();
+  
   const [name, setName] = useState<string>("");
   const [id, setId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
-  const [editingUserId, setEditingUserId] = useState<number | null>(null);
-  const [selectedRole, setSelectedRole] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<
     "Admin" | "Rooms" | "MyProfile" | "MyBookings" | "ForApproval" | "Rejected"
   >("Rooms");
@@ -214,32 +215,9 @@ function Dashboard() {
     }
   };
 
-  // ---------- Role editing ----------
-  const handleEditClick = (user: User) => {
-    setEditingUserId(user.id);
-    setSelectedRole(user.role);
-  };
 
-  const handleSaveRole = async (id: number) => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/users/${id}/role`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ role: selectedRole }),
-      });
 
-      if (!res.ok) throw new Error("Failed to update role");
 
-      setUsers((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, role: selectedRole } : u))
-      );
-      setEditingUserId(null);
-    } catch (err) {
-      console.error("Error updating role:", err);
-      alert("Failed to update role. Check console for details.");
-    }
-  };
 
   // ---------- Cancel reservation ----------
   const cancelReservation = async (id: number) => {
@@ -256,6 +234,31 @@ function Dashboard() {
       setCancelingId(null);
     }
   };
+
+  useEffect(() => {
+  switch (activeTab) {
+    case "ForApproval":
+      if (userRole !== 4) {
+        fetchPendingBookings();
+      }
+      break;
+    case "Rejected":
+      if (userRole !== 4) {
+        fetchRejectedBookings();
+      }
+      break;
+    case "MyBookings":
+      fetchMyBookings();
+      break;
+    case "Rooms":
+      fetchRooms();
+      break;
+    // Add any other cases as needed
+    default:
+      break;
+  }
+}, [activeTab, userRole, id]);
+
 
   // ---------- Helpers ----------
   const formatDate = (dateStr: string) => {
@@ -357,16 +360,12 @@ function Dashboard() {
         {/* Tabs */}
         {userRole !== null && activeTab === "Admin" && (userRole === 1 || userRole === 2) && (
           <AdminTab
-            users={users}
-            editingUserId={editingUserId}
-            selectedRole={selectedRole}
             roleLabels={roleLabels}
-            handleEditClick={handleEditClick}
-            handleSaveRole={handleSaveRole}
-            setSelectedRole={setSelectedRole}
-            setActiveTab = {setActiveTab}
+            setActiveTab={setActiveTab}
             currentUserRole={userRole}
+            id={id}
           />
+
         )}
 
         {userRole !== null && activeTab === "ForApproval" && (userRole !=  4) && (
@@ -402,7 +401,7 @@ function Dashboard() {
             cancelingId={cancelingId}
             cancelReservation={cancelReservation}
             formatDate={formatDate}
-            formatTime={formatTime}
+            formatTime={formatTimeRange}
             userRole={userRole}
             refreshMyBookings={fetchMyBookings}
             currentUserId={id}

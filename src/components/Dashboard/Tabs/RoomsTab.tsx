@@ -91,7 +91,10 @@ export default function RoomsTab({
     // ------------------ Fetch Metrics ------------------
   const fetchAdminMetrics = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/admin/metrics");
+      const res = await fetch(`http://localhost:5000/api/admin/metrics?userRole=${userRole}&userId=${id}`, {
+  credentials: "include",
+});
+
       if (!res.ok) throw new Error("Failed to fetch admin metrics");
       const data = await res.json();
       setMetrics(data);
@@ -129,6 +132,7 @@ export default function RoomsTab({
   const handleAddRoomSuccess = (addedRoom: Room) => {
     setRoomList((prev) => [...prev, addedRoom]);
     setShowAddRoomModal(false);
+    fetchAdminMetrics();
   };
 
   const handleDeleteRoom = async (roomId: number) => {
@@ -136,6 +140,7 @@ export default function RoomsTab({
     try {
       const res = await fetch(`/api/rooms/${roomId}`, { method: "DELETE" });
       if (res.ok) setRoomList((prev) => prev.filter((r) => r.id !== roomId));
+      fetchAdminMetrics();
     } catch (err) {
       console.error(err);
       alert("Failed to delete room");
@@ -473,7 +478,7 @@ export default function RoomsTab({
           has_table={room.has_table}
           has_projector={room.has_projector}
           onClose={() => setShowReservationModal(false)}
-          onSuccess={() => { setSelectedBuilding(""); setSelectedFloor(""); setSelectedRoom(""); onBookingSuccess?.(); }}
+          onSuccess={() => { setSelectedBuilding(""); fetchAdminMetrics(); setSelectedFloor(""); setSelectedRoom(""); onBookingSuccess?.(); }}
           refreshPendingBookings={refreshPendingBookings}
           refreshMyBookings={refreshMyBookings}
         />
