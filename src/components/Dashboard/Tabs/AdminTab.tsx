@@ -196,27 +196,44 @@ export default function AdminTab({
               <td>{u.verified ? "Yes" : "No"}</td>
               <td>{u.status}</td>
               <td>
+
                   <ActionMenu
                     actions={
                       [
+                        // Pending → Activate
                         u.status === "pending" && {
                           key: "approve" as ActionKey,
                           title: "Activate",
                           onClick: () => handleActivateUser(u.id),
                         },
+
+                        // Pending → Reject
                         u.status === "pending" && {
                           key: "reject" as ActionKey,
-                          title: "Reject",
+                          title: "Re-Approve",
                           onClick: () => handleRejectUser(u.id),
                         },
+
+                        // Rejected → Accept again
+                        u.status === "rejected" && {
+                          key: "approve" as ActionKey,
+                          title: "Accept",
+                          onClick: () => handleActivateUser(u.id),
+                        },
+
+                        // Always → Delete
                         {
                           key: "delete" as ActionKey,
                           title: "Delete",
                           onClick: () => handleDeleteUser(u.id),
                         },
-                      ].filter((a): a is { key: ActionKey; title: string; onClick: () => Promise<void> } => Boolean(a))
+                      ].filter(
+                        (a): a is { key: ActionKey; title: string; onClick: () => Promise<void> } =>
+                          Boolean(a)
+                      )
                     }
                   />
+
 
               </td>
             </tr>

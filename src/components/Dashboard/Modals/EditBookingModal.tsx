@@ -57,7 +57,7 @@ const EditBookingModal: React.FC<EditBookingModalProps> = ({ booking, onClose, o
 
   const fetchReservationsForDay = async () => {
     try {
-      const url = new URL("http://localhost:5000/api/room_bookings/reservations");
+      const url = new URL("/api/room_bookings/reservations");
       url.searchParams.append("roomId", String(booking.room_id));
       url.searchParams.append("date", date);
       const res = await fetch(url.toString());
@@ -139,7 +139,7 @@ const isSlotAvailable = (time: string) => {
 
   const handleUpdate = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/room_bookings/${booking.id}`, {
+      const res = await fetch(`/api/room_bookings/${booking.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

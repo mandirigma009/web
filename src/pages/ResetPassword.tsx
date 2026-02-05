@@ -111,15 +111,17 @@ function ResetPassword() {
               required
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
-
-            <label className="show-password">
-              <input
-                type="checkbox"
-                checked={showPassword}
-                onChange={() => setShowPassword((prev) => !prev)}
-              />{" "}
-              Show Passwords
-            </label>
+            
+             <div className="show-forgot-container">
+              <label className="show-password">
+                <input
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={() => setShowPassword((prev) => !prev)}
+                />{" "}
+                Show Passwords
+              </label>
+            </div>
 
             <SubmitButton
               variant="primary"
