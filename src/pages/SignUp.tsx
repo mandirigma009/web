@@ -38,7 +38,7 @@ const [showPassword, setShowPassword] = useState(false);
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/me", {
+        const res = await fetch("https://classroommanagement.online/api/me", {
           method: "GET",
           credentials: "include",
         });
@@ -76,7 +76,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   setSuccess("");
 
   try {
-    const res = await fetch("http://localhost:5000/api/signup", {
+    const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: username, email, password, role }),

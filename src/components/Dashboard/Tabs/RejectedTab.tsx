@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import type { Room } from "../../../types";
-import { formatToPhilippineDate } from "../../../../server/utils/dateUtils.ts";
+// @ts-ignore
+import { formatToPhilippineDate } from '../../../../server/utils/dateUtils';
+
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";

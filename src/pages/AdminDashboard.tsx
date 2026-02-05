@@ -72,7 +72,7 @@ useAuthGuard();
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/me", {
+        const res = await fetch("/api/me", {
           method: "GET",
           credentials: "include",
         });
@@ -102,7 +102,7 @@ useAuthGuard();
     const fetchUsers = async () => {
       if (userRole && (userRole === 1 || userRole === 2)) {
         try {
-          const res = await fetch("http://localhost:5000/api/users", {
+          const res = await fetch("/api/users", {
             method: "GET",
             credentials: "include",
           });
@@ -120,7 +120,7 @@ useAuthGuard();
   // ---------- Fetch rooms ----------
   const fetchRooms = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/rooms", {
+      const res = await fetch("/api/rooms", {
         method: "GET",
         credentials: "include",
       });
@@ -142,7 +142,7 @@ useAuthGuard();
     if (!id) return;
     try {
       const res = await fetch(
-        `http://localhost:5000/api/room_bookings/my-bookings/${id}`,
+        `/api/room_bookings/my-bookings/${id}`,
         { method: "GET", credentials: "include" }
       );
       if (!res.ok) throw new Error("Failed to fetch bookings");
@@ -163,7 +163,7 @@ useAuthGuard();
     if (!id || !userRole) return;
     try {
       const res = await fetch(
-        `http://localhost:5000/api/room_bookings/pending?userRole=${userRole}&userId=${id}`,
+        `/api/room_bookings/pending?userRole=${userRole}&userId=${id}`,
         { method: "GET", credentials: "include" }
       );
       if (!res.ok) throw new Error("Failed to fetch pending bookings");
@@ -184,7 +184,7 @@ useAuthGuard();
     if (!id || !userRole) return;
     try {
       const res = await fetch(
-        `http://localhost:5000/api/room_bookings/rejected?userRole=${userRole}&userId=${id}`,
+        `/api/room_bookings/rejected?userRole=${userRole}&userId=${id}`,
         { method: "GET", credentials: "include" }
       );
       if (!res.ok) throw new Error("Failed to fetch rejected bookings");
@@ -203,7 +203,7 @@ useAuthGuard();
   // ---------- Logout ----------
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:5000/api/logout", {
+      await fetch("/api/logout", {
         method: "POST",
         credentials: "include",
       });
@@ -223,7 +223,7 @@ useAuthGuard();
   const cancelReservation = async (id: number) => {
     try {
       setCancelingId(id);
-      const res = await fetch(`http://localhost:5000/api/room_bookings/${id}`, {
+      const res = await fetch(`/api/room_bookings/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Cancel failed");

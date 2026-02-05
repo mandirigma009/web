@@ -19,7 +19,7 @@ export default function UpdateStatusModal({
 
   const handleSave = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/rooms/${room.id}/status`, {
+      const res = await fetch(`/api/rooms/${room.id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),

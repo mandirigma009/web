@@ -6,12 +6,22 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // ✅ Create MySQL connection
+
+const db = mysql.createConnection({
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "myapp",
+  password: process.env.DB_PASS || "nay44@Qwerty1234.",
+  database: process.env.DB_NAME || "myapp",
+});
+
+/*
 const db = mysql.createConnection({
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASS || "",
   database: process.env.DB_NAME || "myapp",
 });
+*/
 
 // ✅ Connect and log status
 db.connect((err) => {

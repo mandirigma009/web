@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/ForgotPassword.tsx
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -38,7 +39,7 @@ function ForgotPassword() {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/check-email", {
+      const res = await fetch("/api/check-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: value }),
@@ -70,7 +71,7 @@ function ForgotPassword() {
     setSuccess("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/generate-reset-code", {
+      const res = await fetch("/api/generate-reset-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

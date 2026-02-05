@@ -1,15 +1,11 @@
-// server/routes/rooms.js
-// CRUD endpoints for rooms table.
-// Uses pool.js for MySQL connection (mysql2/promise).
-const express = require('express');
-const router = express.Router();
-const pool = require('../pool');
+import express from 'express';
+import pool from '../pool.js'; // make sure pool.js is ES module
 
+const router = express.Router();
 
 // -----------------------
 // GET all rooms
 // -----------------------
-
 router.get("/", async (req, res) => {
   const [rows] = await pool.query(`
     SELECT r.*, b.building_name
@@ -19,7 +15,6 @@ router.get("/", async (req, res) => {
   `);
   res.json({ rooms: rows });
 });
-
 
 router.put("/:id", async (req, res) => {
   const {
@@ -67,7 +62,6 @@ router.put("/:id", async (req, res) => {
       ]
     );
 
-    // Fetch updated room to return
     const [rows] = await pool.query(
       `SELECT r.*, b.building_name
        FROM rooms r
@@ -82,11 +76,6 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
-
-
-
 
 /// ✅ Update room status (MySQL version)
 router.put("/:id/status", async (req, res) => {
@@ -212,4 +201,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router; 

@@ -5,7 +5,7 @@ import {
   currentPHDateTime,
   formatToPhilippineDateTime,
   toPH,
-} from "../utils/dateUtils.ts";
+} from "../utils/dateUtils.js";
 
 console.log("[Cron] Auto-cancel cron job started. Running every minute...");
 

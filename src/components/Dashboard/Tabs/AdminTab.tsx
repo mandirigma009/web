@@ -49,7 +49,7 @@ export default function AdminTab({
   // ------------------ Fetch Users ------------------
   const fetchUsers = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/users");
+      const res = await fetch(" /api/users");
       if (!res.ok) throw new Error("Failed to fetch users");
       const data = await res.json();
       setUsers(data.users || []);
@@ -61,7 +61,7 @@ export default function AdminTab({
   // ------------------ Fetch Metrics ------------------
   const fetchAdminMetrics = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/metrics?userRole=${currentUserRole}&userId=${id}`, {
+      const res = await fetch(` /api/admin/metrics?userRole=${currentUserRole}&userId=${id}`, {
   credentials: "include",
 });
 
@@ -94,24 +94,24 @@ export default function AdminTab({
   // ------------------ User Actions ------------------
   const handleDeleteUser = async (id: number) => {
     if (!confirm("Delete this user?")) return;
-    await fetch(`http://localhost:5000/api/users/${id}`, { method: "DELETE" });
+    await fetch(`/api/users/${id}`, { method: "DELETE" });
     fetchUsers();
   };
 
   const handleActivateUser = async (id: number) => {
-    await fetch(`http://localhost:5000/api/users/${id}/activate`, { method: "PUT" });
+    await fetch(`/api/users/${id}/activate`, { method: "PUT" });
     fetchUsers();
     fetchAdminMetrics();
   };
 
   const handleRejectUser = async (id: number) => {
-    await fetch(`http://localhost:5000/api/users/${id}/reject`, { method: "PUT" });
+    await fetch(`/api/users/${id}/reject`, { method: "PUT" });
     fetchUsers();
     fetchAdminMetrics();
   };
 
   const handleSaveRole = async (id: number, role: number) => {
-    await fetch(`http://localhost:5000/api/users/${id}/role`, {
+    await fetch(`/api/users/${id}/role`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role }),

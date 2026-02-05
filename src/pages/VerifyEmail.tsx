@@ -44,7 +44,7 @@ useEffect(() => {
     try {
       setResendLoading(true);
       const res = await fetch(
-        `http://localhost:5000/api/resend-verification?email=${encodeURIComponent(email)}`
+        `/api/resend-verification?email=${encodeURIComponent(email)}`
       );
       const data = await res.json();
       if (res.ok) {
@@ -78,7 +78,7 @@ useEffect(() => {
   const verify = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/verify-email?token=${encodeURIComponent(
+        `/api/verify-email?token=${encodeURIComponent(
           token
         )}&email=${encodeURIComponent(email)}`
       );

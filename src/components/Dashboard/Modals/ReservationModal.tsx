@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useState } from "react";
-import { toPH } from "../../../../server/utils/dateUtils.ts";
+// @ts-ignore
+import { toPH } from '../../../../server/utils/dateUtils';
 import dayjs from "dayjs";
 import "../../../styles/modal.css";
 import "../../../styles/dashboard.css";
@@ -115,7 +117,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
     if (!isAdmin) return;
     (async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/users");
+        const res = await fetch("/api/users");
         const data = await res.json();
         if (Array.isArray(data.users))
           setTeachers(data.users.filter((u: { role: number; }) => u.role === 3));
@@ -130,7 +132,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
       try {
         const userId = isAdmin && selectedTeacherId ? selectedTeacherId : currentUserId;
         if (!userId) return;
-        const res = await fetch(`http://localhost:5000/api/users/getEmail/${userId}`);
+        const res = await fetch(`/api/users/getEmail/${userId}`);
         const data = await res.json();
         setEmail(data.email || "");
       } catch (err) {
@@ -148,7 +150,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
   const fetchBookedTimes = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/room_bookings?room_id=${roomId}&date=${effectiveDate}`
+        `/api/room_bookings?room_id=${roomId}&date=${effectiveDate}`
       );
       const data = await res.json();
       const normalized = (Array.isArray(data) ? data : []).map((r: any) => {
@@ -235,7 +237,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
         userRole: String(userRole),
         userId: currentUserId ? String(currentUserId) : "",
       });
-      const res = await fetch(`http://localhost:5000/api/room_bookings/pending?${queryParams.toString()}`);
+      const res = await fetch(`/api/room_bookings/pending?${queryParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch pending bookings");
       const data = await res.json();
       return data.bookings || [];
@@ -328,7 +330,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
         email,
       };
 
-      const res = await fetch("http://localhost:5000/api/room_bookings/book", {
+      const res = await fetch("api/room_bookings/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(bodyData),

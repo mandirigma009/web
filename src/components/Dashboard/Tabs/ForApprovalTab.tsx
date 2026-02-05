@@ -22,19 +22,19 @@ export default function ForApprovalTab({ pendingBookings, refreshPendingBookings
 
   const handleApprove = async (id: number) => {
     toast.success("Please wait!");
-    await fetch(`http://localhost:5000/api/room_bookings/approve/${id}`, { method: "PUT" });
+    await fetch(`/api/room_bookings/approve/${id}`, { method: "PUT" });
     refreshPendingBookings();
   };
 
   const handleReject = async (id: number) => {
     toast.success("Please wait!");
-    await fetch(`http://localhost:5000/api/room_bookings/reject/${id}`, { method: "PUT" });
+    await fetch(`/api/room_bookings/reject/${id}`, { method: "PUT" });
     refreshPendingBookings();
   };
 
   const handleCancel = async (id: number) => {
     toast.success("Please wait!");
-    await fetch(`http://localhost:5000/api/room_bookings/${id}`, { method: "DELETE" });
+    await fetch(`/api/room_bookings/${id}`, { method: "DELETE" });
     refreshPendingBookings();
   };
 

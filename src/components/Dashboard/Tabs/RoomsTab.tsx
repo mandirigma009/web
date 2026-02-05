@@ -91,7 +91,7 @@ export default function RoomsTab({
     // ------------------ Fetch Metrics ------------------
   const fetchAdminMetrics = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/metrics?userRole=${userRole}&userId=${id}`, {
+      const res = await fetch(`/api/admin/metrics?userRole=${userRole}&userId=${id}`, {
   credentials: "include",
 });
 

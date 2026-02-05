@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // src/components/Dashboard/Modals/CalendarEventsModal.tsx
 import "../../../styles/modal.css";
 import type { Room } from "../../../types.tsx";
 import ActionMenu from "../../../components/ActionMenu.tsx";
-import { formatToPhilippineDate } from "../../../../server/utils/dateUtils";
+// @ts-ignore
+import { formatToPhilippineDate } from '../../../../server/utils/dateUtils';
 import { format12Hour } from "../../../utils/timeUtils.ts";
 
 interface CalendarEventsModalProps {

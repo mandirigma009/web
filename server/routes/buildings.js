@@ -1,7 +1,7 @@
-// server/routes/buildings.js
-const express = require("express");
+import express from "express";
+import pool from "../pool.js"; // make sure pool.js is also ES module
+
 const router = express.Router();
-const pool = require("../pool"); // ✅ uses mysql2/promise pool
 
 // GET all buildings
 router.get("/", async (req, res) => {
@@ -25,7 +25,6 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "building_name is required" });
     }
 
-    // Check duplicate
     const [exists] = await pool.query(
       "SELECT id FROM buildings WHERE building_name = ?",
       [building_name.trim()]
@@ -35,7 +34,6 @@ router.post("/", async (req, res) => {
       return res.status(409).json({ error: "Building already exists" });
     }
 
-    // Insert
     const [result] = await pool.query(
       "INSERT INTO buildings (building_name) VALUES (?)",
       [building_name.trim()]
@@ -79,5 +77,4 @@ router.delete("/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-
-module.exports = router;
+export default router; // ✅ ES module default export

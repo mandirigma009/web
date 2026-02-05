@@ -1,39 +1,46 @@
-//server/server.js
 import dotenv from "dotenv";
-dotenv.config(); // <-- MUST be first
+dotenv.config();
 
 import express from "express";
 import cors from "cors";
-
 import cookieParser from "cookie-parser";
+
 import authRoutes from "./routes/auth.js";
 import protectedRoutes from "./routes/protected.js";
 import usersRoutes from "./routes/users.js";
 import roomsRoutes from "./routes/rooms.js";
-import pool from "./pool.js"; // ✅ use pool instead of db
+import pool from "./pool.js";
 import roomBookingsRoutes from "./routes/roomBookings.js";
 import "./routes/autoCancelBookings.js";
 import buildingsRouter from "./routes/buildings.js";
 import adminMetricsRoutes from "./routes/useAdminMetrics.js";
 
-console.log("SMTP_USER:", process.env.SMTP_USER);
-console.log("SMTP_PASS:", process.env.SMTP_PASS);
-console.log("port = ", process.env.PORT)
-
-
-
 const app = express();
 
+// Middlewares
 app.use(cookieParser());
 app.use(express.json());
 
+// CORS for frontend
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+      const allowed = [
+        "https://classroommanagement.online",
+        "http://localhost:5173"
+      ];
+      if (!origin || allowed.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 
+
+// Routes
 app.use("/api", authRoutes);
 app.use("/api/protected", protectedRoutes);
 app.use("/api", usersRoutes);
@@ -43,17 +50,12 @@ app.use("/api/room_bookings", roomBookingsRoutes);
 app.use("/api/buildings", buildingsRouter);
 app.use("/api/admin", adminMetricsRoutes);
 
-
-
-
-// ✅ Fix booking route
+// Example booking route
 app.post("/api/rooms/book", async (req, res) => {
   try {
     const { roomId, date, startTime, endTime, notes, reserved_by } = req.body;
-
-    if (!roomId || !date || !startTime || !endTime) {
+    if (!roomId || !date || !startTime || !endTime)
       return res.status(400).json({ message: "Missing required fields" });
-    }
 
     await pool.query(
       `UPDATE rooms 
@@ -69,7 +71,12 @@ app.post("/api/rooms/book", async (req, res) => {
   }
 });
 
+// Start Node backend (HTTP only)
 const PORT = process.env.PORT || 5000;
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Node API running on port ${PORT}`);
 });

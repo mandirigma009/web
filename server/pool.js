@@ -1,6 +1,19 @@
 // server/pool.js
-const mysql = require("mysql2/promise");
-require("dotenv").config();
+import mysql from "mysql2/promise";
+import dotenv from "dotenv";
+dotenv.config();
+
+
+const pool = mysql.createPool({
+  host: "localhost",
+  user: "myapp",
+  password: "nay44Qwerty1234.",
+  database: "myapp",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+/*
 
 const pool = mysql.createPool({
   host: "localhost",
@@ -11,5 +24,5 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 });
-
-module.exports = pool; // ✅ Use CommonJS export
+*/
+export default pool;

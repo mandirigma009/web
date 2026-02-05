@@ -1,3 +1,5 @@
+// src/components/protetcedRoutes 
+
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
@@ -14,7 +16,8 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/me", {
+      // eds  const res = await fetch("http://localhost:5000/api/me", {
+            const res = await fetch("/api/me", {
           credentials: "include",
         });
         if (res.ok) {

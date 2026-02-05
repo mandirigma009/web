@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 // src/components/Dashboard/ReservationTable.tsx
 import { useState, useRef } from "react";
-import { formatToPhilippineDate } from "../../../../server/utils/dateUtils";
+// @ts-ignore
+import { formatToPhilippineDate } from '../../../../server/utils/dateUtils';
+
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -154,7 +157,7 @@ export default function ReservationTable({
   //const openCancelModal = (id: number) => setCancelReasonModal({ id });
   const handleCancelWithReason = async (bookingId: number, reason: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/room_bookings/cancel/${bookingId}`, {
+      const res = await fetch(`api/room_bookings/cancel/${bookingId}`, {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reject_reason: reason })
       });
       if (!res.ok) { const err = await res.json().catch(() => ({})); return alert(err.message || "Failed to cancel reservation."); }

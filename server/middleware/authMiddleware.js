@@ -1,8 +1,13 @@
 import jwt from "jsonwebtoken";
 import pool from "../pool.js";
 
+<<<<<<< HEAD
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "access_dev_secret";
 const IDLE_LIMIT = 30 * 60 * 1000; // 30 minutes (testing)
+=======
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const IDLE_LIMIT = 15 * 60 * 1000; // 15 minutes
+>>>>>>> dc04273 (Up need to edit for localhost)
 
 export async function authMiddleware(req, res, next) {
   const accessToken =
@@ -11,12 +16,15 @@ export async function authMiddleware(req, res, next) {
 
   const sessionToken = req.cookies?.sessionToken;
 
-  if (!sessionToken) {
-    return res.status(401).json({ message: "Unauthorized" });
+  if (!accessToken || !sessionToken) {
+    return res.status(401).json({ message: "Not authenticated" });
   }
 
   try {
-    // 1️⃣ Fetch session
+    // 1️⃣ Verify JWT FIRST (cheap)
+    const decoded = jwt.verify(accessToken, ACCESS_SECRET);
+
+    // 2️⃣ Fetch session
     const [rows] = await pool.query(
       `
       SELECT user_id, last_active
@@ -27,69 +35,37 @@ export async function authMiddleware(req, res, next) {
     );
 
     if (!rows.length) {
-      await pool.query(
-        "DELETE FROM user_sessions WHERE session_token = ?",
-        [sessionToken]
-      );
       return res.status(401).json({ message: "Session expired" });
     }
 
     const { user_id, last_active } = rows[0];
-    const lastActive = new Date(last_active).getTime();
 
-    // 2️⃣ Idle timeout
-    if (Date.now() - lastActive > IDLE_LIMIT) {
+    // 3️⃣ Idle timeout
+    if (Date.now() - new Date(last_active).getTime() > IDLE_LIMIT) {
       await pool.query(
         "DELETE FROM user_sessions WHERE session_token = ?",
         [sessionToken]
       );
-
-      return res
-        .status(401)
-        .json({ message: "Session expired due to inactivity" });
+      return res.status(401).json({ message: "Session timed out" });
     }
 
-    // 3️⃣ Verify JWT
-    if (!accessToken) {
-      await pool.query(
-        "DELETE FROM user_sessions WHERE session_token = ?",
-        [sessionToken]
-      );
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const decoded = jwt.verify(accessToken, ACCESS_SECRET);
-
-    // 4️⃣ JWT must match session user
+    // 4️⃣ Match JWT ↔ session
     if (decoded.id !== user_id) {
-      await pool.query(
-        "DELETE FROM user_sessions WHERE session_token = ?",
-        [sessionToken]
-      );
       return res.status(401).json({ message: "Session mismatch" });
     }
 
-    // 5️⃣ Update activity
-    await pool.query(
-      `
-      UPDATE user_sessions
-      SET last_active = NOW()
-      WHERE session_token = ?
-      `,
+    // 5️⃣ Update activity (non-blocking)
+    pool.query(
+      "UPDATE user_sessions SET last_active = NOW() WHERE session_token = ?",
       [sessionToken]
-    );
+    ).catch(() => {});
 
     req.user = decoded;
     req.user.id = user_id;
 
     next();
   } catch (err) {
-    // 6️⃣ Invalid JWT
-    await pool.query(
-      "DELETE FROM user_sessions WHERE session_token = ?",
-      [sessionToken]
-    );
-
+    console.error("Auth error:", err.message);
     return res.status(401).json({ message: "Invalid token" });
   }
 }
