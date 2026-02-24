@@ -43,22 +43,27 @@ const format12Hour = (time24: string) => {
 
 const generateStartSlots = () => {
   const ts: string[] = [];
-  for (let h = 0; h < 24; h++)
-    [1, 16, 31, 46].forEach((m) =>
-      ts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
-    );
+  for (let h = 7; h <= 20; h++) { // 7AM to 8:45PM start allowed
+    [0, 15, 30, 45].forEach((m) => {
+      ts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    });
+  }
   return ts;
 };
 
 const generateEndSlots = () => {
   const ts: string[] = [];
-  for (let h = 0; h < 24; h++)
-    [15, 30, 45, 60].forEach((m) => {
-      if (m === 60 && h < 23) ts.push(`${String(h + 1).padStart(2, "0")}:00`);
-      else if (m < 60) ts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  for (let h = 7; h <= 21; h++) { // 7AM to 9PM end allowed
+    [0, 15, 30, 45].forEach((m) => {
+      if (h === 21 && m > 0) return; // stop after 9:00PM
+      ts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
     });
+  }
   return ts;
 };
+
+const MIN_DURATION = 30;     // minutes
+const MAX_DURATION = 180;    // 3 hours
 
 const ALL_START_SLOTS = generateStartSlots();
 const ALL_END_SLOTS = generateEndSlots();
@@ -177,7 +182,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
     return h * 60 + m;
   };
 
-  const LATEST_START_TODAY = 23 * 60 + 15;
+  const LATEST_START_TODAY = 20 * 60 + 30; // 8:30 PM max start
 
   // ✅ CHANGED: use effectiveDate instead of date
   const availableStartTimes = useMemo(() => {
@@ -198,27 +203,36 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
   }, [effectiveDate, LATEST_START_TODAY, reservations]);
 
   // ✅ CHANGED: use effectiveDate instead of date
-  const availableEndTimes = useMemo(() => {
-    if (!startTime) return [];
-    const startMin = timeToMinutes(startTime);
+const availableEndTimes = useMemo(() => {
+  if (!startTime) return [];
 
-    const now = dayjs();
-    const isToday = dayjs(effectiveDate).isSame(now, "day");
+  const startMin = timeToMinutes(startTime);
+  const now = dayjs();
+  const isToday = dayjs(effectiveDate).isSame(now, "day");
 
-    const nextBooking = reservations
-      .map((r) => timeToMinutes(r.start))
-      .filter((s) => s > startMin)
-      .sort((a, b) => a - b)[0];
+  // Find next approved booking after selected start
+  const nextBookingStart = reservations
+    .map((r) => timeToMinutes(r.start))
+    .filter((s) => s > startMin)
+    .sort((a, b) => a - b)[0];
 
-    const limit = nextBooking ? nextBooking - 1 : 1440;
+  const bookingLimit = nextBookingStart ?? 21 * 60; // 9:00 PM hard stop
 
-    return ALL_END_SLOTS.filter((slot) => {
-      const slotMin = timeToMinutes(slot);
-      if (slotMin <= startMin || slotMin > limit) return false;
-      if (isToday && slotMin <= now.hour() * 60 + now.minute()) return false;
-      return true;
-    });
-  }, [startTime, reservations, effectiveDate]);
+  // ✅ THIS is the true maximum allowed end time
+  const maxAllowed = Math.min(startMin + MAX_DURATION, bookingLimit);
+
+  return ALL_END_SLOTS.filter((slot) => {
+    const slotMin = timeToMinutes(slot);
+    const duration = slotMin - startMin;
+
+    if (duration < MIN_DURATION) return false;   // min 30 mins
+    if (slotMin > maxAllowed) return false;     // ✅ use maxAllowed here
+
+    if (isToday && slotMin <= now.hour() * 60 + now.minute()) return false;
+
+    return true;
+  });
+}, [startTime, reservations, effectiveDate]);
 
 //------------------------
 
@@ -458,7 +472,7 @@ const ReservationModal: React.FC<ReservationModalProps> = (props) => {
                   <>
                     <p className="text-sm font-medium">Days:</p>
                     <div className="flex flex-wrap gap-2 mt-1">
-                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
                         <label key={day} className="flex items-center gap-1">
                           <input type="checkbox" checked={recurrenceDays.includes(day)} onChange={() => handleDayToggle(day)} />{day}
                         </label>

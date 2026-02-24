@@ -367,3 +367,15 @@ button:hover {
   font-size: 24px;
   color: #222;
 }
+
+/* Group Header Colors */
+
+.group-header-safe {
+  background-color: #61a4c0; 
+  color: white;
+}
+
+.group-header-conflict {
+  background-color: #bb8086; 
+  
+}

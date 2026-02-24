@@ -39,7 +39,10 @@ export default function AdminTab({
   const [users, setUsers] = useState<User[]>([]);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const isAdmin = currentUserRole === 1 || currentUserRole === 2;
+
   const [metrics, setMetrics] = useState<AdminMetrics>({
+    
     activeUsers: 0,
     pendingUsers: 0,
     pendingBookings: 0,
@@ -132,7 +135,7 @@ export default function AdminTab({
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h2>User Management</h2>
-        {currentUserRole === 1 && (
+        {isAdmin && (
           <button className="primary" onClick={() => setShowAddModal(true)}>
             Add User
           </button>
@@ -178,7 +181,7 @@ export default function AdminTab({
               <td>{u.name}</td>
               <td>{u.email}</td>
               <td>
-                {currentUserRole === 1 ? (
+                {isAdmin ? (
                   <select
                     value={u.role}
                     onChange={(e) => handleSaveRole(u.id, Number(e.target.value))}

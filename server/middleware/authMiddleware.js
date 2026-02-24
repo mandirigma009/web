@@ -1,31 +1,38 @@
 import jwt from "jsonwebtoken";
 import pool from "../pool.js";
 
-<<<<<<< HEAD
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "access_dev_secret";
-const IDLE_LIMIT = 30 * 60 * 1000; // 30 minutes (testing)
-=======
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const IDLE_LIMIT = 15 * 60 * 1000; // 15 minutes
->>>>>>> dc04273 (Up need to edit for localhost)
 
 export async function authMiddleware(req, res, next) {
+ console.log("---- AUTH MIDDLEWARE HIT ----");
+  console.log("Cookies:", req.cookies);
+  console.log("Headers:", req.headers.authorization);
+
+
   const accessToken =
     req.cookies?.accessToken ||
     req.headers.authorization?.split(" ")[1];
 
   const sessionToken = req.cookies?.sessionToken;
 
+     console.log("accessToken:", accessToken);
+  console.log("sessionToken:", sessionToken);
+
+
   if (!accessToken || !sessionToken) {
+     console.log("❌ Missing tokens");
     return res.status(401).json({ message: "Not authenticated" });
   }
 
   try {
     // 1️⃣ Verify JWT FIRST (cheap)
     const decoded = jwt.verify(accessToken, ACCESS_SECRET);
-
+ console.log("✅ JWT decoded:", decoded);
     // 2️⃣ Fetch session
     const [rows] = await pool.query(
+
+      
       `
       SELECT user_id, last_active
       FROM user_sessions
@@ -34,7 +41,12 @@ export async function authMiddleware(req, res, next) {
       [sessionToken]
     );
 
+  
+
     if (!rows.length) {
+      console.log("rows.length:", rows.length);
+
+
       return res.status(401).json({ message: "Session expired" });
     }
 
@@ -46,11 +58,16 @@ export async function authMiddleware(req, res, next) {
         "DELETE FROM user_sessions WHERE session_token = ?",
         [sessionToken]
       );
+   
       return res.status(401).json({ message: "Session timed out" });
     }
 
     // 4️⃣ Match JWT ↔ session
     if (decoded.id !== user_id) {
+  
+console.log("decoded.id:", decoded.id);
+console.log("user_id:", user_id);
+
       return res.status(401).json({ message: "Session mismatch" });
     }
 
@@ -65,7 +82,10 @@ export async function authMiddleware(req, res, next) {
 
     next();
   } catch (err) {
-    console.error("Auth error:", err.message);
-    return res.status(401).json({ message: "Invalid token" });
-  }
+  console.log("❌ JWT verify failed:", err.message);
+  return res.status(401).json({ message: "Invalid token" });
+}
+
+
+
 }

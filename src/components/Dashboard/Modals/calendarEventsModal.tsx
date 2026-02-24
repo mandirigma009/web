@@ -10,6 +10,7 @@ import { format12Hour } from "../../../utils/timeUtils.ts";
 interface CalendarEventsModalProps {
   booking: Room;
   onClose: () => void;
+  isForApproval?: boolean;
   actions: {
     key: "approve" | "reject" | "edit" | "delete" | "cancel";
     onClick: () => void;
@@ -21,6 +22,7 @@ interface CalendarEventsModalProps {
 export default function CalendarEventsModal({
   booking,
   onClose,
+  isForApproval,
   actions,
 }: CalendarEventsModalProps) {
   return (
@@ -52,15 +54,15 @@ export default function CalendarEventsModal({
           <p><strong>Room:</strong> {booking.room_number} - {booking.room_name}</p>
           <p><strong>Building:</strong> {booking.building_name}</p>
           <p><strong>Floor:</strong> {booking.floor_number}</p>
-          <p><strong>Max Seats:</strong> {booking.max_capacity}</p>
           <p><strong>Subject:</strong> {booking.subject}</p>
           <p><strong>Status:</strong> {booking.status}</p>
            <p><strong>Date:</strong> {formatToPhilippineDate(booking?.date_reserved)}</p>
           <p>
-            <strong>Time:</strong> {format12Hour(booking.reservation_start)} - {format12Hour(booking.reservation_end)} <br/>
-            {booking.chairs ? `${booking.chairs} Chair${booking.chairs > 1 ? "s" : ""}` : "No Chairs"}, 
+            <strong>Time:</strong> {format12Hour(booking.reservation_start)} - {format12Hour(booking.reservation_end)} </p>
+            <p><strong>Description:</strong> {booking.chairs ? `${booking.chairs} Chair${booking.chairs > 1 ? "s" : ""}` : "No Chairs"}, 
             TV: {booking.has_tv ? "Yes" : "No"} | Tables: {booking.has_table ? "Yes" : "No"} | Projector: {booking.has_projector ? "Yes" : "No"}
           </p>
+            {!isForApproval && <p><strong>Teacher:</strong> {booking.reserved_by}</p>}
           {booking.notes && <p><strong>Notes:</strong> {booking.notes}</p>}
           {booking.reject_reason && <p><strong>Reason:</strong> {booking.reject_reason}</p>}
         </div>

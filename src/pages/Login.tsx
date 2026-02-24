@@ -19,13 +19,15 @@ function Login() {
   const [isLocked, setIsLocked] = useState(false);
   const [countdown, setCountdown] = useState("");
   const [shake, setShake] = useState(false);
+  const [loginErrorMessage, setLoginErrorMessage] = useState<string | null>(null);
+
 
 
 
   useEffect(() => {
   const checkAuth = async () => {
     try {
-      const res = await fetch("/api/me", {
+      const res = await fetch("api/me", {
         method: "GET",
         credentials: "include",
       });
@@ -80,7 +82,7 @@ function Login() {
     setSuccess("");
 
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -115,11 +117,16 @@ function Login() {
     return;
   }
 
-  if (err.remainingAttempts !== undefined) {
-    setRemainingAttempts(err.remainingAttempts);
-  }
+    setLoginErrorMessage(err.message || null);
 
-  setErrors({ password: err.message || "Invalid credentials" });
+    if (err.message === "Incorrect Email or Password!") {
+      setRemainingAttempts(err.remainingAttempts ?? null);
+    } else {
+      setRemainingAttempts(null); // prevent showing attempts for other errors
+    }
+
+    setErrors({ password: err.message || "Invalid credentials" });
+
 }
 
   };
@@ -170,7 +177,10 @@ function Login() {
               error={errors.password}
             />
 
-            {remainingAttempts !== null && !isLocked && (
+            {loginErrorMessage === "Incorrect Email or Password!" &&
+              remainingAttempts !== null &&
+              !isLocked && (
+
              <div
                 className={`lock-warning ${
                   remainingAttempts <= 1

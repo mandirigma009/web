@@ -2,9 +2,10 @@
 // Helper functions for authentication requests
 
 export async function login(email: string, password: string) {
-  const res = await fetch("https://classroommanagement.online/api/auth/login", {
+  const res = await fetch("api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+     credentials: "include", // ✅ send cookies
     body: JSON.stringify({ email, password }),
   });
 
@@ -15,7 +16,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function signup(email: string, password: string) {
-  const res = await fetch("https://classroommanagement.online/api/auth/signup", {
+  const res = await fetch("api/auth/signup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),

@@ -34,7 +34,7 @@ const cookieOptions = (maxAgeMs) => {
   const isProd = process.env.NODE_ENV === "production";
   return {
     httpOnly: true,
-    secure: isProd,           // set true in production (HTTPS)
+    secure: true,           // set true in production (HTTPS)
     sameSite: "lax",         // 'lax' is generally fine for SPA
     domain: process.env.COOKIE_DOMAIN || undefined,
     maxAge: maxAgeMs,
@@ -79,17 +79,10 @@ router.post("/signup", async (req, res) => {
               status = "active";
               verified = 1;
             } else if (Number(role) === 3) {
-              // Instructor
-              if (isAdminCreated) {
-                // ✅ Admin-added instructors
-                status = "active";
-                verified = 0;
-                verificationToken = crypto.randomBytes(32).toString("hex"); // for verification link
-              } else {
-                // Self-signup (if any)
-                status = "pending";
-                verified = 0;
-              }
+              // Instructor (self signup)
+              status = "pending"; // still requires admin approval
+              verified = 0;
+              verificationToken = crypto.randomBytes(32).toString("hex");
             } else if (Number(role) === 4) {
               // Student
               status = "active";
@@ -120,7 +113,7 @@ router.post("/signup", async (req, res) => {
                 }
 
                 // 📧 Send email for verification or admin creation
-                if ((Number(role) === 4) || (Number(role) === 3 && isAdminCreated)) {
+                if ((Number(role) === 4) || Number(role) === 3 || (Number(role) === 3 && isAdminCreated)) {
                   const link = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
                   
                   let subject, body;
@@ -134,16 +127,22 @@ router.post("/signup", async (req, res) => {
                       <p>Please verify your account by clicking the link below:</p>
                       <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Account</a>
                     `;
-                  } else {
-                    subject = "📧 Verify Your Email";
-                    body = `
-                      <p>Hi ${name},</p>
-                      <p>Please verify your email by clicking the button below:</p>
-                      <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Email</a>
-                    `;
-                  }
-
-                  await sendEmail(email, subject, body);
+                  } 
+                    if (Number(role) === 4 || Number(role) === 3) {           
+                        const link = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
+                        const subject = "📧 Verify Your Email";
+                        const body = `
+                          <p>Hi ${name},</p>
+                          <p>Please verify your email by clicking the button below:</p>
+                          <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Email</a>
+                        `;
+                        try {
+                          await sendEmail(email, subject, body);
+                          console.log(`✅ Verification email sent to ${email}`);
+                        } catch (emailErr) {
+                          console.error("❌ Failed to send verification email:", emailErr);
+                        }
+                    }
                 }
 
                 return res.status(201).json({
@@ -151,7 +150,7 @@ router.post("/signup", async (req, res) => {
                     Number(role) === 3 && isAdminCreated
                       ? "Instructor added successfully. Email sent with temporary password."
                       : Number(role) === 3
-                      ? "Registration submitted. Waiting for admin approval."
+                      ? "Registration successful. Please verify your email. Your account still requires admin approval."
                       : "Registration successful. Please verify your email.",
                 });
               }
@@ -384,7 +383,7 @@ router.post("/login", async (req, res) => {
     // Check pending status for admin/teacher
     if ([2, 3].includes(user.role) && user.status !== "active") {
       return res.status(403).json({
-        message: "Your account is pending admin approval.",
+        message: "Your email is verified. Your account is awaiting admin approval.",
         failedAttempts: 0,
         remainingAttempts: 5,
         locked: false,
@@ -414,7 +413,7 @@ await db.promise().query(
   [user.id, sessionToken]
 );
 
-res.cookie("accessToken", accessToken, cookieOptions(5 * 60 * 1000));
+res.cookie("accessToken", accessToken, cookieOptions(15 * 60 * 1000));
 res.cookie("refreshToken", refreshToken, cookieOptions(12 * 60 * 60 * 1000));
 
 // <-- Add this cookie for sessionToken

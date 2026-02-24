@@ -189,24 +189,66 @@ router.post("/book", async (req, res) => {
       );
     }
 
+          const toMinutes = (t) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const startMin = toMinutes(startTime);
+const endMin = toMinutes(endTime);
+const duration = endMin - startMin;
+
+if (startMin < 7 * 60 || endMin > 21 * 60) {
+  return res.status(400).json({
+    message: "Booking allowed only between 7:00 AM and 9:00 PM.",
+  });
+}
+
+if (duration < 30 || duration > 180) {
+  return res.status(400).json({
+    message: "Booking must be between 30 minutes and 3 hours.",
+  });
+}
+
     // Process each booking
     for (const b of bookingsToSave) {
-      // Conflict check only if status is approved
-      if (b.status === "approved") {
-        const [existing] = await db.query(
-          `SELECT * FROM room_bookings
-           WHERE room_id = ? AND date_reserved = ?
-           AND status = 'approved'
-           AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
-          [roomId, b.date_reserved, startTime, endTime]
-        );
 
-        if (existing.length > 0) {
-          return res.status(409).json({
-            message: `Conflict: another approved booking exists on ${b.date_reserved}`,
-          });
+
+      // Conflict check only if status is approved
+        if (b.status === "approved") {
+
+          // Room conflict
+          const [roomConflict] = await db.query(
+            `SELECT 1 FROM room_bookings
+            WHERE room_id = ?
+            AND date_reserved = ?
+            AND status = 'approved'
+            AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
+            [roomId, b.date_reserved, startTime, endTime]
+          );
+
+          if (roomConflict.length > 0) {
+            return res.status(409).json({
+              message: `Room already booked on ${b.date_reserved}`,
+            });
+          }
+
+          // ✅ NEW: Teacher conflict across ANY room
+          const [teacherConflict] = await db.query(
+            `SELECT 1 FROM room_bookings
+            WHERE user_id = ?
+            AND date_reserved = ?
+            AND status = 'approved'
+            AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
+            [user_id, b.date_reserved, startTime, endTime]
+          );
+
+          if (teacherConflict.length > 0) {
+            return res.status(409).json({
+              message: `Teacher already has another booking on room ${b.roomName} at ${b.date_reserved} ${b.reservation_start} - ${b.reservation_end}.`,
+            });
+          }
         }
-      }
 
       // Insert new booking
       await db.query(
@@ -471,22 +513,46 @@ router.put("/auto-cancel-pending", async (req, res) => {
 
 // GET /reservations/pending
 
+// GET /pending
 router.get("/pending", async (req, res) => {
   try {
-    const { userRole, userId } = req.query; // pass these from frontend
+    const { userRole, userId } = req.query;
 
-    let query = `SELECT b.*, r.chairs, r.has_tv, r.has_table, r.has_projector
-                 FROM room_bookings b
-                 JOIN rooms r ON r.id = b.room_id
-                 WHERE b.status = 'pending'`;;
+    let query = `
+      SELECT 
+        b.*,
+        r.chairs, r.has_tv, r.has_table, r.has_projector,
+
+        CASE 
+          WHEN EXISTS (
+            SELECT 1
+            FROM room_bookings b2
+            WHERE b2.room_id = b.room_id
+              AND b2.date_reserved = b.date_reserved
+              AND b2.status = 'pending'
+              AND b2.id != b.id
+              AND NOT (
+                b2.reservation_end <= b.reservation_start
+                OR b2.reservation_start >= b.reservation_end
+              )
+          )
+          THEN 1
+          ELSE 0
+        END AS has_conflict
+
+      FROM room_bookings b
+      JOIN rooms r ON r.id = b.room_id
+      WHERE b.status = 'pending'
+    `;
+
     const params = [];
 
     if (userRole == 3 && userId) {
-      query += " AND user_id = ?";
+      query += " AND b.user_id = ?";
       params.push(userId);
     }
 
-    query += " ORDER BY date_reserved, reservation_start";
+    query += " ORDER BY b.date_reserved, b.reservation_start";
 
     const [bookings] = await db.query(query, params);
 
@@ -494,6 +560,129 @@ router.get("/pending", async (req, res) => {
   } catch (err) {
     console.error("Error fetching pending bookings:", err);
     res.status(500).json({ message: "Failed to fetch pending bookings." });
+  }
+});
+
+
+
+// GET /pending/conflicts-grouped
+router.get("/pending/conflicts-grouped", async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT *
+      FROM room_bookings
+      WHERE status = 'pending'
+      ORDER BY room_id, date_reserved, reservation_start
+    `);
+
+    const groups = {};
+
+    for (const booking of rows) {
+      const key = `${booking.room_id}_${booking.date_reserved}`;
+
+      if (!groups[key]) {
+        groups[key] = {
+          room_id: booking.room_id,
+          room_name: booking.room_name,
+          date_reserved: booking.date_reserved,
+          bookings: []
+        };
+      }
+
+      groups[key].bookings.push(booking);
+    }
+
+    // Remove groups that don't actually conflict
+    const conflictGroups = Object.values(groups).filter(group => {
+      const arr = group.bookings;
+
+      for (let i = 0; i < arr.length; i++) {
+        for (let j = i + 1; j < arr.length; j++) {
+          const aStart = arr[i].reservation_start;
+          const aEnd = arr[i].reservation_end;
+          const bStart = arr[j].reservation_start;
+          const bEnd = arr[j].reservation_end;
+
+          if (!(bEnd <= aStart || bStart >= aEnd)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    });
+
+    res.json({ conflictGroups });
+
+  } catch (err) {
+    console.error("Error grouping conflicts:", err);
+    res.status(500).json({ message: "Failed to group conflicts." });
+  }
+});
+
+
+
+
+// PUT /approve-bulk
+router.put("/approve-bulk", async (req, res) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: "No booking IDs provided." });
+  }
+
+  const conn = await db.getConnection();
+  await conn.beginTransaction();
+
+  try {
+    for (const id of ids) {
+
+      const [rows] = await conn.query(
+        `SELECT * FROM room_bookings WHERE id = ? AND status = 'pending'`,
+        [id]
+      );
+
+      if (!rows.length) continue;
+
+      const booking = rows[0];
+
+      // ensure no conflict before approving
+      const [conflict] = await conn.query(
+        `SELECT 1 FROM room_bookings
+         WHERE room_id = ?
+         AND date_reserved = ?
+         AND status = 'approved'
+         AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
+        [
+          booking.room_id,
+          booking.date_reserved,
+          booking.reservation_start,
+          booking.reservation_end,
+        ]
+      );
+
+      if (conflict.length > 0) {
+        throw new Error(`Conflict found for booking ID ${id}`);
+      }
+
+      await conn.query(
+        `UPDATE room_bookings 
+         SET status='approved', approved_at=NOW()
+         WHERE id=?`,
+        [id]
+      );
+    }
+
+    await conn.commit();
+    conn.release();
+
+    res.json({ message: "Bulk approval successful." });
+
+  } catch (err) {
+    await conn.rollback();
+    conn.release();
+    console.error("Bulk approve error:", err);
+    res.status(409).json({ message: err.message });
   }
 });
 

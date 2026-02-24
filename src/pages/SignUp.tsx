@@ -38,7 +38,7 @@ const [showPassword, setShowPassword] = useState(false);
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("https://classroommanagement.online/api/me", {
+        const res = await fetch("/api/me", {
           method: "GET",
           credentials: "include",
         });
