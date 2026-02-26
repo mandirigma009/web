@@ -1,6 +1,8 @@
+//rejectedTab.tsx
+
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { Room } from "../../../types";
 // @ts-ignore
 import { formatToPhilippineDate } from '../../../../server/utils/dateUtils';
@@ -34,6 +36,8 @@ export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const calendarRef = useRef<FullCalendar>(null);
+  const [calendarView, setCalendarView] = useState("dayGridMonth");
 
 
   // -----------------------------
@@ -66,50 +70,50 @@ export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
   });
 
 
-  const dateToTime24 = (date?: Date) => {
-  if (!date) return "";
-  return date.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-};
+
 
 
   // -----------------------------
   // Calendar events
-  const events = rejectedBookings
-    .map((b) => {
-      try {
-        const dateUTC = dayjs.utc(b.date_reserved);
-        const datePH = dateUTC.tz("Asia/Manila");
+// -----------------------------
+// Calendar events (structured, future-proof)
+const events = rejectedBookings
+  .map((b) => {
+    try {
+      const dateUTC = dayjs.utc(b.date_reserved);
+      const datePH = dateUTC.tz("Asia/Manila");
 
-        const startTime =
-          b.reservation_start && b.reservation_start.length === 5
-            ? `${b.reservation_start}:00`
-            : b.reservation_start || "00:00:00";
-        const endTime =
-          b.reservation_end && b.reservation_end.length === 5
-            ? `${b.reservation_end}:00`
-            : b.reservation_end || "00:00:00";
+      const startTime =
+        b.reservation_start && b.reservation_start.length === 5
+          ? `${b.reservation_start}:00`
+          : b.reservation_start || "00:00:00";
+      const endTime =
+        b.reservation_end && b.reservation_end.length === 5
+          ? `${b.reservation_end}:00`
+          : b.reservation_end || "00:00:00";
 
-        const startPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
-        const endPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila");
+      const startPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
+      const endPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila");
 
-        return {
-          id: String(b.id),
-          title: `${b.room_name} – ${b.building_name}`,
-          start: startPH.toDate(),
-          end: endPH.toDate(),
-          backgroundColor: "#dc3545",
-          borderColor: "#dc3545",
-        };
-      } catch (err) {
-        console.error("⚠️ Failed to parse reservation for calendar:", b, err);
-        return null;
-      }
-    })
-     .filter((e) => e !== null);
+      return {
+        id: String(b.id),
+        title: b.room_name, // Room name only
+        start: startPH.toDate(),
+        end: endPH.toDate(),
+        backgroundColor: "#dc3545",
+        borderColor: "#dc3545",
+        extendedProps: {
+          building: b.building_name,
+          fullLabel: `${b.room_name} - ${b.building_name}`,
+          reservationId: b.id,
+        },
+      };
+    } catch (err) {
+      console.error("⚠️ Failed to parse reservation for calendar:", b, err);
+      return null;
+    }
+  })
+  .filter((e) => e !== null);
 
   // -----------------------------
   // Deselect row on outside click
@@ -140,6 +144,29 @@ export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
     { key: "reject_reason", label: "Reason" },
     { key: "rejected_at", label: "Rejected / Canceled At" },
   ];
+
+
+
+  useEffect(() => {
+    const handleResize = () => {
+      setCalendarView(() => {
+        if (window.innerWidth < 640) return "timeGridDay";
+        if (window.innerWidth < 1024) return "timeGridWeek";
+        return "dayGridMonth";
+      });
+  
+      // 👇 Force rerender
+      const api = calendarRef.current?.getApi();
+      if (api) {
+        api.updateSize();
+      }
+    };
+  
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
 
   return (
     <div>
@@ -248,62 +275,87 @@ export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
         </>
       )}
 
-      {viewMode === "calendar" && (
-        <div style={{ marginTop: "20px" }}>
-          <FullCalendar
-                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
-                  themeSystem="bootstrap5"
-                  initialView="dayGridMonth"
-                  height="auto"
-                  events={events}
-
-                  /* ⏱ Left-side time labels (Week / Day grid) */
-                  slotLabelFormat={{
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  }}
-
-                  /* 📌 Event rendering (Month / Week / Day) */
-                  eventContent={(arg) => {
-                    const start24 = dateToTime24(arg.event.start!);
-                    const end24 = dateToTime24(arg.event.end!);
-
-                    return (
-                      <div>
-                        <div style={{ fontSize: "0.8em", fontWeight: 600 }}>
-                          {format12Hour(start24)} - {format12Hour(end24)}
-                        </div>
-                        <div>{arg.event.title}</div>
-                      </div>
-                    );
-                  }}
-
-                  headerToolbar={{
+              {viewMode === "calendar" && (
+                <div style={{ marginTop: 20 }}>
+                  <FullCalendar
+                    ref={calendarRef}
+                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
+                    themeSystem="bootstrap5"
+                    initialView={calendarView}
+                    height="auto"
+                    events={events}
+                    headerToolbar={{
                       left: "dayGridMonth,timeGridWeek,timeGridDay",
                       center: "title",
                       right: "prev,next today",
-                  }}
+                    }}
+                    slotLabelFormat={{ hour: "numeric", minute: "2-digit", hour12: true }}
+                    eventTimeFormat={{ hour: "numeric", minute: "2-digit", hour12: true }}
 
-                  eventClick={(info) => {
-                    const bookingId = Number(info.event.id);
-                    const booking = rejectedBookings.find((b) => b.id === bookingId);
-                    if (booking) setSelectedBooking(booking);
-                  }}
+                    /* ---------------- RESPONSIVE EVENT RENDERER ---------------- */
+                    
+                      eventContent={(arg) => {
+                        const start = arg.event.start;
+                        const end = arg.event.end;
 
-                  dateClick={(info) => {
-                    setSelectedDate(info.dateStr);
-                  }}
+                        const shortStart = start?.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        const shortEnd = end?.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
 
-                  dayCellClassNames={(arg) => {
-                    const dateStr = dayjs(arg.date).format("YYYY-MM-DD");
-                    return dateStr === selectedDate ? ["selected-day"] : [];
-                  }}
-            />
+                        const roomName = arg.event.title; // already only room name
+                        const building = arg.event.extendedProps.building;
+                        const tooltipText = `${shortStart} - ${shortEnd}\n${roomName} - ${building}`;
 
+                        const isMobile = calendarView === "timeGridDay";
 
-        </div>
-      )}
+                        // 📱 MOBILE → Room name only
+                        if (isMobile) {
+                          return (
+                            <div title={tooltipText} style={{ fontWeight: 600, fontSize: "0.85rem" }}>
+                              {roomName}
+                            </div>
+                          );
+                        }
+
+                        // 💻 DESKTOP → Time + Room name
+                        return (
+                          <div title={tooltipText} style={{ padding: "2px" }}>
+                            <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>
+                              {shortStart} - {shortEnd}
+                            </div>
+                            <div style={{ fontWeight: 600 }}>{roomName}</div>
+                          </div>
+                        );
+                      }}
+                    /* Cursor Pointer */
+                    eventDidMount={(info) => {
+                      info.el.style.cursor = "pointer";
+                    }}
+
+                    eventClick={(info) => {
+                      info.jsEvent.preventDefault();
+                      info.jsEvent.stopPropagation();
+                      const booking = rejectedBookings.find(
+                        (b) => b.id === Number(info.event.id)
+                      );
+                      if (booking) setSelectedBooking(booking);
+                    }}
+
+                    dateClick={(info) => setSelectedDate(info.dateStr)}
+
+                    dayCellClassNames={(arg) =>
+                      dayjs(arg.date).format("YYYY-MM-DD") === selectedDate
+                        ? ["selected-day"]
+                        : []
+                    }
+                  />
+                </div>
+              )}
 
         {selectedBooking && (
           <CalendarEventsModal

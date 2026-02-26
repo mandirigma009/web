@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 // @ts-ignore
 import { formatToPhilippineDate } from '../../../../server/utils/dateUtils';
 import FullCalendar from "@fullcalendar/react";
@@ -25,7 +25,6 @@ import { toast, ToastContainer } from "react-toastify";
 import "../../../styles/modal.css";
 import "../../../styles/dashboard.css";
 import { format12Hour } from "../../../utils/timeUtils.ts";
-import { useEffect } from "react";
 import React from "react";
 
 dayjs.extend(utc);
@@ -64,6 +63,8 @@ export default function ReservationTable({
   //const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
+  const [calendarView, setCalendarView] = useState("dayGridMonth");
+
   
 
   // --------------------- Filters & Search ---------------------
@@ -238,22 +239,47 @@ const groupedReservations = useMemo(() => {
 ]);
 
 
-  const events = filteredReservations.map(b => {
+  // -----------------------------
+  // Calendar events
+// -----------------------------
+// Calendar events (structured, future-proof)
+const events = filteredReservations
+  .map((b) => {
     try {
       const dateUTC = dayjs.utc(b.date_reserved);
       const datePH = dateUTC.tz("Asia/Manila");
-      const startTime = b.reservation_start?.length === 5 ? `${b.reservation_start}:00` : b.reservation_start;
-      const endTime = b.reservation_end?.length === 5 ? `${b.reservation_end}:00` : b.reservation_end;
+
+      const startTime =
+        b.reservation_start && b.reservation_start.length === 5
+          ? `${b.reservation_start}:00`
+          : b.reservation_start || "00:00:00";
+      const endTime =
+        b.reservation_end && b.reservation_end.length === 5
+          ? `${b.reservation_end}:00`
+          : b.reservation_end || "00:00:00";
+
+      const startPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila");
+      const endPH = dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila");
+
       return {
         id: String(b.id),
-        title: `${b.room_name} – ${b.building_name}`,
-        start: dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${startTime}`, "Asia/Manila").toDate(),
-        end: dayjs.tz(`${datePH.format("YYYY-MM-DD")}T${endTime}`, "Asia/Manila").toDate(),
-        backgroundColor: "#007bff",
-        borderColor: "#007bff",
+        title: b.room_name, // Room name only
+        start: startPH.toDate(),
+        end: endPH.toDate(),
+        backgroundColor: "#dc3545",
+        borderColor: "#dc3545",
+        extendedProps: {
+          building: b.building_name,
+          fullLabel: `${b.room_name} - ${b.building_name}`,
+          reservationId: b.id,
+        },
       };
-    } catch { return null; }
-  }).filter(e => e !== null);
+    } catch (err) {
+      console.error("⚠️ Failed to parse reservation for calendar:", b, err);
+      return null;
+    }
+  })
+  .filter((e) => e !== null);
 
 
   const isCancelable = (booking: Room) => {
@@ -345,10 +371,7 @@ const groupedReservations = useMemo(() => {
     } catch (err) { console.error(err); alert("Error during cancellation."); }
   };
 
-  const dateToTime24 = (date?: Date) => {
-    if (!date) return "";
-    return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
-  };
+
 
 
   
@@ -424,7 +447,28 @@ useEffect(() => {
 }, [hasSafeBookings, hasConflictBookings, hasPendingReservations]);
 
 
-// Group safe (no conflict) reservations by same date + same room
+
+  useEffect(() => {
+    const handleResize = () => {
+      setCalendarView(() => {
+        if (window.innerWidth < 640) return "timeGridDay";
+        if (window.innerWidth < 1024) return "timeGridWeek";
+        return "dayGridMonth";
+      });
+  
+      // 👇 Force rerender
+      const api = calendarRef.current?.getApi();
+      if (api) {
+        api.updateSize();
+      }
+    };
+  
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+
 
 
 
@@ -674,41 +718,89 @@ useEffect(() => {
               )}
                
 
-      {/* Calendar View */}
-      {viewMode === "calendar" && (
-        <div style={{ marginTop: 20 }}>
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin,timeGridPlugin,interactionPlugin,bootstrap5Plugin]}
-            themeSystem="bootstrap5"
-            initialView="dayGridMonth"
-            height="auto"
-            events={events}
-            eventDidMount={info => info.el.style.cursor="pointer"}
-            slotLabelFormat={{ hour:"numeric", minute:"2-digit", hour12:true }}
-            eventTimeFormat={{ hour:"numeric", minute:"2-digit", hour12:true }}
-            eventContent={arg => {
-              const start24 = dateToTime24(arg.event.start!);
-              const end24 = dateToTime24(arg.event.end!);
-              return (
-                <div>
-                  <div style={{ fontSize:"0.8em", fontWeight:600 }}>{format12Hour(start24)} - {format12Hour(end24)}</div>
-                  <div>{arg.event.title}</div>
+
+              {/* Calendar View */}
+              {viewMode === "calendar" && (
+                <div style={{ marginTop: 20 }}>
+                  <FullCalendar
+                    ref={calendarRef}
+                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin]}
+                    themeSystem="bootstrap5"
+                    initialView={calendarView}
+                    height="auto"
+                    events={events}
+                    headerToolbar={{
+                      left: "dayGridMonth,timeGridWeek,timeGridDay",
+                      center: "title",
+                      right: "prev,next today",
+                    }}
+                    slotLabelFormat={{ hour: "numeric", minute: "2-digit", hour12: true }}
+                    eventTimeFormat={{ hour: "numeric", minute: "2-digit", hour12: true }}
+
+                    /* ---------------- RESPONSIVE EVENT RENDERER ---------------- */
+                    
+                      eventContent={(arg) => {
+                        const start = arg.event.start;
+                        const end = arg.event.end;
+
+                        const shortStart = start?.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        const shortEnd = end?.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+
+                        const roomName = arg.event.title; // already only room name
+                        const building = arg.event.extendedProps.building;
+                        const tooltipText = `${shortStart} - ${shortEnd}\n${roomName} - ${building}`;
+
+                        const isMobile = calendarView === "timeGridDay";
+
+                        // 📱 MOBILE → Room name only
+                        if (isMobile) {
+                          return (
+                            <div title={tooltipText} style={{ fontWeight: 600, fontSize: "0.85rem" }}>
+                              {roomName}
+                            </div>
+                          );
+                        }
+
+                        // 💻 DESKTOP → Time + Room name
+                        return (
+                          <div title={tooltipText} style={{ padding: "2px" }}>
+                            <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>
+                              {shortStart} - {shortEnd}
+                            </div>
+                            <div style={{ fontWeight: 600 }}>{roomName}</div>
+                          </div>
+                        );
+                      }}
+                    /* Cursor Pointer */
+                    eventDidMount={(info) => {
+                      info.el.style.cursor = "pointer";
+                    }}
+
+                    eventClick={(info) => {
+                      info.jsEvent.preventDefault();
+                      info.jsEvent.stopPropagation();
+                      const booking = reservations.find(
+                        (b) => b.id === Number(info.event.id)
+                      );
+                      if (booking) setSelectedBooking(booking);
+                    }}
+
+                    dateClick={(info) => setSelectedDate(info.dateStr)}
+
+                    dayCellClassNames={(arg) =>
+                      dayjs(arg.date).format("YYYY-MM-DD") === selectedDate
+                        ? ["selected-day"]
+                        : []
+                    }
+                  />
                 </div>
-              )
-            }}
-            headerToolbar={{ left:"dayGridMonth,timeGridWeek,timeGridDay", center:"title", right:"prev,next today" }}
-            eventClick={info => {
-              info.jsEvent.preventDefault();
-              info.jsEvent.stopPropagation();
-              const booking = reservations.find(b => b.id===Number(info.event.id));
-              if(booking) setSelectedBooking(booking);
-            }}
-            dateClick={info => setSelectedDate(info.dateStr)}
-            dayCellClassNames={arg => dayjs(arg.date).format("YYYY-MM-DD")===selectedDate?["selected-day"]:[]}
-          />
-        </div>
-      )}
+              )}
 
       {/* Modals */}
       {cancelReasonModal?.id && <CancelReasonModal bookingId={cancelReasonModal.id} onClose={()=>setCancelReasonModal(null)} onCancelConfirmed={handleCancelWithReason}/>}
