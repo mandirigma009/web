@@ -335,3 +335,42 @@ input:disabled {
   color: #007bff;
   text-decoration: underline;
 }
+
+/* Modern Dropdown Style */
+.modern-select {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  appearance: none;
+}
+
+/* Focus glow */
+.modern-select:focus {
+  border-color: #38bdf8; /* sky blue */
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+}
+
+/* Custom dropdown arrow */
+.modern-select-wrapper {
+  position: relative;
+}
+
+.modern-select-wrapper::after {
+  content: "⌄";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 14px;
+  color: #6b7280;
+}

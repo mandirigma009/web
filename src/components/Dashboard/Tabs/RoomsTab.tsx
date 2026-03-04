@@ -197,11 +197,15 @@ export default function RoomsTab({
                 variant="primary"
                 title="Add Room"
                 onClick={() => setShowAddRoomModal(true)}
+                 style={{ marginRight: "12px" }}
               >
                 <FaPlus />
                 <FaDoorOpen style={{ marginRight: 6 }} />
+                 <br />
+                Add <br />
+                Rooms
               </Button>
-
+              
               <Button
                 variant="secondary"
                 title="Manage Buildings"
@@ -209,17 +213,31 @@ export default function RoomsTab({
               >
                 <FaBuilding />
                 <br />
-                Manage Buildings
+                Manage
+                <br />
+                Buildings
               </Button>
             </>
           )}
         </div>
       </div>
 
-      {/* Selectors */}
-      <div className="mb-4 text-black">
-        <label className="block mb-1 font-medium text-black">Building:</label>
-        <select
+
+      
+{/* ROW 1 — Building | Floor | Room */}
+<div
+  style={{
+    display: "flex",
+    gap: "16px",
+    flexWrap: "wrap",
+    marginBottom: "16px",
+  }}
+>
+  {/* Building */}
+  <div style={{ minWidth: 200 }}>
+    <label className="block mb-1 font-medium">Building</label>
+   <div className="modern-select-wrapper">
+      <select className="modern-select"
           value={selectedBuilding}
           onChange={(e) => {
             const id = e.target.value;
@@ -228,127 +246,148 @@ export default function RoomsTab({
             setSelectedRoom("");
           }}
         >
-          <option value="">-- Select Building --</option>
-          {allBuildings.map((b) => (
-            <option key={b.id} value={b.id} className="text-black">
-              {b.building_name}
-            </option>
-          ))}
-        </select>
+      <option value="">-- Select Building --</option>
+      {allBuildings.map((b) => (
+        <option key={b.id} value={b.id}>
+          {b.building_name}
+        </option>
+      ))}
+    </select>
+    </div>
+  </div>
 
-        <label className="block mb-1 font-medium text-black mt-2">Floor:</label>
-        <select
-          className="text-black bg-white border rounded px-2 py-1"
-          value={selectedFloor}
-          onChange={(e) => {
-            setSelectedFloor(e.target.value);
-            setSelectedRoom("");
-          }}
-          disabled={!selectedBuilding}
-        >
-          <option value="">-- Select Floor --</option>
-          {[...new Set(
-            roomList
-              .filter((r) => String(r.building_id) === selectedBuilding)
-              .map((r) => r.floor_number)
-              .filter((f) => f > 0)
-          )].map((f) => (
-            <option key={f} value={f} className="text-black">{f}</option>
-          ))}
-        </select>
+  {/* Floor */}
+  <div style={{ minWidth: 150 }}>
+    <label className="block mb-1 font-medium">Floor</label>
+      <div className="modern-select-wrapper">
+      <select className="modern-select"
+      value={selectedFloor}
+      onChange={(e) => {
+        setSelectedFloor(e.target.value);
+        setSelectedRoom("");
+      }}
+      disabled={!selectedBuilding}
+    >
+      <option value="">-- Select Floor --</option>
+      {[...new Set(
+        roomList
+          .filter((r) => String(r.building_id) === selectedBuilding)
+          .map((r) => r.floor_number)
+          .filter((f) => f > 0)
+      )].map((f) => (
+        <option key={f} value={f}>{f}</option>
+      ))}
+    </select>
+    </div>
+  </div>
 
-        <label className="block mb-1 font-medium text-black mt-2">Room:</label>
-        <select
-          className="text-black bg-white border rounded px-2 py-1"
-          value={selectedRoom}
-          onChange={(e) => setSelectedRoom(e.target.value)}
-          disabled={!selectedFloor}
-        >
-          <option value="">-- Select Room --</option>
-          {roomList
-            .filter(
-              (r) =>
-                String(r.building_id) === selectedBuilding &&
-                String(r.floor_number) === selectedFloor
-            )
-            .map((r) => (
-              <option key={r.id} value={r.id} className="text-black">
-                {r.room_number}
-              </option>
-            ))}
-        </select>
-      </div>
+  {/* Room */}
+  <div style={{ minWidth: 200 }}>
+    <label className="block mb-1 font-medium">Room</label>
+      <div className="modern-select-wrapper">
+      <select className="modern-select"
+      value={selectedRoom}
+      onChange={(e) => setSelectedRoom(e.target.value)}
+      disabled={!selectedFloor}
+    >
+      <option value="">-- Select Room --</option>
+      {roomList
+        .filter(
+          (r) =>
+            String(r.building_id) === selectedBuilding &&
+            String(r.floor_number) === selectedFloor
+        )
+        .map((r) => (
+          <option key={r.id} value={r.id}>
+            {r.room_number}
+          </option>
+        ))}
+    </select>
+  </div>
+  </div>
+</div>
 
-      {/* Search & Filters */}
-      <div
-        className="mb-4 text-black"
-        style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" }}
-      >
-        {/* Search By */}
-        <div style={{ minWidth: 180 }}>
-          <label className="block text-sm font-medium mb-1">Search by</label>
-          <select
-            className="border rounded bg-white w-full h-10 px-2"
-            value={searchBy}
-            onChange={(e) => setSearchBy(e.target.value as any)}
-          >
-            <option value="room_number">Room Number</option>
-            <option value="room_name">Room Name</option>
-            <option value="building">Building</option>
-            <option value="capacity">Capacity</option>
-            <option value="floor">Floor</option>
-          </select>
-        </div>
 
-        {/* Search Input */}
-        <div style={{ minWidth: 260, flexGrow: 1 }}>
-          <label className="block text-sm font-medium mb-1">Search</label>
-          <input
-            type="text"
-            placeholder="Type to search..."
-            className="border rounded bg-white w-full h-10 px-2"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+{/* ROW 2 — Search By | Tables | Projector | Clear */}
+<div
+  style={{
+    display: "flex",
+    gap: "20px",
+    alignItems: "flex-end",
+    flexWrap: "wrap",
+    marginBottom: "16px",
+  }}
+>
+  {/* Search By */}
+  <div style={{ minWidth: 180 }}>
+    <label className="block mb-1 font-medium">Search By</label>
+     <div className="modern-select-wrapper">
+      <select className="modern-select"
+      value={searchBy}
+      onChange={(e) => setSearchBy(e.target.value as any)}
+    >
+      <option value="room_number">Room Number</option>
+      <option value="room_name">Room Name</option>
+      <option value="building">Building</option>
+      <option value="capacity">Capacity</option>
+      <option value="floor">Floor</option>
+    </select>
+    </div>
+  </div>
 
-        {/* Filters */}
-        <div style={{ display: "flex", gap: 16, alignItems: "center", paddingTop: 24 }}>
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={filterHasTable}
-              onChange={(e) => setFilterHasTable(e.target.checked)}
-            />
-            Tables
-          </label>
+  {/* Tables */}
+  <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+    <input
+      type="checkbox"
+      checked={filterHasTable}
+      onChange={(e) => setFilterHasTable(e.target.checked)}
+    />
+    Tables
+  </label>
 
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={filterHasProjector}
-              onChange={(e) => setFilterHasProjector(e.target.checked)}
-            />
-            Projector
-          </label>
-        </div>
+  {/* Projector */}
+  <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+    <input
+      type="checkbox"
+      checked={filterHasProjector}
+      onChange={(e) => setFilterHasProjector(e.target.checked)}
+    />
+    Projector
+  </label>
 
-        <Button
-          variant="primary"
-          className="text-black mt-2"
-          onClick={() => {
-            setSelectedBuilding("");
-            setSelectedFloor("");
-            setSelectedRoom("");
-            setSearchQuery("");
-            setSearchBy("room_number");
-            setFilterHasTable(false);
-            setFilterHasProjector(false);
-          }}
-        >
-          Clear
-        </Button>
-      </div>
+  {/* Clear */}
+  <Button
+    variant="primary"
+    style={{ height: 40 }}
+    onClick={() => {
+      setSelectedBuilding("");
+      setSelectedFloor("");
+      setSelectedRoom("");
+      setSearchQuery("");
+      setSearchBy("room_number");
+      setFilterHasTable(false);
+      setFilterHasProjector(false);
+    }}
+  >
+    Clear
+  </Button>
+</div>
+
+
+{/* ROW 3 — Search Input */}
+<div style={{ marginBottom: "20px" }}>
+  <label className="block mb-1 font-medium">Search</label>
+  <input
+    type="text"
+    placeholder="Type to search..."
+    className="border rounded bg-white w-full h-10 px-2"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+  />
+</div>
+
+    
+   
 
       {/* Table */}
       <div style={{ overflowX: "auto", maxHeight: "500px" }}>

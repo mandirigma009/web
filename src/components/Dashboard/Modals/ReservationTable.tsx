@@ -483,133 +483,134 @@ useEffect(() => {
                 {viewMode === "table" ? "📅 Calendar View" : "📋 Table View"}
               </button>
             </div>
-                  {/* Filters & Search */}
-                  
-                    {reservations.length > 0 && (
-                    <>
-                      <div className="mb-4 text-black flex flex-wrap gap-4 items-end">
-                        {/* Building */}
-                        <div style={{ minWidth: 180 }}>
-                          <label className="block mb-1 font-medium">Building:</label>
-                          <select
-                            className="border rounded bg-white w-full h-10 px-2"
-                            value={buildingFilter}
-                            onChange={(e) => {
-                              setBuildingFilter(e.target.value);
-                              setFloorFilter("");
-                            }}
-                          >
-                            <option value="">-- All Buildings --</option>
-                            {buildingOptions.map((b) => (
-                              <option key={b} value={b}>{b}</option>
-                            ))}
-                          </select>
-                        </div>
 
-                        {/* Floor */}
-                        <div style={{ minWidth: 120 }}>
-                          <label className="block mb-1 font-medium">Floor:</label>
-                          <select
-                            className="border rounded bg-white w-full h-10 px-2"
-                            value={floorFilter}
-                            onChange={(e) => setFloorFilter(e.target.value)}
-                            disabled={!buildingFilter}
-                          >
-                            <option value="">-- All Floors --</option>
-                            {floorOptions.map((f) => (
-                              <option key={f} value={f}>{f}</option>
-                            ))}
-                          </select>
-                        </div>
+<>
+  {/* ---------------- ROW 1 — Building | Floor ---------------- */}
+  <div
+    style={{
+      display: "flex",
+      gap: "16px",
+      flexWrap: "wrap",
+      marginBottom: "16px",
+    }}
+  >
+    {/* Building */}
+    <div style={{ minWidth: 200 }}>
+      <label className="block mb-1 font-medium">Building</label>
+           <div className="modern-select-wrapper">
+      <select className="modern-select"
+        value={buildingFilter}
+        onChange={(e) => {
+          setBuildingFilter(e.target.value);
+          setFloorFilter("");
+        }}
+      >
+        <option value="">-- All Buildings --</option>
+        {buildingOptions.map((b) => (
+          <option key={b} value={b}>{b}</option>
+        ))}
+      </select>
+      </div>
+    </div>
 
-                        {/* Search By */}
-                        <div style={{ minWidth: 180 }}>
-                          <label className="block mb-1 font-medium">Search by:</label>
-                          <select
-                            className="border rounded bg-white w-full h-10 px-2"
-                            value={searchBy}
-                            onChange={(e) => setSearchBy(e.target.value as any)}
-                          >
-                            <option value="room_number">Room number</option>
-                            <option value="floor">Floor</option>
-                            <option value="subject">Subject</option>
-                            {!isForApproval && (
-                              <option value="reserved_by">Teacher Name</option>
-                            )}
-                          </select>
-                        </div>
-
-                        {/* Search */}
-                        <div style={{ minWidth: 260, flexGrow: 1 }}>
-                          <label className="block mb-1 font-medium">Search:</label>
-                          <input
-                            type="text"
-                            className="border rounded bg-white w-full h-10 px-2"
-                            placeholder="Type to search..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                          />
-                        </div>
-
-                        <button
-                          className="btn btn-primary mt-2"
-                          onClick={() => {
-                            setBuildingFilter("");
-                            setFloorFilter("");
-                            setSearchQuery("");
-                            setSearchBy("room_name");
-                          }}
-                        >
-                          Clear
-                        </button>
-                      </div>
-
-                        {/* Conflict Filter */}
-                          {isForApproval &&
-                              hasPendingReservations &&
-                              (hasSafeBookings || hasConflictBookings) && (
-                              <div>
-                                <label className="block mb-1 font-medium">Filter by:</label>
-                                <select
-                                  value={conflictFilter}
-                                  onChange={(e) =>
-                                    setConflictFilter(e.target.value as "safe" | "conflict")
-                                  }
-                                >
-                                  {hasSafeBookings && (
-                                    <option value="safe">No Conflict</option>
-                                  )}
-
-                                  {hasConflictBookings && (
-                                    <option value="conflict">With Conflict</option>
-                                  )}
-                                </select>
-                              </div>
-                          )}
+    {/* Floor */}
+    <div style={{ minWidth: 150 }}>
+      <label className="block mb-1 font-medium">Floor</label>
+           <div className="modern-select-wrapper">
+      <select className="modern-select"
+        value={floorFilter}
+        onChange={(e) => setFloorFilter(e.target.value)}
+        disabled={!buildingFilter}
+      >
+        <option value="">-- All Floors --</option>
+        {floorOptions.map((f) => (
+          <option key={f} value={f}>{f}</option>
+        ))}
+      </select>
+      </div>
+    </div>
+  </div>
 
 
-                          {/* Group By */}
-                          {(isForApproval || isMyBookings) && conflictFilter !== "conflict" && (
-                            <div>
-                              <label className="block mb-1 font-medium">Group by:</label>
-                              <select
-                                className="border rounded bg-white h-10 px-2"
-                                value={groupBy}
-                                onChange={(e) => setGroupBy(e.target.value as any)}
-                              >
-                                <option value="date">Date</option>
-                                <option value="room_number">Room Number</option>
-                                <option value="floor">Floor</option>
-                                <option value="building">Building</option>
+  {/* ---------------- ROW 2 — Search By | Clear ---------------- */}
+  <div
+    style={{
+      display: "flex",
+      gap: "20px",
+      alignItems: "flex-end",
+      flexWrap: "wrap",
+      marginBottom: "16px",
+    }}
+  >
+    {/* Search By */}
+    <div style={{ minWidth: 200 }}>
+      <label className="block mb-1 font-medium">Search By</label>
+           <div className="modern-select-wrapper">
+      <select className="modern-select"
+        value={searchBy}
+        onChange={(e) => setSearchBy(e.target.value as any)}
+      >
+        <option value="room_number">Room Number</option>
+        <option value="floor">Floor</option>
+        <option value="subject">Subject</option>
+        {!isForApproval && (
+          <option value="reserved_by">Teacher Name</option>
+        )}
+      </select>
+      </div>
+    </div>
 
-                                {isMyBookings && (userRole === 1 || userRole === 2) && (
-                                  <option value="teacher">Teacher</option>
-                                )}
-                              </select>
-                            </div>
-                          )}
-                      </>
-                    )}
+    {/* Clear */}
+    <button
+      className="btn btn-primary"
+      style={{ height: 40 }}
+      onClick={() => {
+        setBuildingFilter("");
+        setFloorFilter("");
+        setSearchQuery("");
+        setSearchBy("room_name");
+      }}
+    >
+      Clear
+    </button>
+  </div>
+
+
+  {/* ---------------- ROW 3 — Search Input ---------------- */}
+  <div style={{ marginBottom: "20px" }}>
+    <label className="block mb-1 font-medium">Search</label>
+    <input
+      type="text"
+      className="border rounded bg-white w-full h-10 px-2"
+      placeholder="Type to search..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+    />
+  </div>
+
+
+  {/* ---------------- ROW 4 — Group By ---------------- */}
+  {(isForApproval || isMyBookings) && conflictFilter !== "conflict" && (
+    <div style={{ marginBottom: "20px" }}>
+      <label className="block mb-1 font-medium">Group By</label>
+      <div className="modern-select-wrapper">
+      <select className="modern-select"
+        value={groupBy}
+        onChange={(e) => setGroupBy(e.target.value as any)}
+      >
+        <option value="date">Date</option>
+        <option value="room_number">Room Number</option>
+        <option value="floor">Floor</option>
+        <option value="building">Building</option>
+
+        {isMyBookings && (userRole === 1 || userRole === 2) && (
+          <option value="teacher">Teacher</option>
+        )}
+      </select>
+      </div>
+    </div>
+  )}
+</>
         
                     {/* Table View */}
                     {viewMode === "table" && (
