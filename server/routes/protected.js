@@ -4,7 +4,10 @@ import { authMiddleware } from "../middleware/authMiddleware.js";
 
 import roleMiddleware from "../middleware/roleMiddleware.js";
 
+
 const router = express.Router();
+router.use(authMiddleware);
+
 
 // Student-only route
 router.get("/dashboard", authMiddleware, roleMiddleware(0), (req, res) => {

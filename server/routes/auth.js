@@ -79,10 +79,17 @@ router.post("/signup", async (req, res) => {
               status = "active";
               verified = 1;
             } else if (Number(role) === 3) {
-              // Instructor (self signup)
-              status = "pending"; // still requires admin approval
-              verified = 0;
               verificationToken = crypto.randomBytes(32).toString("hex");
+
+              if (isAdminCreated) {
+                // ✅ Admin-created instructor
+                status = "active";   // immediately active
+                verified = 0;        // still needs email verification
+              } else {
+                // ❌ Self-signup instructor
+                status = "pending";  // needs admin approval
+                verified = 0;
+              }
             } else if (Number(role) === 4) {
               // Student
               status = "active";
@@ -113,37 +120,34 @@ router.post("/signup", async (req, res) => {
                 }
 
                 // 📧 Send email for verification or admin creation
-                if ((Number(role) === 4) || Number(role) === 3 || (Number(role) === 3 && isAdminCreated)) {
-                  const link = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
-                  
-                  let subject, body;
+                if (verificationToken) {
+                    const link = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
 
-                  if (Number(role) === 3 && isAdminCreated) {
-                    subject = "You have been added by the admin";
-                    body = `
+                    let subject = "📧 Verify Your Email";
+                    let body = `
                       <p>Hi ${name},</p>
-                      <p>An admin has created an account for you.</p>
-                      <p>Here is your temporary password: <strong>${password}</strong></p>
-                      <p>Please verify your account by clicking the link below:</p>
-                      <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Account</a>
+                      <p>Please verify your email by clicking the button below:</p>
+                      <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Email</a>
                     `;
-                  } 
-                    if (Number(role) === 4 || Number(role) === 3) {           
-                        const link = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
-                        const subject = "📧 Verify Your Email";
-                        const body = `
-                          <p>Hi ${name},</p>
-                          <p>Please verify your email by clicking the button below:</p>
-                          <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Email</a>
-                        `;
-                        try {
-                          await sendEmail(email, subject, body);
-                          console.log(`✅ Verification email sent to ${email}`);
-                        } catch (emailErr) {
-                          console.error("❌ Failed to send verification email:", emailErr);
-                        }
+
+                    if (Number(role) === 3 && isAdminCreated) {
+                      subject = "You have been added by the admin";
+                      body = `
+                        <p>Hi ${name},</p>
+                        <p>An admin has created an account for you.</p>
+                        <p>Here is your temporary password: <strong>${password}</strong></p>
+                        <p>Please verify your account by clicking the link below:</p>
+                        <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Account</a>
+                      `;
                     }
-                }
+
+                    try {
+                      await sendEmail(email, subject, body);
+                      console.log(`✅ Verification email sent to ${email}`);
+                    } catch (emailErr) {
+                      console.error("❌ Failed to send verification email:", emailErr);
+                    }
+                  }
 
                 return res.status(201).json({
                   message:

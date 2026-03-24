@@ -5,10 +5,6 @@ const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const IDLE_LIMIT = 15 * 60 * 1000; // 15 minutes
 
 export async function authMiddleware(req, res, next) {
- console.log("---- AUTH MIDDLEWARE HIT ----");
-  console.log("Cookies:", req.cookies);
-  console.log("Headers:", req.headers.authorization);
-
 
   const accessToken =
     req.cookies?.accessToken ||
@@ -44,11 +40,15 @@ export async function authMiddleware(req, res, next) {
   
 
     if (!rows.length) {
-      console.log("rows.length:", rows.length);
+  if (sessionToken) {
+    await pool.query(
+      "DELETE FROM user_sessions WHERE session_token = ?",
+      [sessionToken]
+    );
+  }
 
-
-      return res.status(401).json({ message: "Session expired" });
-    }
+  return res.status(401).json({ message: "Session expired" });
+}
 
     const { user_id, last_active } = rows[0];
 
@@ -63,13 +63,14 @@ export async function authMiddleware(req, res, next) {
     }
 
     // 4️⃣ Match JWT ↔ session
-    if (decoded.id !== user_id) {
-  
-console.log("decoded.id:", decoded.id);
-console.log("user_id:", user_id);
+if (decoded.id !== user_id) {
+  await pool.query(
+    "DELETE FROM user_sessions WHERE session_token = ?",
+    [sessionToken]
+  );
 
-      return res.status(401).json({ message: "Session mismatch" });
-    }
+  return res.status(401).json({ message: "Session mismatch" });
+}
 
     // 5️⃣ Update activity (non-blocking)
     pool.query(
@@ -81,11 +82,18 @@ console.log("user_id:", user_id);
     req.user.id = user_id;
 
     next();
-  } catch (err) {
+} catch (err) {
   console.log("❌ JWT verify failed:", err.message);
+
+  if (sessionToken) {
+    await pool.query(
+      "DELETE FROM user_sessions WHERE session_token = ?",
+      [sessionToken]
+    );
+  }
+
   return res.status(401).json({ message: "Invalid token" });
 }
-
 
 
 }

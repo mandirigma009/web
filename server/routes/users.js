@@ -3,9 +3,12 @@ import crypto from "crypto";
 import express from "express";
 import pool from "../pool.js";
 import { sendEmail } from "../../src/utils/emailService.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+
+
 
 const router = express.Router();
-
+router.use(authMiddleware);
 /**
  * ✅ GET /api/users or /api/users?role=3
  * If `role` query param is given, filters users by that role.

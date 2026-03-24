@@ -71,7 +71,7 @@ export default function ReservationTable({
   const [buildingFilter, setBuildingFilter] = useState("");
   const [floorFilter, setFloorFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchBy, setSearchBy] = useState<"room_number" | "room_name" | "subject" | "reserved_by">("room_name");
+  const [searchBy, setSearchBy] = useState<"room_number" | "room_name" | "floor" |"subject" | "reserved_by">("room_name");
   const [conflictFilter, setConflictFilter] = useState< "safe" | "conflict">("safe");
   const [groupBy, setGroupBy] = useState<"date" | "room_number" | "floor" | "building" | "teacher">("date");
 
@@ -171,11 +171,14 @@ const filteredReservations = useMemo(() => {
         case "room_name":
           if (!r.room_name?.toLowerCase().includes(q)) return false;
           break;
+        case "floor":
+          if (!String(r.floor_number).includes(q)) return false;
+          break;
         case "subject":
           if (!r.subject?.toLowerCase().includes(q)) return false;
           break;
         case "reserved_by":
-          if (!r.notes?.toLowerCase().includes(q)) return false;
+          if (!r.reserved_by?.toLowerCase().includes(q)) return false;
           break;
       }
     }
@@ -550,7 +553,8 @@ useEffect(() => {
         value={searchBy}
         onChange={(e) => setSearchBy(e.target.value as any)}
       >
-        <option value="room_number">Room Number</option>
+        <option value="room_number">Room Number</option> 
+        <option value="room_name">Room Name</option>
         <option value="floor">Floor</option>
         <option value="subject">Subject</option>
         {!isForApproval && (

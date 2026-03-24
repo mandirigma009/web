@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import axios from "axios";
 
+
 export default function useAuthGuard() {
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(

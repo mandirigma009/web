@@ -40,6 +40,23 @@ app.use(
 );
 
 
+// sessionCleanup.js or inside server.js
+
+setInterval(async () => {
+  try {
+    console.log("🧹 Cleaning expired sessions...");
+
+    await pool.query(`
+      DELETE FROM user_sessions
+      WHERE last_active < NOW() - INTERVAL 15 MINUTE
+    `);
+
+  } catch (err) {
+    console.error("❌ Cleanup error:", err);
+  }
+}, 5 * 60 * 1000); // runs every 5 minutes
+
+
 // Routes
 app.use("/api", authRoutes);
 app.use("/api/protected", protectedRoutes);

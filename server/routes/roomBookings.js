@@ -3,7 +3,10 @@ import express from "express";
 import db from "../pool.js";
 import { sendStatusEmail } from "../../src/utils/emailService.js";
 
+import { authMiddleware } from "../middleware/authMiddleware.js";
 const router = express.Router();
+router.use(authMiddleware);
+
 
 
 /* ----------------------------------------

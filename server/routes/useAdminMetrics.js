@@ -1,7 +1,10 @@
 import express from "express";
 import pool from "../pool.js";
-
+import { authMiddleware } from "../middleware/authMiddleware.js";
 const router = express.Router();
+router.use(authMiddleware);
+
+
 
 /**
  * GET /api/admin/metrics

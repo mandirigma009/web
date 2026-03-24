@@ -374,3 +374,8 @@ input:disabled {
   font-size: 14px;
   color: #6b7280;
 }
+
+.error-message {
+  background: rgba(220, 53, 69, 0.3);
+  color: #fff;
+}

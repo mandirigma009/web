@@ -144,6 +144,9 @@ const handleSubmit = async (e: React.FormEvent) => {
               />
               Instructor
             </label>
+
+             {/* ❌ Error message if role not selected */}
+  {role === "" && <p className="error-message">Please select a role</p>}
           </div>
 <br></br>
 
