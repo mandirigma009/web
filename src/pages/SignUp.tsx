@@ -30,7 +30,29 @@ const [, setRoleError] = useState("");
 const [role, setRole] = useState<3 | 4 | "">(""); // 3 = Instructor, 4 = Student
 // Add this state at the top
 const [showPassword, setShowPassword] = useState(false);
+const [departments, setDepartments] = useState<any[]>([]);
+const [selectedDepartment, setSelectedDepartment] = useState("");
 
+
+
+
+// ✅ Fetch departments on load
+useEffect(() => {
+  fetch("/api/departments")
+    .then(async (res) => {
+      if (!res.ok) throw new Error("Failed to fetch departments");
+      return res.json();
+    })
+    .then((data) => {
+
+      if (Array.isArray(data)) setDepartments(data);
+      else setDepartments([]);
+    })
+    .catch((err) => {
+      console.error("Departments fetch error:", err);
+      setDepartments([]);
+    });
+}, []);
 
 
 
@@ -79,7 +101,14 @@ const handleSubmit = async (e: React.FormEvent) => {
     const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: username, email, password, role }),
+      body: JSON.stringify({
+          name: username,
+          email,
+          password,
+          role,
+          department_id: role === 3 ? selectedDepartment : null,
+          
+        }),
     });
 
     const data = await res.json();
@@ -158,6 +187,30 @@ const handleSubmit = async (e: React.FormEvent) => {
               required
             />
 
+              {role === 3 && (
+                <>
+                  {/* Department Dropdown */}
+                  <div className="modern-select-wrapper">
+                    <select
+                      className="modern-select"
+                      value={selectedDepartment}
+                      onChange={(e) => {
+                        setSelectedDepartment(e.target.value);
+                       
+                      }}
+                      required
+                    >
+                      <option value="">Select Department</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+<br></br>
             <Input
               type="email"
               value={email}

@@ -74,7 +74,9 @@ export default function ReservationTable({
   const [searchBy, setSearchBy] = useState<"room_number" | "room_name" | "floor" |"subject" | "reserved_by">("room_name");
   const [conflictFilter, setConflictFilter] = useState< "safe" | "conflict">("safe");
   const [groupBy, setGroupBy] = useState<"date" | "room_number" | "floor" | "building" | "teacher">("date");
-
+ const showActions = isMyBookings
+  ? userRole === 3   // ONLY teacher can see actions in MyBookings
+  : isForApproval || !(isMyBookings && userRole === 3);
 
 
 
@@ -120,8 +122,6 @@ const checkConflict = (
     if (other.id === booking.id) return false;
 
     if (other.date_reserved !== booking.date_reserved) return false;
-console.log("other.date_reserved : ", other.date_reserved)
-console.log("booking.date_reserved : ", booking.date_reserved)
 
     if (other.room_id !== booking.room_id) return false;
 
@@ -134,14 +134,6 @@ const startB = dayjs(`${dateB}T${normalizeTime(other.reservation_start)}`);
 const endB   = dayjs(`${dateB}T${normalizeTime(other.reservation_end)}`);
 
 
-console.log("Checking conflict for:", booking.id, {
-  room: booking.room_id,
-  date: booking.date_reserved,
-  start: booking.reservation_start,
-  end: booking.reservation_end,
-});
-
-console.log("Dataset length:", dataset.length);
     return startA.isBefore(endB) && startB.isBefore(endA);
   });
 };
@@ -163,7 +155,8 @@ const filteredReservations = useMemo(() => {
       if (conflictFilter === "conflict" && !conflict) return false;
     }
 
-    // Search filter
+    // Search filternay44@Qwerty1234.
+    
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       switch (searchBy) {
@@ -190,10 +183,6 @@ const filteredReservations = useMemo(() => {
     return true;
   });
 }, [reservations, buildingFilter, floorFilter, searchQuery, searchBy, isMyBookings, userRole, currentUserId, isForApproval, conflictFilter]);
-
-
-
-
 
 
 const getGroupKey = (b: Room) => {
@@ -297,22 +286,79 @@ const events = filteredReservations
     return false;
   };
 
-  const handleAction = async (action: string, booking: Room) => {
-    try {
-      switch (action) {
-        case "edit": editBooking?.(booking); break;
-        case "approve": approveBooking && await approveBooking(booking.id); break;
-        case "reject": rejectBooking && await rejectBooking(booking.id); break;
-        case "cancel": isCancelable(booking) && isMyBookings && setCancelReasonModal({ id: booking.id }); break;
-        case "delete":
-          if (deleteReservation && isCancelable(booking) && window.confirm("Are you sure you want to cancel this reservation?")) {
-            await deleteReservation(booking.id);
-          }
-          break;
-      }
-    } catch (err) { console.error(err); }
-    finally { refreshMyBookings(); }
-  };
+const handleAction = async (action: string, booking: Room) => {
+  try {
+    switch (action) {
+      case "edit":
+        editBooking?.(booking);
+        break;
+      case "approve":
+        if (approveBooking) await approveBooking(booking.id);
+        break;
+      case "reject":
+        if (rejectBooking) await rejectBooking(booking.id);
+        break;
+      case "cancel":
+        if (isCancelable(booking) && isMyBookings) setCancelReasonModal({ id: booking.id });
+        break;
+      case "delete":
+        if (deleteReservation && isCancelable(booking) && window.confirm("Are you sure you want to cancel this reservation?")) {
+          await deleteReservation(booking.id);
+        }
+        break;
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    // 🔹 Refresh table & calendar automatically after any action
+    refreshMyBookings();
+  }
+};
+
+const handleBulkApprove = async () => {
+  try {
+    const ids = safePendingBookings.map((b) => b.id);
+    const res = await fetch("/api/room_bookings/approve-bulk", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Bulk approval failed");
+
+    toast.success("All safe reservations approved successfully!");
+  } catch (err: any) {
+    toast.error(err.message || "Bulk approval failed");
+  } finally {
+    // 🔹 Refresh table & calendar automatically
+    refreshMyBookings();
+  }
+};
+
+const handleCancelWithReason = async (bookingId: number, reason: string) => {
+  try {
+    const res = await fetch(`/api/room_bookings/cancel/${bookingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reject_reason: reason }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return alert(err.message || "Failed to cancel reservation.");
+    }
+
+    toast.success("Reservation cancelled successfully!");
+    setCancelReasonModal(null);
+  } catch (err) {
+    console.error(err);
+    alert("Error during cancellation.");
+  } finally {
+    // 🔹 Refresh table & calendar automatically
+    refreshMyBookings();
+  }
+};
 
   const getAvailableActions = (booking: Room) => {
     const actions: { key: "approve" | "reject" | "edit" | "delete" | "cancel"; onClick: () => void; disabled?: boolean; title?: string }[] = [];
@@ -331,50 +377,6 @@ const events = filteredReservations
     }
     return actions;
   };
-
-
-  const handleBulkApprove = async () => {
-  try {
-    const ids = safePendingBookings.map(b => b.id);
-
-    const res = await fetch("/api/room_bookings/approve-bulk", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.message || "Bulk approval failed");
-    }
-
-    toast.success("All safe reservations approved successfully!");
-    refreshMyBookings();
-  } catch (err: any) {
-    toast.error(err.message || "Bulk approval failed");
-  }
-};
-
-
-  const handleCancelWithReason = async (bookingId: number, reason: string) => {
-    try {
-      const res = await fetch(`api/room_bookings/cancel/${bookingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reject_reason: reason })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return alert(err.message || "Failed to cancel reservation.");
-      }
-      toast.success("Reservation cancelled successfully!");
-      setCancelReasonModal(null);
-      refreshMyBookings();
-    } catch (err) { console.error(err); alert("Error during cancellation."); }
-  };
-
-
 
 
   
@@ -449,7 +451,20 @@ useEffect(() => {
   }
 }, [hasSafeBookings, hasConflictBookings, hasPendingReservations]);
 
+function getOrdinal(n: number) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
 
+function formatYearLevel(value: string | number | null | undefined) {
+  if (value == null) return "—";
+
+  const match = String(value).match(/\d+/);
+  if (!match) return String(value);
+
+  return `${getOrdinal(Number(match[0]))} Year`;
+}
 
   useEffect(() => {
     const handleResize = () => {
@@ -472,10 +487,12 @@ useEffect(() => {
   }, []);
 
 
-
-
-
-
+const totalColumns =
+  8 + // room + name + desc + building + floor + year + section + subject
+  (!isForApproval ? 1 : 0) + // teacher
+  3 + // date + time + notes
+  (showActions ? 1 : 0); // actions
+  
   // --------------------- Render ---------------------
   return (
     <div>
@@ -592,6 +609,24 @@ useEffect(() => {
     />
   </div>
 
+{/* ---------------- ROW 3 — Conflict Filter ---------------- */}
+{hasPendingReservations && (
+  <div style={{ marginBottom: "20px" }}>
+    <label className="block mb-1 font-medium">Conflict Filter</label>
+    <div className="modern-select-wrapper">
+      <select
+        className="modern-select"
+        value={conflictFilter}
+        onChange={(e) =>
+          setConflictFilter(e.target.value as "safe" | "conflict")
+        }
+      >
+        <option value="safe">✅ Safe Reservations</option>
+        <option value="conflict">⚠ Conflicting Reservations</option>
+      </select>
+    </div>
+  </div>
+)}
 
   {/* ---------------- ROW 4 — Group By ---------------- */}
   {(isForApproval || isMyBookings) && conflictFilter !== "conflict" && (
@@ -623,17 +658,31 @@ useEffect(() => {
                               <table className="dashboard-table" style={{ width: "100%", minWidth: 1200, marginTop: 10 }}>
                                 <thead>
                                   <tr>
-                                      {["Room number","room name","description","building","floor","subject", !isForApproval ? "Teacher" : null,"Reservation Date","Reservation Time","Notes"]
-                                      .filter((k): k is string => k !== null)
-                                      .map(k => <th key={k}>{k}</th>)}
-                                  <th>Actions</th>
+                                    {[
+                                      "Room number",
+                                      "room name",
+                                      "description",
+                                      "building",
+                                      "floor",
+                                      "Year",      
+                                      "Section",   
+                                      "subject",
+                                      !isForApproval ? "Teacher" : null,
+                                      "Reservation Date",
+                                      "Reservation Time",
+                                      "Notes"
+                                    ]
+                                    .filter((k): k is string => k !== null)
+                                    .map(k => <th key={k}>{k}</th>)}
+                                 {showActions && <th>Actions</th>}
                                   </tr>
                                 </thead>
                                   <tbody>
                                     {groupedReservations.length === 0 ? (
                                       <tr>
                                         <td
-                                          colSpan={isForApproval ? 10 : 11}
+                                          colSpan={totalColumns}
+
                                           style={{
                                             textAlign: "center",
                                             padding: "30px",
@@ -658,20 +707,32 @@ useEffect(() => {
                                                     : "group-header-safe"
                                                 }
                                               >
-                                               <td colSpan={isForApproval ? 10 : 11}>
-                                                    {conflictFilter === "conflict"
-                                                      ? "⚠ Conflict Group — "
-                                                      : isMyBookings
-                                                        ? "✅ Approved Booking — "
-                                                        : "✅ No Conflict Group — "}
-                                                        
-                                                    {groupBy === "date"
-                                                      ? formatToPhilippineDate(group.key)
-                                                      : group.key}{" "}
-                                                      
-                                                    ({group.items.length})
-                                              </td>
+                                               
+                                                <td
+                                                  colSpan={totalColumns}
+                                                  style={{
+                                                    backgroundColor:
+                                                      conflictFilter === "conflict"
+                                                        ? "#b86b6b" // red shade for conflict
+                                                        : isMyBookings
+                                                        ? "#b5e7b5" // green shade for approved bookings
+                                                        : "#e2e2e2", // gray for safe/no conflict
+                                                    fontWeight: "bold",
+                                                    textAlign: "center",
+                                                    padding: "8px 0",
+                                                  }}
+                                                >
+                                                  {conflictFilter === "conflict"
+                                                    ? "⚠ Conflict Group — "
+                                                    : isMyBookings
+                                                      ? "✅ Approved Booking — "
+                                                      : "✅ No Conflict Group — "}
+                                                  {groupBy === "date"
+                                                    ? formatToPhilippineDate(group.key)
+                                                    : group.key} ({group.items.length})
+                                                </td>
                                               </tr>
+                                            
 
                                             {group.items.map((booking) => (
                                               <tr key={booking.id}>
@@ -680,6 +741,8 @@ useEffect(() => {
                                                 <td>{booking.room_description}</td>
                                                 <td>{booking.building_name}</td>
                                                 <td>{booking.floor_number}</td>
+                                                <td>{formatYearLevel(booking.year_level)}</td>
+                                                <td>{booking.section_name || "—"}</td>
                                                 <td>{booking.subject || "—"}</td>
                                                 {!isForApproval && (
                                                   <td>{booking.reserved_by || "—"}</td>
@@ -692,11 +755,11 @@ useEffect(() => {
                                                   {format12Hour(booking.reservation_end)}
                                                 </td>
                                                 <td>{booking.notes || "—"}</td>
-                                                <td>
-                                                  <ActionMenu
-                                                    actions={getAvailableActions(booking)}
-                                                  />
-                                                </td>
+                                                {showActions && (
+                                                  <td>
+                                                    <ActionMenu actions={getAvailableActions(booking)} />
+                                                  </td>
+                                                )}
                                               </tr>
                                             ))}
                                           </React.Fragment>

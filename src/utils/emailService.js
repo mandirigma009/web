@@ -60,7 +60,6 @@ export const sendStatusEmail = async (reservation, type) => {
 
 // Example
 const formatted = dayjs(date_reserved).format("ddd, MMM, DD YYYY");
-console.log(formatted);
 
   let subject = "";
   let body = "";

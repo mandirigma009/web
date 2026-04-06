@@ -379,3 +379,30 @@ button:hover {
   background-color: #bb8086; 
   
 }
+
+.role-radio-group {
+  display: flex;
+  gap: 10px;
+   align-items: center;
+  flex-wrap: wrap;
+}
+
+.role-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.2s;
+}
+
+.role-radio-label:hover {
+  background: #e0f2fe;
+}
+
+.role-radio-label input {
+  accent-color: #0ea5e9; /* sky blue */
+}

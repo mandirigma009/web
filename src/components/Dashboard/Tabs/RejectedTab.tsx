@@ -28,6 +28,8 @@ dayjs.extend(timezone);
 interface RejectedTabProps {
   rejectedBookings: Room[];
   userRole: number;
+
+  
   
 }
 
@@ -40,6 +42,7 @@ export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
   const [calendarView, setCalendarView] = useState("dayGridMonth");
 
 
+  
   // -----------------------------
   // Sorting setup
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
@@ -70,7 +73,11 @@ export default function RejectedTab({ rejectedBookings}: RejectedTabProps) {
   });
 
 
-
+function getOrdinal(n: number) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
 
 
   // -----------------------------
@@ -128,6 +135,10 @@ const events = rejectedBookings
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+
+  // Convert number → ordinal string
+
+
   // -----------------------------
   // Table headers with arrows
   const headers = [
@@ -136,6 +147,9 @@ const events = rejectedBookings
     { key: "room_description", label: "Description" },
     { key: "building_name", label: "Building" },
     { key: "floor_number", label: "Floor" },
+    { key: "year_level", label: "Year" },
+    { key: "section_name", label: "Section" },
+    { key: "subject", label: "Subject" },
     { key: "date_reserved", label: "Date Reserved" },
     { key: "reservation_start", label: "Reservation Time" },
     { key: "notes", label: "Notes" },
@@ -253,6 +267,9 @@ const events = rejectedBookings
                       </td>
                       <td>{booking.building_name}</td>
                       <td>{booking.floor_number}</td>
+                      <td>{booking.year_level ? `${getOrdinal(Number(booking.year_level))} Year` : "—"}</td>
+                      <td>{booking.section_name || "—"}</td>
+                      <td>{booking.subject || "—"}</td>
                       <td>{booking.date_reserved ? formatToPhilippineDate(booking.date_reserved) : "—"}</td>
                       <td>{booking.reservation_start && booking.reservation_end ? `${format12Hour(booking.reservation_start)} - ${format12Hour(booking.reservation_end)}` : "—"}</td>
                       <td>{booking.notes || "—"}</td>

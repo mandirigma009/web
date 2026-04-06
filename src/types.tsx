@@ -1,3 +1,4 @@
+
 // src/types.tsx
 export interface User {
  
@@ -7,6 +8,8 @@ export interface User {
   name: string;
   email: string;
   role: number;
+  subjectId: number;
+  departmentId: number;
 }
 
 export interface Reservation {
@@ -51,6 +54,7 @@ export interface Building {
 }
 
 
+
 export interface Room {
   room_id: number;
  conflict_group_id?: string | number; // optional, only for conflicts
@@ -83,5 +87,10 @@ export interface Room {
   subject: string;
   reject_reason: string;
   max_capacity: number;
-
+  year: string;    
+  section: string;
+  year_level: string;
+  section_name: string;
+  year_id: number;
+  section_id: number;
 }

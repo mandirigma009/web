@@ -17,9 +17,6 @@ interface AdminTabProps {
 }
 
 
-
-
-
 interface AdminMetrics {
   activeUsers: number;
   pendingUsers: number;
@@ -61,6 +58,7 @@ export default function AdminTab({
     }
   };
 
+  
   // ------------------ Fetch Metrics ------------------
   const fetchAdminMetrics = async () => {
     try {
@@ -180,18 +178,22 @@ export default function AdminTab({
             >
               <td>{u.name}</td>
               <td>{u.email}</td>
-              <td>
+              <td className="text-center align-middle">
                 {isAdmin ? (
-                  <select
-                    value={u.role}
-                    onChange={(e) => handleSaveRole(u.id, Number(e.target.value))}
-                  >
+                  <div className="role-radio-group justify-center">
                     {Object.entries(roleLabels).map(([k, v]) => (
-                      <option key={k} value={k}>
+                      <label key={k} className="role-radio-label">
+                        <input
+                          type="radio"
+                          name={`role-${u.id}`}
+                          value={k}
+                          checked={u.role === Number(k)}
+                          onChange={() => handleSaveRole(u.id, Number(k))}
+                        />
                         {v}
-                      </option>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 ) : (
                   roleLabels[u.role]
                 )}

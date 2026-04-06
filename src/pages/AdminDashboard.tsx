@@ -18,6 +18,7 @@ import {
 
 // Components
 import AdminTab from "../components/Dashboard/Tabs/AdminTab";
+import DepartmentTab from "../components/Dashboard/Tabs/DepartmentTab";
 import RoomsTab from "../components/Dashboard/Tabs/RoomsTab";
 import MyBookingsTab from "../components/Dashboard/Tabs/MyBookingsTab";
 import MyProfileTab from "../components/Dashboard/Tabs/MyProfileTab";
@@ -42,7 +43,7 @@ useAuthGuard();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "Admin" | "Rooms" | "MyProfile" | "MyBookings" | "ForApproval" | "Rejected"
+    "Admin" | "Department" | "Rooms" | "MyProfile" | "MyBookings" | "ForApproval" | "Rejected"
   >("Rooms");
   const [userRole, setUserRole] = useState<number | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -308,6 +309,13 @@ useAuthGuard();
               <span className="icon"><FaUsers /></span>
               <span className="label">Management Users</span>
             </button>
+            <button
+              className={`sidebar-btn ${activeTab === "Admin" ? "active" : ""}`}
+              onClick={() => setActiveTab("Department")}
+            >
+              <span className="icon"><FaUsers /></span>
+              <span className="label">Management Department</span>
+            </button>
           </>
         )}
 
@@ -336,7 +344,7 @@ useAuthGuard();
           <span className="icon"><FaCalendarCheck /></span>
           <span className="label">{userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}</span>
         </button>
-{userRole && userRole !== 4 && (
+  {userRole && userRole !== 4 && (
         <button
           className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}
           onClick={() => setActiveTab("Rejected")}
@@ -367,6 +375,10 @@ useAuthGuard();
           />
 
         )}
+
+{userRole && (userRole === 1 || userRole === 2) && activeTab === "Department" && (
+  <DepartmentTab />
+)}
 
         {userRole !== null && activeTab === "ForApproval" && (userRole !=  4) && (
           <ForApprovalTab

@@ -2,7 +2,9 @@
 import "./jobs/archiveJob.js"; // keep at top-level so it runs automatically
 // index.js or wherever routes are mounted
 import roomBookingsRouter from "./routes/roomBookings.js";
-app.use("/api/reservations", roomBookingsRouter);
+import academicRoutes from "./routes/academicRoutes.js";
+
+
 
 
 
@@ -21,6 +23,9 @@ const availabilityRoutes = require("./routes/availability");
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+
+app.use("/api", academicRoutes);
+app.use("/api/reservations", roomBookingsRouter);
 
 // ✅ Existing routes (keep untouched)
 app.use("/api", authRoutes);

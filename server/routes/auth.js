@@ -4,7 +4,7 @@ import crypto from "crypto";
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import db from "../db.js";
+
 import { sendEmail } from "../../src/utils/emailService.js";
 import { v4 as uuidv4 } from "uuid";
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -41,130 +41,119 @@ const cookieOptions = (maxAgeMs) => {
   };
 };
 
-// Helper to wrap db.query in a promise
-function queryAsync(sql, params) {
-  return new Promise((resolve, reject) => {
-    db.query(sql, params, (err, results) => {
-      if (err) reject(err);
-      else resolve(results);
-    });
-  });
-}
+// Helper to wrap pool.query in a promise
+const queryAsync = async (sql, params = []) => {
+  const [result] = await pool.query(sql, params);
+  return result;
+};
+
 
 
 
 // ---------------- SIGNUP ----------------
 router.post("/signup", async (req, res) => {
-        try {
-          const { name, email, password, role, isAdminCreated } = req.body;
+  try {
+    const { name, email, password, role, department_id, isAdminCreated } = req.body;
 
-          if (!name || !email || !password || !role) {
-            return res.status(400).json({ message: "All fields are required" });
-          }
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-          db.query("SELECT id FROM users WHERE email = ?", [email], async (err, results) => {
-            if (err) return res.status(500).json({ message: "Database error" });
-            if (results.length > 0) {
-              return res.status(400).json({ message: "Email already exists" });
-            }
+    const existing = await queryAsync(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
+    );
 
-            const hashedPassword = await bcrypt.hash(password, 10);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
 
-            let status = "active";
-            let verified = 0;
-            let verificationToken = null;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-            if (Number(role) === 1) {
-              // Super Admin
-              status = "active";
-              verified = 1;
-            } else if (Number(role) === 3) {
-              verificationToken = crypto.randomBytes(32).toString("hex");
+    let status = "active";
+    let verified = 0;
+    let verificationToken = null;
 
-              if (isAdminCreated) {
-                // ✅ Admin-created instructor
-                status = "active";   // immediately active
-                verified = 0;        // still needs email verification
-              } else {
-                // ❌ Self-signup instructor
-                status = "pending";  // needs admin approval
-                verified = 0;
-              }
-            } else if (Number(role) === 4) {
-              // Student
-              status = "active";
-              verified = 0;
-              verificationToken = crypto.randomBytes(32).toString("hex");
-            }
+    if (Number(role) === 1) {
+      verified = 1;
+    } else if (Number(role) === 3) {
+      verificationToken = crypto.randomBytes(32).toString("hex");
+      status = isAdminCreated ? "active" : "pending";
+    } else if (Number(role) === 4) {
+      verificationToken = crypto.randomBytes(32).toString("hex");
+    }
 
-            db.query(
-              `
-              INSERT INTO users
-              (name, email, password, role, status, verified, verification_token, verification_token_created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-              `,
-              [
-                name,
-                email,
-                hashedPassword,
-                role,
-                status,
-                verified,
-                verificationToken,
-                verificationToken ? new Date() : null,
-              ],
-              async (err2) => {
-                if (err2) {
-                  console.error(err2);
-                  return res.status(500).json({ message: "Database error" });
+    const result = await queryAsync(
+      `INSERT INTO users
+       (name, email, password, role, status, verified, verification_token, verification_token_created_at, department_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name,
+        email,
+        hashedPassword,
+        role,
+        status,
+        verified,
+        verificationToken,
+        verificationToken ? new Date() : null,
+        department_id || null,
+      ]
+    );
+
+    const teacherId = result.insertId;
+
+    if (Number(role) === 3 && department_id) {
+      await queryAsync(
+        `INSERT INTO teacher_subject_assignments
+         (teacher_id, department_id, year_id, subject_id)
+         VALUES (?, ?, NULL, NULL)`,
+        [teacherId, department_id]
+      );
+    }
+
+              // 📧 Send email for verification
+              if (verificationToken) {
+                const link = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
+
+                let subject = "📧 Verify Your Email";
+                let body = `
+                  <p>Hi ${name},</p>
+                  <p>Please verify your email by clicking the button below:</p>
+                  <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Email</a>
+                `;
+
+                if (Number(role) === 3 && isAdminCreated) {
+                  subject = "You have been added by the admin";
+                  body = `
+                    <p>Hi ${name},</p>
+                    <p>An admin has created an account for you.</p>
+                    <p>Here is your temporary password: <strong>${password}</strong></p>
+                    <p>Please verify your account by clicking the link below:</p>
+                    <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Account</a>
+                  `;
                 }
 
-                // 📧 Send email for verification or admin creation
-                if (verificationToken) {
-                    const link = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
-
-                    let subject = "📧 Verify Your Email";
-                    let body = `
-                      <p>Hi ${name},</p>
-                      <p>Please verify your email by clicking the button below:</p>
-                      <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Email</a>
-                    `;
-
-                    if (Number(role) === 3 && isAdminCreated) {
-                      subject = "You have been added by the admin";
-                      body = `
-                        <p>Hi ${name},</p>
-                        <p>An admin has created an account for you.</p>
-                        <p>Here is your temporary password: <strong>${password}</strong></p>
-                        <p>Please verify your account by clicking the link below:</p>
-                        <a href="${link}" style="padding:10px 20px; background:#2e6ef7; color:white; text-decoration:none;">Verify Account</a>
-                      `;
-                    }
-
-                    try {
-                      await sendEmail(email, subject, body);
-                      console.log(`✅ Verification email sent to ${email}`);
-                    } catch (emailErr) {
-                      console.error("❌ Failed to send verification email:", emailErr);
-                    }
-                  }
-
-                return res.status(201).json({
-                  message:
-                    Number(role) === 3 && isAdminCreated
-                      ? "Instructor added successfully. Email sent with temporary password."
-                      : Number(role) === 3
-                      ? "Registration successful. Please verify your email. Your account still requires admin approval."
-                      : "Registration successful. Please verify your email.",
-                });
+                try {
+                  await sendEmail(email, subject, body);
+                  console.log(`✅ Verification email sent to ${email}`);
+                } catch (emailErr) {
+                  console.error("❌ Failed to send verification email:", emailErr);
+                }
               }
-            );
+
+          return res.status(201).json({
+            message:
+              Number(role) === 3 && isAdminCreated
+                ? "Instructor added successfully. Email sent with temporary password."
+                : Number(role) === 3
+                ? "Registration successful. Please verify your email. Your account still requires admin approval."
+                : "Registration successful. Please verify your email.",
           });
-        } catch (error) {
-          console.error("Signup error:", error);
-          res.status(500).json({ message: "Server error" });
-        }
-      });
+          } catch (error) {
+            console.error("Signup error:", error);
+            res.status(500).json({ message: "Server error" });
+          }
+        });
 
 
 
@@ -206,11 +195,7 @@ router.get("/verify-email", async (req, res) => {
         const tokenCreatedAt = new Date(user.verification_token_created_at).getTime();
 
         if (Date.now() - tokenCreatedAt > TOKEN_EXPIRATION_MS) {
-          console.log("Date.now() :", Date.now())
-          console.log("tokenCreatedAt :", tokenCreatedAt)
-          console.log("Date.now() - tokenCreatedAt", Date.now() - tokenCreatedAt)
-          console.log("TOKEN_EXPIRATION_MS :", TOKEN_EXPIRATION_MS)
-          console.log("Date.now() - tokenCreatedAt > TOKEN_EXPIRATION_MS :", Date.now() - tokenCreatedAt > TOKEN_EXPIRATION_MS)
+        
           return res.status(400).json({ message: "Token expired" });
         }
 
@@ -295,7 +280,7 @@ router.post("/login", async (req, res) => {
 
   try {
     // Use promise wrapper so await works
-    const [results] = await db.promise().query(
+    const [results] = await pool.query(
       "SELECT * FROM users WHERE email = ?",
       [email]
     );
@@ -314,7 +299,7 @@ router.post("/login", async (req, res) => {
 
     // Auto-reset failed attempts if lock has expired
     if (user.locked_until && now > new Date(user.locked_until)) {
-      await db.promise().query(
+      await pool.query(
         "UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?",
         [user.id]
       );
@@ -352,7 +337,7 @@ router.post("/login", async (req, res) => {
         failedAttempts = 5; // cap attempts
       }
 
-      await db.promise().query(
+      await pool.query(
         "UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ?",
         [failedAttempts, lockedUntil, user.id]
       );
@@ -367,7 +352,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Successful login → reset failed attempts & lock
-    await db.promise().query(
+    await pool.query(
       "UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?",
       [user.id]
     );
@@ -412,7 +397,7 @@ router.post("/login", async (req, res) => {
     // inside /login route, after verifying credentials
 const sessionToken = uuidv4();
 
-await db.promise().query(
+await pool.query(
   `INSERT INTO user_sessions (user_id, session_token) VALUES (?, ?)`,
   [user.id, sessionToken]
 );
@@ -566,152 +551,410 @@ router.get("/me", authMiddleware, (req, res) => {
 });
 
 
+
+
 // ---------------- CHECK EMAIL ----------------
-router.post("/check-email", (req, res) => {
-  const { email } = req.body;
+router.post("/check-email", async (req, res) => {
+  try {
+    const { email } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ exists: false });
-  }
-
-  db.query(
-    "SELECT id FROM users WHERE email = ?",
-    [email],
-    (err, results) => {
-      if (err) {
-        console.error("Check email error:", err);
-        return res.status(500).json({ exists: false });
-      }
-
-      if (results.length === 0) {
-        return res.status(404).json({ exists: false });
-      }
-
-      return res.json({ exists: true });
+    if (!email) {
+      return res.status(400).json({ exists: false });
     }
-  );
+
+    const rows = await queryAsync(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
+    );
+
+    return res.json({ exists: rows.length > 0 });
+  } catch (err) {
+    console.error("Check email error:", err);
+    return res.status(500).json({ exists: false });
+  }
 });
 
 
 /// ---------------- GENERATE RESET CODE ----------------
-router.post("/generate-reset-code", (req, res) => {
-  const { email } = req.body;
+router.post("/generate-reset-code", async (req, res) => {
+  try {
+    const { email } = req.body;
 
-  if (!email) return res.status(400).json({ message: "Email is required" });
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
 
-  db.query(
-    "SELECT id, name FROM users WHERE email = ?",
-    [email],
-    async (err, results) => {
-      if (err) {
-        console.error("Generate reset code error:", err);
-        return res.status(500).json({ message: "Database error" });
-      }
+    const rows = await queryAsync(
+      "SELECT id, name FROM users WHERE email = ?",
+      [email]
+    );
 
-      if (results.length === 0) return res.status(404).json({ message: "Email not found" });
+    if (!rows.length) {
+      return res.status(404).json({ message: "Email not found" });
+    }
 
-      const user = results[0];
-      const resetCode = crypto.randomInt(100000, 999999).toString();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const user = rows[0];
+    const resetCode = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-      db.query(
-        `UPDATE users
-         SET reset_code = ?, reset_expires = ?
-         WHERE email = ?`,
-        [resetCode, expiresAt, email],
-        async (err2) => {
-          if (err2) {
-            console.error("Update reset code error:", err2);
-            return res.status(500).json({ message: "Failed to save reset code" });
-          }
+    await queryAsync(
+      `UPDATE users
+       SET reset_code = ?, reset_expires = ?
+       WHERE email = ?`,
+      [resetCode, expiresAt, email]
+    );
 
-          // ✅ Send the reset code email
-          const subject = "🔑 Password Reset Code";
-          const body = `
+    const subject = "🔑 Password Reset Code";
+    const body = `
             <p>Hi ${user.name || "User"},</p>
             <p>You requested a password reset. Your reset code is:</p>
             <h2 style="color:#2e6ef7;">${resetCode}</h2>
             <p>This code will expire in 5 minutes.</p>
             <p>If you didn't request this, please ignore this email.</p>
-          `;
+    `;
 
-          try {
-            await sendEmail(email, subject, body);
-            console.log(`✅ Reset code email sent to ${email}`);
-          } catch (emailErr) {
-            console.error("❌ Failed to send reset code email:", emailErr);
-          }
+    await sendEmail(email, subject, body);
 
-          return res.json({ message: "Reset code generated and sent via email" });
-        }
-      );
-    }
-  );
+    return res.json({
+      message: "Reset code generated and sent via email  to ${email}`",
+    });
+  } catch (err) {
+    console.error("Generate reset code error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
 });
-
 
 // ---------------- RESET PASSWORD ----------------
 router.post("/reset-password", async (req, res) => {
-      const { email, resetCode, newPassword } = req.body;
+  try {
+    const { email, resetCode, newPassword } = req.body;
 
-      if (!email || !resetCode || !newPassword) {
-        return res.status(400).json({ message: "Email, reset code, and new password are required" });
-      }
+    const rows = await queryAsync(
+      "SELECT reset_code, reset_expires FROM users WHERE email = ?",
+      [email]
+    );
 
-      db.query(
-        "SELECT reset_code, reset_expires FROM users WHERE email = ?",
-        [email],
-        async (err, results) => {
-          if (err) {
-            console.error("Reset password query error:", err);
-            return res.status(500).json({ message: "Database error" });
-          }
+    if (!rows.length) {
+      return res.status(404).json({ message: "Email not found" });
+    }
 
-          if (results.length === 0) return res.status(404).json({ message: "Email not found" });
+    const user = rows[0];
 
-          const user = results[0];
-          const now = new Date();
+    if (user.reset_code !== resetCode) {
+      return res.status(400).json({ message: "Invalid reset code" });
+    }
 
-          // ✅ Check if reset code is valid
-          if (!user.reset_code || user.reset_code !== resetCode) {
-            return res.status(400).json({ message: "Invalid reset code" });
-          }
+    if (new Date() > new Date(user.reset_expires)) {
+      return res.status(400).json({ message: "Reset code expired" });
+    }
 
-          // ✅ Check if reset code is expired
-          if (now > new Date(user.reset_expires)) {
-            return res.status(400).json({ message: "Reset code expired" });
-          }
+    const hashed = await bcrypt.hash(newPassword, 10);
 
-          try {
-            const hashed = await bcrypt.hash(newPassword, 10);
+    await queryAsync(
+      `UPDATE users
+       SET password = ?,
+           reset_code = NULL,
+           reset_expires = NULL,
+           failed_attempts = 0,
+           locked_until = NULL
+       WHERE email = ?`,
+      [hashed, email]
+    );
 
-            // ✅ Reset password, invalidate reset code, and clear failed login attempts if locked
-            db.query(
-              `UPDATE users
-              SET password = ?, 
-                  reset_code = NULL, 
-                  reset_expires = NULL,
-                  failed_attempts = 0,
-                  locked_until = NULL
-              WHERE email = ?`,
-              [hashed, email],
-              (err2) => {
-                if (err2) {
-                  console.error("Reset password update error:", err2);
-                  return res.status(500).json({ message: "Failed to update password" });
-                }
-
-                return res.json({ message: "Password reset successfully. You can now log in with your new password." });
-              }
-            );
-          } catch (hashErr) {
-            console.error("Password hashing error:", hashErr);
-            return res.status(500).json({ message: "Server error" });
-          }
-        }
-      );
+    res.json({ message: "Password reset successfully" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 
 
+// GET teacher assignments
+router.put("/teachers/:teacherId/assignment", authMiddleware, async (req, res) => {
+  const teacherId = Number(req.params.teacherId);
+  const { department_id, year_id, subject_ids, previous_year_id } = req.body;
+
+  if (!teacherId || !department_id || !year_id || !Array.isArray(subject_ids)) {
+    return res.status(400).json({ message: "Missing or invalid data" });
+  }
+
+  const conn = await pool.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    // ✅ ALWAYS sync users.department_id first
+    await conn.query(
+      `UPDATE users
+       SET department_id = ?
+       WHERE id = ? AND role = 3`,
+      [department_id, teacherId]
+    );
+
+    // 1️⃣ Overwrite placeholder if exists
+    const [placeholderRows] = await conn.query(
+      `SELECT id
+       FROM teacher_subject_assignments
+       WHERE teacher_id = ? AND department_id = ? AND year_id IS NULL AND subject_id IS NULL
+       LIMIT 1`,
+      [teacherId, department_id]
+    );
+
+    if (placeholderRows.length > 0) {
+      const placeholderId = placeholderRows[0].id;
+
+      await conn.query(
+        `UPDATE teacher_subject_assignments
+         SET year_id = ?, subject_id = ?
+         WHERE id = ?`,
+        [year_id, subject_ids[0], placeholderId]
+      );
+
+      for (let i = 1; i < subject_ids.length; i++) {
+        await conn.query(
+          `INSERT INTO teacher_subject_assignments
+           (teacher_id, department_id, year_id, subject_id)
+           VALUES (?, ?, ?, ?)`,
+          [teacherId, department_id, year_id, subject_ids[i]]
+        );
+      }
+
+      await conn.commit();
+      return res.json({
+        success: true,
+        message: "Department + assignments updated successfully",
+      });
+    }
+
+    // 2️⃣ Department changed → remove old assignments
+    const [currentRows] = await conn.query(
+      `SELECT DISTINCT department_id
+       FROM teacher_subject_assignments
+       WHERE teacher_id = ?`,
+      [teacherId]
+    );
+
+    const existingDepartments = currentRows.map((r) => Number(r.department_id));
+    const isDepartmentChanged =
+      existingDepartments.length > 0 &&
+      !existingDepartments.includes(Number(department_id));
+
+    if (isDepartmentChanged) {
+      await conn.query(
+        `DELETE FROM teacher_subject_assignments
+         WHERE teacher_id = ?`,
+        [teacherId]
+      );
+    }
+
+    // 3️⃣ Previous year changed
+    if (previous_year_id && Number(previous_year_id) !== Number(year_id)) {
+      await conn.query(
+        `DELETE FROM teacher_subject_assignments
+         WHERE teacher_id = ?
+         AND department_id = ?
+         AND year_id = ?`,
+        [teacherId, department_id, previous_year_id]
+      );
+    }
+
+    // 4️⃣ Merge existing subjects
+    const [existingYearRows] = await conn.query(
+      `SELECT subject_id
+       FROM teacher_subject_assignments
+       WHERE teacher_id = ?
+       AND department_id = ?
+       AND year_id = ?`,
+      [teacherId, department_id, year_id]
+    );
+
+    const existingSubjects = existingYearRows.map((r) => Number(r.subject_id));
+
+    for (const subject_id of subject_ids) {
+      if (!existingSubjects.includes(Number(subject_id))) {
+        await conn.query(
+          `INSERT INTO teacher_subject_assignments
+           (teacher_id, department_id, year_id, subject_id)
+           VALUES (?, ?, ?, ?)`,
+          [teacherId, department_id, year_id, subject_id]
+        );
+      }
+    }
+
+    await conn.commit();
+
+    return res.json({
+      success: true,
+      message: "Department + assignments synced successfully",
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error("❌ Assignment update failed:", err);
+    return res.status(500).json({ message: err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+
+// POST new teacher assignment (admin only)
+router.post("/teachers/assign-subjects", authMiddleware, async (req, res) => {
+  const { teacher_id, department_id, year_id, subject_id } = req.body;
+  if (!teacher_id || !department_id || !year_id || !subject_id)
+    return res.status(400).json({ message: "Missing data" });
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO teacher_subject_assignments
+       (teacher_id, department_id, year_id, subject_id)
+       VALUES (?, ?, ?, ?)`,
+      [teacher_id, department_id, year_id, subject_id]
+    );
+    res.json({ id: result.insertId, teacher_id, department_id, year_id, subject_id });
+  } catch (err) {
+    console.error("Assign subject error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
+// DELETE all or filtered teacher assignments
+router.delete("/teachers/:teacherId/assignment", authMiddleware, async (req, res) => {
+  const teacherId = Number(req.params.teacherId);
+  const departmentId = req.query.department_id
+    ? Number(req.query.department_id)
+    : null;
+  const yearId = req.query.year_id
+    ? Number(req.query.year_id)
+    : null;
+
+  const conn = await pool.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      `SELECT id
+       FROM teacher_subject_assignments
+       WHERE teacher_id = ?
+       AND department_id = ?
+       ${yearId ? "AND year_id = ?" : ""}`,
+      yearId
+        ? [teacherId, departmentId, yearId]
+        : [teacherId, departmentId]
+    );
+
+    // ✅ multiple rows → delete them
+    if (rows.length > 1) {
+      await conn.query(
+        `DELETE FROM teacher_subject_assignments
+         WHERE teacher_id = ?
+         AND department_id = ?
+         ${yearId ? "AND year_id = ?" : ""}`,
+        yearId
+          ? [teacherId, departmentId, yearId]
+          : [teacherId, departmentId]
+      );
+    } else if (rows.length === 1) {
+      // ✅ last row → preserve placeholder
+      await conn.query(
+        `UPDATE teacher_subject_assignments
+         SET year_id = NULL,
+             subject_id = NULL
+         WHERE id = ?`,
+        [rows[0].id]
+      );
+    }
+
+    await conn.commit();
+
+    res.json({
+      success: true,
+      message: "Assignment removed successfully",
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error("❌ Delete assignment error:", err);
+
+    res.status(500).json({
+      message: "Failed to delete assignment",
+      error: err.message,
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+// DELETE a specific teacher assignment (admin only)
+router.delete("/teacher-assignments/:assignmentId", authMiddleware, async (req, res) => {
+  const { assignmentId } = req.params;
+
+  try {
+    await pool.query(
+      ` UPDATE teacher_subject_assignments
+      SET year_id = NULL,
+          subject_id = NULL
+      WHERE teacher_id = ?`,
+      [assignmentId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Remove teacher assignment error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/users-assignment", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.role,
+        u.department_id,
+        d.name AS department,
+        y.year_level,
+        GROUP_CONCAT(DISTINCT s.name ORDER BY s.name SEPARATOR ', ') AS subjects,
+        GROUP_CONCAT(DISTINCT s.id ORDER BY s.name) AS subject_ids
+      FROM users u
+      LEFT JOIN departments d
+        ON u.department_id = d.id
+      LEFT JOIN teacher_subject_assignments tsa
+        ON u.id = tsa.teacher_id
+      LEFT JOIN years y
+        ON tsa.year_id = y.id
+      LEFT JOIN subjects s
+        ON tsa.subject_id = s.id
+      WHERE u.role = 3
+      GROUP BY 
+        u.id,
+        u.name,
+        u.role,
+        u.department_id,
+        d.name,
+        y.year_level
+      ORDER BY u.name ASC
+    `);
+
+    res.json({ users: rows });
+  } catch (err) {
+    console.error("Users assignment fetch error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+//create a new route file for departments
+router.get("/departments", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name FROM departments ORDER BY name ASC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Fetch departments error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 export default router;

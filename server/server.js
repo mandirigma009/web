@@ -14,9 +14,13 @@ import roomBookingsRoutes from "./routes/roomBookings.js";
 import "./routes/autoCancelBookings.js";
 import buildingsRouter from "./routes/buildings.js";
 import adminMetricsRoutes from "./routes/useAdminMetrics.js";
+import academicRoutes from "./routes/academicRoutes.js";
+import publicAcademicRoutes from "./routes/publicAcademic.js";
+
+
 
 const app = express();
-
+app.use("/api", publicAcademicRoutes);
 // Middlewares
 app.use(cookieParser());
 app.use(express.json());
@@ -66,6 +70,8 @@ app.use("/api/rooms", roomsRoutes);
 app.use("/api/room_bookings", roomBookingsRoutes);
 app.use("/api/buildings", buildingsRouter);
 app.use("/api/admin", adminMetricsRoutes);
+app.use("/api", academicRoutes);
+
 
 // Example booking route
 app.post("/api/rooms/book", async (req, res) => {
