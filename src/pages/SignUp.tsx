@@ -32,6 +32,10 @@ const [role, setRole] = useState<3 | 4 | "">(""); // 3 = Instructor, 4 = Student
 const [showPassword, setShowPassword] = useState(false);
 const [departments, setDepartments] = useState<any[]>([]);
 const [selectedDepartment, setSelectedDepartment] = useState("");
+const [years, setYears] = useState<any[]>([]);
+const [sections, setSections] = useState<any[]>([]);
+const [yearId, setYearId] = useState<number | "">("");
+const [sectionId, setSectionId] = useState<number | "">("");
 
 
 
@@ -54,6 +58,50 @@ useEffect(() => {
     });
 }, []);
 
+
+
+
+
+useEffect(() => {
+  if (!selectedDepartment || role !== 4) {
+    setYears([]);
+    setYearId("");
+    return;
+  }
+
+  fetch(`/api/years/${selectedDepartment}`)
+    .then((res) => res.json())
+    .then((data) => {
+      setYears(Array.isArray(data) ? data : []);
+      setYearId("");
+      setSections([]);
+      setSectionId("");
+    })
+    .catch((err) => {
+      console.error("Years fetch error:", err);
+      setYears([]);
+    });
+}, [selectedDepartment, role]);
+
+
+useEffect(() => {
+  if (!yearId || role !== 4) {
+    setSections([]);
+    setSectionId("");
+    return;
+  }
+
+  fetch(`/api/sections/${yearId}`)
+    .then((res) => res.json())
+    .then((data) => {
+      setSections(Array.isArray(data) ? data : []);
+      setSectionId("");
+    })
+    .catch((err) => {
+      console.error("Sections fetch error:", err);
+      setSections([]);
+    });
+}, [yearId, role]);
 
 
   // ✅ Redirect if already logged in
@@ -101,14 +149,16 @@ const handleSubmit = async (e: React.FormEvent) => {
     const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-          name: username,
-          email,
-          password,
-          role,
-          department_id: role === 3 ? selectedDepartment : null,
-          
-        }),
+     body: JSON.stringify({
+        name: username,
+        email,
+        password,
+        role,
+        department_id:
+            role === 3 || role === 4 ? selectedDepartment : null,
+        year_id: role === 4 ? yearId : null,
+        section_id: role === 4 ? sectionId : null,
+    }),
     });
 
     const data = await res.json();
@@ -118,6 +168,10 @@ const handleSubmit = async (e: React.FormEvent) => {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setDepartments([]);
+    setYearId("");
+    setSectionId("");
+
 
     if (role === 3) {
       setSuccess(
@@ -186,6 +240,64 @@ const handleSubmit = async (e: React.FormEvent) => {
               placeholder="Full Name"
               required
             />
+          
+            {role === 4 && (
+            <>
+                  {/* Department Dropdown */}
+                  <div className="modern-select-wrapper">
+                    <select
+                      className="modern-select"
+                      value={selectedDepartment}
+                      onChange={(e) => {
+                        setSelectedDepartment(e.target.value);
+                       
+                      }}
+                      required
+                    >
+                      <option value="">Select Course</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                    </div>
+
+<br></br>
+                  <div className="modern-select-wrapper">
+                     <select
+                        className="modern-select"
+                        value={yearId}
+                        onChange={(e) => setYearId(Number(e.target.value))}
+                        required
+                     >
+                        <option value="">Select Year</option>
+                        {years.map((year) => (
+                          <option key={year.id} value={year.id}>
+                            {year.year_level}
+                          </option>
+                        ))}
+                    </select>
+                    </div>
+<br></br>
+
+                 <div className="modern-select-wrapper">
+                    <select
+                      className="modern-select"
+                      value={sectionId}
+                      onChange={(e) => setSectionId(Number(e.target.value))}
+                      required
+                    >
+                      <option value="">Select Section</option>
+                      {sections.map((sec) => (
+                        <option key={sec.id} value={sec.id}>
+                          {sec.section_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+            )}
 
               {role === 3 && (
                 <>

@@ -1,3 +1,5 @@
+// server/routes/academicRoutes.js
+
 import express from "express";
 import pool from "../pool.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";

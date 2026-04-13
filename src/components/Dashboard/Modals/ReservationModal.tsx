@@ -117,6 +117,8 @@ const format12Hour = (time24: string) => {
   return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
 };
 
+
+
 const generateStartSlots = () => {
   const ts: string[] = [];
   for (let h = 7; h <= 20; h++) {
@@ -240,6 +242,8 @@ useEffect(() => {
     })();
   }, []);
 
+
+
   useEffect(() => {
     (async () => {
       try {
@@ -257,6 +261,22 @@ useEffect(() => {
       }
     })();
   }, [selectedTeacherId, currentUserId, isAdmin]);
+
+
+const formatYearLevel = (yearId: number | string) => {
+  const year = availableYears.find((y) => y.id === Number(yearId));
+
+  if (!year) return "N/A";
+
+  const level = year.year_level;
+
+  const suffix =
+    level === 1 ? "st" :
+    level === 2 ? "nd" :
+    level === 3 ? "rd" : "th";
+
+  return `${level}${suffix} Year`;
+};
 
 
   const timeToMinutes = (t: string) => {
@@ -358,30 +378,47 @@ const addSubjectSchedule = () => {
 
   const LATEST_START_TODAY = 20 * 60 + 30;
 
-  const availableStartTimes = useMemo(() => {
-    const now = dayjs();
-    const isToday = dayjs(effectiveDate).isSame(now, "day");
-    const currentMinutes = now.hour() * 60 + now.minute();
+const availableStartTimes = useMemo(() => {
+  const now = dayjs();
+  const isToday = dayjs(effectiveDate).isSame(now, "day");
+  const currentMinutes = now.hour() * 60 + now.minute();
 
-    return ALL_START_SLOTS.filter((slot) => {
-      const slotMin = timeToMinutes(slot);
+  return ALL_START_SLOTS.filter((slot) => {
+    const slotMin = timeToMinutes(slot);
 
-      if (isToday && (slotMin <= currentMinutes || slotMin > LATEST_START_TODAY)) {
+    // block past + too late today
+    if (isToday && (slotMin <= currentMinutes || slotMin > LATEST_START_TODAY)) {
+      return false;
+    }
+
+    // cannot start inside existing reservation
+    for (const r of reservations) {
+      if (!r.start || !r.end) continue;
+
+      const rStart = timeToMinutes(r.start);
+      const rEnd = timeToMinutes(r.end);
+
+      if (slotMin >= rStart && slotMin < rEnd) {
         return false;
       }
+    }
 
-      for (const r of reservations) {
-        if (!r.start || !r.end) continue;
+    // find next reservation after this slot
+    const nextBookingStart = reservations
+      .map((r) => (r.start ? timeToMinutes(r.start) : Number.POSITIVE_INFINITY))
+      .filter((s) => s > slotMin)
+      .sort((a, b) => a - b)[0];
 
-        const rStart = timeToMinutes(r.start);
-        const rEnd = timeToMinutes(r.end);
+    const limit = nextBookingStart ?? 21 * 60;
 
-        if (slotMin >= rStart && slotMin < rEnd) return false;
-      }
+    // MUST have at least 30 mins available
+    if (limit - slotMin < MIN_DURATION) {
+      return false;
+    }
 
-      return true;
-    });
-  }, [effectiveDate, reservations]);
+    return true;
+  });
+}, [effectiveDate, reservations]);
 
   const availableEndTimesFor = (startTime: string) => {
     if (!startTime) return [];
@@ -1177,18 +1214,43 @@ useEffect(() => {
 
             <h5>Subjects:</h5>
             <ul>
-              {subjectSchedules.map((s, i) => {
-                const subj = assignmentResponse?.subjects?.find(sub => sub.id === s.subjectId);
-                return (
-                  <li key={i} style={{ marginBottom: "6px" }}>
-                    <strong>Year:</strong> {s.yearId}, <strong>Section:</strong> {s.sectionId},{" "}
-                    <strong>Subject:</strong> {subj?.name || s.subjectName} <br/>
-                    <strong>Time:</strong> {s.startTime} - {s.endTime} <br/>
-                    {isRecurring && <><strong>Days:</strong> {s.days.join(", ")} <br/></>}
-                    {s.notes && <><strong>Notes:</strong> {s.notes}</>}
-                  </li>
-                );
-              })}
+                {subjectSchedules.map((s, i) => {
+                 //const year = availableYears.find((y) => y.id === s.yearId);
+
+                  const section = (assignmentResponse?.sections || []).find(
+                    (sec) => sec.id === s.sectionId
+                  );
+
+                  const subject = (assignmentResponse?.subjects || []).find(
+                    (sub) => sub.id === s.subjectId
+                  );
+
+                  return (
+                    <li key={i} style={{ marginBottom: "6px" }}>
+                      <strong>Year:</strong> {formatYearLevel(s.yearId)}
+                      <strong>Section:</strong> {section?.name || "N/A"},{" "}
+                      <strong>Subject:</strong> {subject?.name || s.subjectName}
+                      <br />
+
+                      <strong>Time:</strong>{" "}
+                      {format12Hour(s.startTime)} - {format12Hour(s.endTime)}
+                      <br />
+
+                      {isRecurring && (
+                        <>
+                          <strong>Days:</strong> {s.days.join(", ")}
+                          <br />
+                        </>
+                      )}
+
+                      {s.notes && (
+                        <>
+                          <strong>Notes:</strong> {s.notes}
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
             </ul>
 
             <div style={{ marginTop: "12px" }}>

@@ -52,8 +52,8 @@ const queryAsync = async (sql, params = []) => {
 
 // ---------------- SIGNUP ----------------
 router.post("/signup", async (req, res) => {
-  try {
-    const { name, email, password, role, department_id, isAdminCreated } = req.body;
+      try {
+      const { name, email,  password, role, department_id, year_id, section_id, isAdminCreated } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
@@ -85,19 +85,21 @@ router.post("/signup", async (req, res) => {
 
     const result = await queryAsync(
       `INSERT INTO users
-       (name, email, password, role, status, verified, verification_token, verification_token_created_at, department_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        name,
-        email,
-        hashedPassword,
-        role,
-        status,
-        verified,
-        verificationToken,
-        verificationToken ? new Date() : null,
-        department_id || null,
-      ]
+        ( name, email,  password, role, status, verified, verification_token, verification_token_created_at, department_id, year_id, section_id )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            name,
+            email,
+            hashedPassword,
+            role,
+            status,
+            verified,
+            verificationToken,
+            verificationToken ? new Date() : null,
+            department_id || null,
+            year_id || null,
+            section_id || null,
+          ]
     );
 
     const teacherId = result.insertId;
@@ -110,6 +112,15 @@ router.post("/signup", async (req, res) => {
         [teacherId, department_id]
       );
     }
+
+    if (Number(role) === 4) {
+      if (!department_id || !year_id || !section_id) {
+        return res.status(400).json({
+          message: "Course, year, and section are required for students",
+        });
+      }
+    }
+
 
               // 📧 Send email for verification
               if (verificationToken) {
@@ -759,28 +770,24 @@ router.put("/teachers/:teacherId/assignment", authMiddleware, async (req, res) =
       );
     }
 
-    // 4️⃣ Merge existing subjects
-    const [existingYearRows] = await conn.query(
-      `SELECT subject_id
-       FROM teacher_subject_assignments
-       WHERE teacher_id = ?
-       AND department_id = ?
-       AND year_id = ?`,
-      [teacherId, department_id, year_id]
-    );
+// 4️⃣ FULL overwrite current year assignments
+await conn.query(
+  `DELETE FROM teacher_subject_assignments
+   WHERE teacher_id = ?
+   AND department_id = ?
+   AND year_id = ?`,
+  [teacherId, department_id, year_id]
+);
 
-    const existingSubjects = existingYearRows.map((r) => Number(r.subject_id));
-
-    for (const subject_id of subject_ids) {
-      if (!existingSubjects.includes(Number(subject_id))) {
-        await conn.query(
-          `INSERT INTO teacher_subject_assignments
-           (teacher_id, department_id, year_id, subject_id)
-           VALUES (?, ?, ?, ?)`,
-          [teacherId, department_id, year_id, subject_id]
-        );
-      }
-    }
+// insert fresh selected subjects
+for (const subject_id of subject_ids) {
+  await conn.query(
+    `INSERT INTO teacher_subject_assignments
+     (teacher_id, department_id, year_id, subject_id)
+     VALUES (?, ?, ?, ?)`,
+    [teacherId, department_id, year_id, subject_id]
+  );
+}
 
     await conn.commit();
 

@@ -36,6 +36,7 @@ export default function TeacherAssignmentModal({ teacher, onClose, onSuccess }: 
   const [initialized, setInitialized] = useState(false);
 
   const [originalDepartmentId, setOriginalDepartmentId] = useState<number | null>(null);
+  const [previousYearId, setPreviousYearId] = useState<number | null>(null);
 
   // ---------------- FETCH FUNCTIONS ----------------
   const fetchDepartments = async (): Promise<Department[]> => {
@@ -60,44 +61,52 @@ export default function TeacherAssignmentModal({ teacher, onClose, onSuccess }: 
   };
 
   // ---------------- INITIALIZATION ----------------
-  const initializeSelections = async (teacher: Teacher) => {
-    if (!departments.length) return;
+const initializeSelections = async (teacher: Teacher) => {
+  if (!departments.length) return;
 
-    setOriginalDepartmentId(teacher.department_id || null);
+  const department = departments.find(
+    d => d.id === teacher.department_id || d.name === teacher.department
+  );
 
-    const department = departments.find(d => d.name === teacher.department);
-    if (department) {
-      setSelectedDepartmentId(department.id);
+  if (!department) return;
 
-      const yearData = await fetchYears(department.id);
-      let preselectedYearId: number | "" = "";
+  setOriginalDepartmentId(department.id);
+  setSelectedDepartmentId(department.id);
 
-      if (teacher.year_id) {
-        const year = yearData.find(y => y.id === teacher.year_id);
-        if (year) preselectedYearId = year.id;
-      } else if (teacher.year_level) {
-        const year = yearData.find(y => String(y.year_level) === String(teacher.year_level));
-        if (year) preselectedYearId = year.id;
-      }
+  const yearData = await fetchYears(department.id);
 
-      setSelectedYearId(preselectedYearId);
+  let preselectedYearId: number | "" = "";
 
-      let subjData: Subject[] = [];
-      if (preselectedYearId !== "") subjData = await fetchSubjects(preselectedYearId);
+  if (teacher.year_id) {
+    preselectedYearId = teacher.year_id;
+  } else if (teacher.year_level) {
+    const year = yearData.find(
+      y => String(y.year_level) === String(teacher.year_level)
+    );
+    if (year) preselectedYearId = year.id;
+  }
 
-      let preselectedSubjectIds: number[] = [];
-      if (teacher.subject_ids?.length) {
-        preselectedSubjectIds = teacher.subject_ids.filter(id => subjData.some(s => s.id === id));
-      } else if (teacher.subjects) {
-        const names = teacher.subjects.split(",").map(s => s.trim());
-        preselectedSubjectIds = subjData.filter(s => names.includes(s.name)).map(s => s.id);
-      }
+  setSelectedYearId(preselectedYearId);
+  setPreviousYearId(preselectedYearId || null);
 
-      setSelectedSubjectIds(preselectedSubjectIds);
+  if (preselectedYearId) {
+    const subjData = await fetchSubjects(preselectedYearId);
+
+    let preselectedSubjectIds: number[] = [];
+
+    if (teacher.subject_ids?.length) {
+      preselectedSubjectIds = teacher.subject_ids.filter(id =>
+        subjData.some(s => s.id === id)
+      );
     }
 
-    setInitialized(true);
-  };
+    setSelectedSubjectIds(preselectedSubjectIds);
+  }
+
+  setInitialized(true);
+};
+
+
 
   // ---------------- INITIAL FETCH ----------------
   useEffect(() => {
@@ -109,37 +118,15 @@ export default function TeacherAssignmentModal({ teacher, onClose, onSuccess }: 
   }, [teacher, departments]);
 
   // ---------------- HANDLE DEPARTMENT CHANGE ----------------
-  useEffect(() => {
-    if (!initialized) return;
+useEffect(() => {
+  if (!initialized || !selectedDepartmentId) return;
 
-    // Reset everything locally when department changes
-    setSelectedYearId("");
-    setYears([]);
-    setSubjects([]);
-    setSelectedSubjectIds([]);
-
-    if (!selectedDepartmentId) return;
-
-    fetchYears(Number(selectedDepartmentId)).then(() => {});
+      fetchYears(Number(selectedDepartmentId));
   }, [selectedDepartmentId]);
 
   // ---------------- HANDLE YEAR CHANGE ----------------
-useEffect(() => {
-  if (!initialized) return;
 
-  if (!selectedYearId) {
-    setSubjects([]);
-    setSelectedSubjectIds([]);
-    return;
-  }
 
-  fetchSubjects(Number(selectedYearId)).then((subjData) => {
-    // Set subjects to the fetched data
-    setSubjects(subjData);
-    // Reset selected subjects
-    setSelectedSubjectIds([]);
-  });
-}, [selectedYearId]);
 
   // ---------------- SUBJECT TOGGLE ----------------
   const handleSubjectToggle = (subjectId: number) => {
@@ -168,15 +155,17 @@ useEffect(() => {
       headers: { "Content-Type": "application/json" },
       credentials: "include",
         body: JSON.stringify({
-          department_id: selectedDepartmentId,
-          previous_year_id: teacher.year_id || null,
-          year_id: selectedYearId,
+          department_id: Number(selectedDepartmentId),
+          previous_year_id: previousYearId,
+          year_id: Number(selectedYearId),
           subject_ids: selectedSubjectIds,
         }),
     });
 
-    if (!res.ok) return alert("Failed to save assignment");
-    onSuccess();
+if (!res.ok) return alert("Failed to save assignment");
+
+setPreviousYearId(Number(selectedYearId));
+onSuccess();
   };
 
   // ---------------- CLEAR ALL ----------------
@@ -227,7 +216,27 @@ const clearCurrentAssignment = async () => {
         <select
           className="w-full border rounded px-2 py-2 mb-4"
           value={selectedYearId}
-          onChange={e => setSelectedYearId(Number(e.target.value))}
+              onChange={async e => {
+                const newYearId = Number(e.target.value);
+
+                // save old year before switching
+                setPreviousYearId(
+                  selectedYearId !== "" ? Number(selectedYearId) : null
+                );
+
+                // update year
+                setSelectedYearId(newYearId);
+
+                // VERY IMPORTANT: clear old subjects immediately
+                setSelectedSubjectIds([]);
+                setSubjects([]);
+
+                // fetch ONLY subjects for selected new year
+                if (newYearId) {
+                  const newSubjects = await fetchSubjects(newYearId);
+                  setSubjects(newSubjects);
+                }
+              }}
           disabled={!selectedDepartmentId}
         >
           <option value="">Select Year</option>
