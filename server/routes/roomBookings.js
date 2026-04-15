@@ -226,13 +226,12 @@ router.put("/approve/:id", async (req, res) => {
   }
 
   const conn = await db.getConnection();
-  let committed = false;
 
   try {
     await conn.beginTransaction();
 
     /* =========================================
-       1. GET BOOKING
+       1. GET TARGET BOOKING
     ========================================= */
     const [rows] = await conn.query(
       `SELECT * FROM room_bookings WHERE id = ? FOR UPDATE`,
@@ -247,160 +246,174 @@ router.put("/approve/:id", async (req, res) => {
     const booking = rows[0];
 
     /* =========================================
-       2. CHECK APPROVED CONFLICTS (ROOM)
+       2. CHECK CONFLICT WITH APPROVED BOOKINGS
+       RULE:
+       - same teacher same time = conflict
+       - same room same time = conflict
+       - EXCLUDE self
     ========================================= */
-async function checkApprovedConflicts(conn, booking) {
-  const [room] = await conn.query(
-    `SELECT 1 FROM room_bookings
-     WHERE room_id = ?
-       AND date_reserved = ?
-       AND status = 'approved'
-       AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
-    [booking.roomId, booking.date, booking.startTime, booking.endTime]
-  );
-
-  const [teacher] = await conn.query(
-    `SELECT 1 FROM room_bookings
-     WHERE user_id = ?
-       AND date_reserved = ?
-       AND status = 'approved'
-       AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
-    [booking.user_id, booking.date, booking.startTime, booking.endTime]
-  );
-
-  return room.length > 0 || teacher.length > 0;
-}
-
-    if (roomConflict.length) {
-      await conn.rollback();
-      return res.status(409).json({
-        message: "Room already has an approved booking in this time slot.",
-      });
-    }
-
-    /* =========================================
-       3. CHECK APPROVED CONFLICTS (TEACHER)
-    ========================================= */
-    const [teacherConflict] = await conn.query(
-      `SELECT 1
+    const [approvedConflict] = await conn.query(
+      `SELECT 
+          id,
+          reserved_by,
+          room_name,
+          room_number,
+          date_reserved,
+          reservation_start,
+          reservation_end,
+          user_id,
+          room_id
        FROM room_bookings
-       WHERE user_id = ?
-         AND date_reserved = ?
-         AND status = 'approved'
+       WHERE status = 'approved'
          AND id <> ?
-         AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
+         AND date_reserved = ?
+         AND NOT (
+           reservation_end <= ?
+           OR reservation_start >= ?
+         )
+         AND (
+           room_id = ?
+           OR user_id = ?
+         )
+       LIMIT 1`,
       [
-        booking.user_id,
-        booking.date_reserved,
         booking.id,
+        booking.date_reserved,
         booking.reservation_start,
         booking.reservation_end,
+        booking.room_id,
+        booking.user_id,
       ]
     );
 
-    if (teacherConflict.length) {
+    if (approvedConflict.length > 0) {
+      const c = approvedConflict[0];
+
       await conn.rollback();
+
+      const sameTeacher = c.user_id === booking.user_id;
+      const sameRoom = c.room_id === booking.room_id;
+
+      let reason = "Booking conflicts with approved reservation.";
+
+      if (sameTeacher && sameRoom) {
+        reason = `Teacher ${c.reserved_by} already has approved booking in Room ${c.room_number || c.room_name} on ${c.date_reserved} from ${c.reservation_start} to ${c.reservation_end}.`;
+      } else if (sameTeacher) {
+        reason = `Teacher ${c.reserved_by} already has approved booking on ${c.date_reserved} from ${c.reservation_start} to ${c.reservation_end} in ${c.room_name}.`;
+      } else if (sameRoom) {
+        reason = `Room ${c.room_number || c.room_name} already has approved booking by ${c.reserved_by} on ${c.date_reserved} from ${c.reservation_start} to ${c.reservation_end}.`;
+      }
+
       return res.status(409).json({
-        message: "Teacher already has an approved booking in this time slot.",
+        message: reason,
+        conflict: c,
       });
     }
 
     /* =========================================
-       4. APPROVE BOOKING
+       3. APPROVE TARGET BOOKING
     ========================================= */
     await conn.query(
       `UPDATE room_bookings
        SET status = 'approved',
            approved_at = NOW(),
-           reject_reason = NULL,
-           rejected_at = NULL
+           rejected_at = NULL,
+           reject_reason = NULL
        WHERE id = ?`,
-      [bookingId]
+      [booking.id]
     );
 
     /* =========================================
-       5. REJECT OVERLAPPING PENDING BOOKINGS
+       4. AUTO-REJECT OVERLAPPING PENDING
+       IMPORTANT:
+       same room OR same teacher
     ========================================= */
-    const [pendingOverlap] = await conn.query(
-      `SELECT id, reserved_by, email, date_reserved, reservation_start, reservation_end
+    const [pendingToReject] = await conn.query(
+      `SELECT
+          id,
+          reserved_by,
+          email,
+          room_name,
+          room_number,
+          date_reserved,
+          reservation_start,
+          reservation_end
        FROM room_bookings
-       WHERE room_id = ?
+       WHERE status = 'pending'
+         AND id <> ?
          AND date_reserved = ?
-         AND status = 'pending'
-         AND NOT (reservation_end <= ? OR reservation_start >= ?)`,
+         AND NOT (
+           reservation_end <= ?
+           OR reservation_start >= ?
+         )
+         AND (
+           room_id = ?
+           OR user_id = ?
+         )`,
       [
-        booking.room_id,
+        booking.id,
         booking.date_reserved,
         booking.reservation_start,
         booking.reservation_end,
+        booking.room_id,
+        booking.user_id,
       ]
     );
 
-    const rejected = [];
-
-    for (const p of pendingOverlap) {
+    for (const p of pendingToReject) {
       await conn.query(
         `UPDATE room_bookings
          SET status = 'rejected',
              rejected_at = NOW(),
-             reject_reason = 'overlapped_with_approved_reservation'
+             reject_reason = 'overlapped_with_newly_approved_booking'
          WHERE id = ?`,
         [p.id]
       );
-
-      rejected.push(p);
     }
 
     await conn.commit();
-    committed = true;
-
-    res.json({
-      message: "Reservation approved successfully.",
-      approvedBookingId: bookingId,
-      rejectedCount: rejected.length,
-    });
 
     /* =========================================
-       6. EMAILS (BACKGROUND)
+       5. SEND EMAILS AFTER COMMIT
     ========================================= */
-    setImmediate(async () => {
-      try {
-        await sendStatusEmail(
-          {
-            ...booking,
-            date: booking.date_reserved,
-            start_time: booking.reservation_start,
-            end_time: booking.reservation_end,
-          },
-          "approved"
-        );
+    sendStatusEmail(
+      {
+        ...booking,
+        date: booking.date_reserved,
+        start_time: booking.reservation_start,
+        end_time: booking.reservation_end,
+      },
+      "approved"
+    ).catch(console.error);
 
-        for (const r of rejected) {
-          await sendStatusEmail(
-            {
-              ...r,
-              room_name: booking.room_name,
-              date: r.date_reserved,
-              start_time: r.reservation_start,
-              end_time: r.reservation_end,
-            },
-            "autoRejected"
-          );
-        }
-      } catch (err) {
-        console.error("Email error:", err);
-      }
+    for (const p of pendingToReject) {
+      sendStatusEmail(
+        {
+          ...p,
+          date: p.date_reserved,
+          start_time: p.reservation_start,
+          end_time: p.reservation_end,
+        },
+        "autoRejected"
+      ).catch(console.error);
+    }
+
+    return res.json({
+      message: "Reservation approved successfully.",
+      approvedBookingId: booking.id,
+      autoRejected: pendingToReject.length,
+      rejectedBookings: pendingToReject.map((p) => p.id),
     });
   } catch (err) {
-    if (conn && !committed) await conn.rollback();
-    console.error(err);
+    await conn.rollback();
+    console.error("Approve route error:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to approve reservation.",
       error: err.message,
     });
   } finally {
-    if (conn) conn.release();
+    conn.release();
   }
 });
 
@@ -1015,53 +1028,6 @@ router.post("/bookMultiple", async (req, res) => {
     res.status(err.statusCode || 500).json({
       message: err.message || "Failed to save reservations.",
     });
-  }
-});
-
-
-router.get("/student-schedule/:studentId", authMiddleware, async (req, res) => {
-  try {
-    const studentId = Number(req.params.studentId);
-
-    const [rows] = await pool.query(
-      `
-      SELECT
-        rb.id,
-        rb.date_reserved,
-        rb.reservation_start,
-        rb.reservation_end,
-        rb.subject,
-        rb.notes,
-        rb.reserved_by AS teacher_name,
-        r.room_number,
-        r.room_name,
-        d.name AS department_name,
-        y.year_level,
-        s.name AS section_name
-      FROM room_bookings rb
-      JOIN users u
-        ON u.department_id = rb.department_id
-       AND u.year_id = rb.year_id
-       AND u.section_id = rb.section_id
-      JOIN rooms r
-        ON rb.room_id = r.id
-      LEFT JOIN departments d
-        ON rb.department_id = d.id
-      LEFT JOIN years y
-        ON rb.year_id = y.id
-      LEFT JOIN sections s
-        ON rb.section_id = s.id
-      WHERE u.id = ?
-        AND rb.status = 'approved'
-      ORDER BY rb.date_reserved ASC, rb.reservation_start ASC
-      `,
-      [studentId]
-    );
-
-    res.json({ schedules: rows });
-  } catch (err) {
-    console.error("Student schedule fetch error:", err);
-    res.status(500).json({ message: "Server error" });
   }
 });
 

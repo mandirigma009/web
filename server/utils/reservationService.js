@@ -126,13 +126,15 @@ const buildConflictMessage = (kind, conflict) => {
   const roomPart = `${conflict.room_name}${conflict.room_number ? ` (${conflict.room_number})` : ""}`;
   const teacherPart = conflict.teacher_name ? `Teacher: ${conflict.teacher_name}` : "Teacher: N/A";
   const acadPart = [
-    conflict.department_name ? `Course: ${conflict.department_name}` : null,
+    conflict.department_name ? `Course: ${conflict.department_name}` : null, 
     conflict.year_level != null ? `Year: ${conflict.year_level}` : null,
     conflict.section_name ? `Section: ${conflict.section_name}` : null,
     conflict.subject ? `Subject: ${conflict.subject}` : null,
   ].filter(Boolean).join(", ");
 
-  return `${kind} conflict found on ${conflict.date_reserved} at ${formatTimeRange(conflict.reservation_start, conflict.reservation_end)} in ${roomPart}. ${teacherPart}${acadPart ? `, ${acadPart}` : ""}.`;
+  return `${kind} conflict found on ${conflict.date_reserved} at 
+  <br>${formatTimeRange(conflict.reservation_start, conflict.reservation_end)} 
+  <br>in ${roomPart}. ${teacherPart}${acadPart ? `, ${acadPart}` : ""}.`;
 };
 
 const getApprovedConflicts = async (conn, payload, bookingDate) => {
@@ -203,13 +205,25 @@ const getOverlappingPending = async (conn, payload, bookingDate) => {
     LEFT JOIN departments d ON d.id = rb.department_id
     LEFT JOIN years y ON y.id = rb.year_id
     LEFT JOIN sections s ON s.id = rb.section_id
-    WHERE rb.room_id = ?
-      AND rb.date_reserved = ?
+    WHERE rb.date_reserved = ?
       AND rb.status = 'pending'
-      AND NOT (rb.reservation_end <= ? OR rb.reservation_start >= ?)
+      AND (
+        rb.room_id = ?
+        OR rb.user_id = ?
+      )
+      AND NOT (
+        rb.reservation_end <= ?
+        OR rb.reservation_start >= ?
+      )
     ORDER BY rb.reservation_start ASC
     `,
-    [payload.roomId, bookingDate, payload.startTime, payload.endTime]
+    [
+      bookingDate,
+      payload.roomId,
+      payload.user_id,
+      payload.startTime,
+      payload.endTime,
+    ]
   );
 
   return rows.map(normalizeConflictRow);
@@ -256,6 +270,15 @@ export async function saveReservations(payloads = []) {
       if (approvedConflicts.length > 0) {
         throw createConflictError(approvedConflicts);
       }
+
+      if (!payload.department_id || !payload.year_id || !payload.section_id) {
+  throw Object.assign(
+    new Error("Course, year, and section are required."),
+    { statusCode: 400 }
+  );
+}
+
+
 
       const [insertResult] = await conn.query(
         `INSERT INTO room_bookings (

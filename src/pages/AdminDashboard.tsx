@@ -336,7 +336,7 @@ useAuthGuard();
           <span className="icon"><FaDoorOpen /></span>
           <span className="label">Rooms</span>
         </button>
-
+{userRole && userRole !== 4 && (
         <button
           className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
           onClick={() => setActiveTab("MyBookings")}
@@ -344,6 +344,7 @@ useAuthGuard();
           <span className="icon"><FaCalendarCheck /></span>
           <span className="label">{userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}</span>
         </button>
+        )}
   {userRole && userRole !== 4 && (
         <button
           className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}

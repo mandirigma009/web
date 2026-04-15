@@ -42,6 +42,7 @@ interface ReservationTableProps {
   isMyBookings?: boolean;
   refreshMyBookings: () => void;
   currentUserId: number | null;
+  
 }
 
 export default function ReservationTable({
@@ -55,7 +56,8 @@ export default function ReservationTable({
   isMyBookings,
   currentUserId,
   refreshMyBookings,
-}: ReservationTableProps) {
+}: 
+ReservationTableProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [editingBooking, setEditingBooking] = useState<Room | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Room | null>(null);
@@ -64,6 +66,8 @@ export default function ReservationTable({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
   const [calendarView, setCalendarView] = useState("dayGridMonth");
+
+  
 
   
 
@@ -111,35 +115,61 @@ export default function ReservationTable({
 
 
 // Unified conflict checker
-const checkConflict = (
+const getConflictType = (
   booking: Room,
   dataset: Room[]
-): boolean => {
+): "none" | "room" | "time" | "both" => {
   const normalizeTime = (t?: string) =>
     t?.length === 5 ? `${t}:00` : t || "00:00:00";
 
-  return dataset.some((other) => {
-    if (other.id === booking.id) return false;
+  let roomConflict = false;
+  let timeConflict = false;
 
-    if (other.date_reserved !== booking.date_reserved) return false;
+  const dateA = dayjs.utc(booking.date_reserved).format("YYYY-MM-DD");
+  const startA = dayjs(
+    `${dateA}T${normalizeTime(booking.reservation_start)}`
+  );
+  const endA = dayjs(
+    `${dateA}T${normalizeTime(booking.reservation_end)}`
+  );
 
-    if (other.room_id !== booking.room_id) return false;
+  for (const other of dataset) {
+    if (other.id === booking.id) continue;
+    if (other.date_reserved !== booking.date_reserved) continue;
 
-const dateA = dayjs.utc(booking.date_reserved).format("YYYY-MM-DD");
-const dateB = dayjs.utc(other.date_reserved).format("YYYY-MM-DD");
+    const dateB = dayjs.utc(other.date_reserved).format("YYYY-MM-DD");
+    const startB = dayjs(
+      `${dateB}T${normalizeTime(other.reservation_start)}`
+    );
+    const endB = dayjs(
+      `${dateB}T${normalizeTime(other.reservation_end)}`
+    );
 
-const startA = dayjs(`${dateA}T${normalizeTime(booking.reservation_start)}`);
-const endA   = dayjs(`${dateA}T${normalizeTime(booking.reservation_end)}`);
-const startB = dayjs(`${dateB}T${normalizeTime(other.reservation_start)}`);
-const endB   = dayjs(`${dateB}T${normalizeTime(other.reservation_end)}`);
+    const overlap =
+      startA.isBefore(endB) && startB.isBefore(endA);
 
+    if (!overlap) continue;
 
-    return startA.isBefore(endB) && startB.isBefore(endA);
-  });
+    // ⚠ same room conflict
+    if (other.room_id === booking.room_id) {
+      roomConflict = true;
+    }
+
+    // ⏰ same teacher conflict
+    if (other.user_id === booking.user_id) {
+      timeConflict = true;
+    }
+  }
+
+  if (roomConflict && timeConflict) return "both";
+  if (roomConflict) return "room";
+  if (timeConflict) return "time";
+  return "none";
 };
 
 
-
+const checkConflict = (booking: Room, dataset: Room[]) =>
+  getConflictType(booking, dataset) !== "none";
 
   // Filtered reservations
 const filteredReservations = useMemo(() => {
@@ -149,7 +179,8 @@ const filteredReservations = useMemo(() => {
 
     // Apply conflict filter if for approval
     if  (isForApproval && (userRole === 1 || userRole === 2 || userRole === 3)) {
-      const conflict = checkConflict(r, conflictDataset);
+      const conflictType = getConflictType(r, conflictDataset);
+const conflict = conflictType !== "none";
 
       if (conflictFilter === "safe" && conflict) return false;
       if (conflictFilter === "conflict" && !conflict) return false;
@@ -642,7 +673,7 @@ const totalColumns =
         <option value="floor">Floor</option>
         <option value="building">Building</option>
 
-        {isMyBookings && (userRole === 1 || userRole === 2) && (
+        {isMyBookings && (userRole === 1 || userRole === 2 ) && (
           <option value="teacher">Teacher</option>
         )}
       </select>
@@ -723,7 +754,16 @@ const totalColumns =
                                                   }}
                                                 >
                                                   {conflictFilter === "conflict"
-                                                    ? "⚠ Conflict Group — "
+                                                    ? (() => {
+                                                          const types = new Set(
+                                                            group.items.map((b) => getConflictType(b, conflictDataset))
+                                                          );
+
+                                                          if (types.has("both")) return "🚨 Room + Time Conflict Group — ";
+                                                          if (types.has("room")) return "⚠ Room Conflict Group — ";
+                                                          if (types.has("time")) return "⏰ Time Conflict Group — ";
+                                                          return "✅ Safe Group — ";
+                                                        })()
                                                     : isMyBookings
                                                       ? "✅ Approved Booking — "
                                                       : "✅ No Conflict Group — "}
@@ -755,6 +795,17 @@ const totalColumns =
                                                   {format12Hour(booking.reservation_end)}
                                                 </td>
                                                 <td>{booking.notes || "—"}</td>
+                                                <td>
+                                                  {(() => {
+                                                    const type = getConflictType(booking, conflictDataset);
+
+                                                    if (type === "room") return "⚠ Room Conflict";
+                                                    if (type === "time") return "⏰ Time Conflict";
+                                                    if (type === "both") return "🚨 Room + Time Conflict";
+
+                                                    return "✅ Safe";
+                                                  })()}
+                                                </td>
                                                 {showActions && (
                                                   <td>
                                                     <ActionMenu actions={getAvailableActions(booking)} />

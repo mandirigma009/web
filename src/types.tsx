@@ -90,6 +90,7 @@ export interface Room {
   year: string;    
   section: string;
   year_level: string;
+  department_id?: number | null;
   section_name: string;
   year_id: number;
   section_id: number;

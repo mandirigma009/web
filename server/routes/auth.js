@@ -48,7 +48,15 @@ const queryAsync = async (sql, params = []) => {
 };
 
 
+const applyStudentScope = (rows, user) => {
+  if (user.role !== 4) return rows;
 
+  return rows.filter(r =>
+    r.course_id === user.course_id &&
+    r.year_id === user.year_id &&
+    r.section_id === user.section_id
+  );
+};
 
 // ---------------- SIGNUP ----------------
 router.post("/signup", async (req, res) => {
