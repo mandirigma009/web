@@ -17,6 +17,9 @@ interface MyBookingsTabProps {
   refreshMyBookings: () => void;
   userRole: (number);
   currentUserId: number | null;
+  studentCourseId?: number;
+  studentYearLevel?: string;
+  studentSectionId?: number;
 }
 
 export default function MyBookingsTab({
@@ -25,11 +28,13 @@ export default function MyBookingsTab({
   formatTime,
   refreshMyBookings,
   userRole,
-currentUserId
+currentUserId,
+  studentCourseId,
+  studentYearLevel,
+  studentSectionId,
 }: 
 
 MyBookingsTabProps) {
-
 
   return (
     <>
@@ -42,6 +47,9 @@ MyBookingsTabProps) {
         refreshMyBookings = {refreshMyBookings}
         isMyBookings={true}
         currentUserId={currentUserId}
+         studentCourseId={studentCourseId}
+  studentYearLevel={studentYearLevel}
+  studentSectionId={studentSectionId}
       />
       <ToastContainer position="top-right" autoClose={3000} />
     </>

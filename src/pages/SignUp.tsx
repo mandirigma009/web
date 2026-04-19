@@ -40,6 +40,7 @@ const [sectionId, setSectionId] = useState<number | "">("");
 
 
 
+
 // ✅ Fetch departments on load
 useEffect(() => {
   fetch("/api/departments")
@@ -59,7 +60,14 @@ useEffect(() => {
 }, []);
 
 
+const formatYearLevel = (level: number) => {
+  const suffix =
+    level === 1 ? "st" :
+    level === 2 ? "nd" :
+    level === 3 ? "rd" : "th";
 
+  return `${level}${suffix} Year`;
+};
 
 
 useEffect(() => {
@@ -270,11 +278,12 @@ const handleSubmit = async (e: React.FormEvent) => {
                         value={yearId}
                         onChange={(e) => setYearId(Number(e.target.value))}
                         required
+                         disabled={!selectedDepartment}  
                      >
                         <option value="">Select Year</option>
                         {years.map((year) => (
                           <option key={year.id} value={year.id}>
-                            {year.year_level}
+                            {formatYearLevel(Number(year.year_level))}
                           </option>
                         ))}
                     </select>
@@ -287,6 +296,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       value={sectionId}
                       onChange={(e) => setSectionId(Number(e.target.value))}
                       required
+                      disabled={!selectedDepartment || !yearId} 
                     >
                       <option value="">Select Section</option>
                       {sections.map((sec) => (

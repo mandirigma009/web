@@ -558,15 +558,17 @@ router.post("/logout", async (req, res) => {
 
 // ---------------- ME ----------------
 // Returns basic current user info (if access token valid).
-router.get("/me", authMiddleware, (req, res) => {
-  return res.json({
-    user: {
-      id: req.user.id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role,
-    },
-  });
+router.get("/me", authMiddleware, async (req, res) => {
+  const [rows] = await pool.query(
+    `SELECT id, name, email, role, department_id, year_id, section_id
+     FROM users
+     WHERE id = ?`,
+    [req.user.id]
+  );
+
+  const user = rows[0];
+
+  return res.json({ user });
 });
 
 

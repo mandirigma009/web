@@ -42,6 +42,9 @@ interface ReservationTableProps {
   isMyBookings?: boolean;
   refreshMyBookings: () => void;
   currentUserId: number | null;
+  studentCourseId?: number;
+studentYearLevel?: string;
+studentSectionId?: number;
   
 }
 
@@ -56,6 +59,10 @@ export default function ReservationTable({
   isMyBookings,
   currentUserId,
   refreshMyBookings,
+  studentCourseId,
+studentYearLevel,
+studentSectionId,
+  
 }: 
 ReservationTableProps) {
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
@@ -66,6 +73,7 @@ ReservationTableProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
   const [calendarView, setCalendarView] = useState("dayGridMonth");
+  const hideConflictColumn = userRole === 1 || userRole === 2 || userRole === 4;
 
   
 
@@ -77,10 +85,39 @@ ReservationTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchBy, setSearchBy] = useState<"room_number" | "room_name" | "floor" |"subject" | "reserved_by">("room_name");
   const [conflictFilter, setConflictFilter] = useState< "safe" | "conflict">("safe");
-  const [groupBy, setGroupBy] = useState<"date" | "room_number" | "floor" | "building" | "teacher">("date");
- const showActions = isMyBookings
-  ? userRole === 3   // ONLY teacher can see actions in MyBookings
-  : isForApproval || !(isMyBookings && userRole === 3);
+  const [groupBy, setGroupBy] = useState<string>("date");
+ const groupByOptions = useMemo(() => {
+  if (userRole === 4) {
+    return ["date", "room_number", "floor", "building", "subject", "teacher"];
+  }
+
+  if (userRole === 3) {
+    return ["date", "room_number", "floor", "building", "subject", "year", "section"];
+  }
+
+  if (userRole === 1 || userRole === 2) {
+    return [
+      "date",
+      "room_number",
+      "floor",
+      "building",
+      "department",
+      "subject",
+      "year",
+      "section",
+      "teacher",
+    ];
+  }
+
+  return ["date"];
+}, [userRole]);
+
+const showActions =
+  userRole === 4
+    ? false
+    : isMyBookings
+      ? userRole === 3
+      : isForApproval || !(isMyBookings && userRole === 3);
 
 
 
@@ -168,11 +205,15 @@ const getConflictType = (
 };
 
 
+
 const checkConflict = (booking: Room, dataset: Room[]) =>
   getConflictType(booking, dataset) !== "none";
 
+
+
   // Filtered reservations
 const filteredReservations = useMemo(() => {
+
   return reservations.filter((r) => {
     if (buildingFilter && r.building_name !== buildingFilter) return false;
     if (floorFilter && String(r.floor_number) !== floorFilter) return false;
@@ -207,10 +248,22 @@ const conflict = conflictType !== "none";
       }
     }
 
-    if (isMyBookings && userRole === 3 && currentUserId) {
-      return r.user_id === currentUserId;
-    }
+   // 👨‍🏫 Teacher
+if (isMyBookings && userRole === 3 && currentUserId) {
+  return r.user_id === currentUserId;
+}
 
+// 🎓 Student
+if (userRole === 4) {
+  return (
+    r.department_id === studentCourseId &&
+    String(r.year_level) === String(studentYearLevel) &&
+    r.section_id === studentSectionId
+  );
+}
+
+
+console.log("RESERVATION SAMPLE:", reservations[0]);
     return true;
   });
 }, [reservations, buildingFilter, floorFilter, searchQuery, searchBy, isMyBookings, userRole, currentUserId, isForApproval, conflictFilter]);
@@ -220,14 +273,31 @@ const getGroupKey = (b: Room) => {
   switch (groupBy) {
     case "date":
       return b.date_reserved;
+
     case "room_number":
       return b.room_number;
+
     case "floor":
       return b.floor_number;
+
     case "building":
       return b.building_name;
+
+    case "subject":
+      return b.subject;
+
     case "teacher":
       return b.reserved_by;
+
+    case "year":
+      return b.year_level;
+
+    case "section":
+      return b.section_name;
+
+    case "department":
+      return b.department_id;
+
     default:
       return b.date_reserved;
   }
@@ -465,7 +535,9 @@ const hasConflictBookings = roleAwarePendingReservations.some(r => {
   return r.has_conflict;
 });
 
-
+useEffect(() => {
+  setGroupBy("date");
+}, [userRole]);
 
 
 useEffect(() => {
@@ -518,11 +590,13 @@ function formatYearLevel(value: string | number | null | undefined) {
   }, []);
 
 
+
 const totalColumns =
-  8 + // room + name + desc + building + floor + year + section + subject
-  (!isForApproval ? 1 : 0) + // teacher
-  3 + // date + time + notes
-  (showActions ? 1 : 0); // actions
+  8 +
+  (!isForApproval ? 1 : 0) +
+  3 +
+  (showActions ? 1 : 0) +
+  (!hideConflictColumn ? 1 : 0);
   
   // --------------------- Render ---------------------
   return (
@@ -641,7 +715,7 @@ const totalColumns =
   </div>
 
 {/* ---------------- ROW 3 — Conflict Filter ---------------- */}
-{hasPendingReservations && (
+{hasPendingReservations && userRole !== 4 && (
   <div style={{ marginBottom: "20px" }}>
     <label className="block mb-1 font-medium">Conflict Filter</label>
     <div className="modern-select-wrapper">
@@ -660,22 +734,20 @@ const totalColumns =
 )}
 
   {/* ---------------- ROW 4 — Group By ---------------- */}
-  {(isForApproval || isMyBookings) && conflictFilter !== "conflict" && (
+  { (isForApproval || isMyBookings) && conflictFilter !== "conflict" && (
     <div style={{ marginBottom: "20px" }}>
       <label className="block mb-1 font-medium">Group By</label>
       <div className="modern-select-wrapper">
-      <select className="modern-select"
+      <select
+        className="modern-select"
         value={groupBy}
-        onChange={(e) => setGroupBy(e.target.value as any)}
+        onChange={(e) => setGroupBy(e.target.value)}
       >
-        <option value="date">Date</option>
-        <option value="room_number">Room Number</option>
-        <option value="floor">Floor</option>
-        <option value="building">Building</option>
-
-        {isMyBookings && (userRole === 1 || userRole === 2 ) && (
-          <option value="teacher">Teacher</option>
-        )}
+        {groupByOptions.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt.charAt(0).toUpperCase() + opt.slice(1)}
+          </option>
+        ))}
       </select>
       </div>
     </div>
@@ -701,7 +773,8 @@ const totalColumns =
                                       !isForApproval ? "Teacher" : null,
                                       "Reservation Date",
                                       "Reservation Time",
-                                      "Notes"
+                                      "Notes",
+                                      !hideConflictColumn ? "Conflict" : null
                                     ]
                                     .filter((k): k is string => k !== null)
                                     .map(k => <th key={k}>{k}</th>)}
@@ -764,6 +837,8 @@ const totalColumns =
                                                           if (types.has("time")) return "⏰ Time Conflict Group — ";
                                                           return "✅ Safe Group — ";
                                                         })()
+                                                    : (userRole === 1 || userRole === 2 || userRole === 4)
+                                                    ? ""
                                                     : isMyBookings
                                                       ? "✅ Approved Booking — "
                                                       : "✅ No Conflict Group — "}
@@ -795,17 +870,19 @@ const totalColumns =
                                                   {format12Hour(booking.reservation_end)}
                                                 </td>
                                                 <td>{booking.notes || "—"}</td>
-                                                <td>
-                                                  {(() => {
-                                                    const type = getConflictType(booking, conflictDataset);
+                                                {!hideConflictColumn && (
+                                                    <td>
+                                                      {(() => {
+                                                        const type = getConflictType(booking, conflictDataset);
 
-                                                    if (type === "room") return "⚠ Room Conflict";
-                                                    if (type === "time") return "⏰ Time Conflict";
-                                                    if (type === "both") return "🚨 Room + Time Conflict";
+                                                        if (type === "room") return "⚠ Room Conflict";
+                                                        if (type === "time") return "⏰ Time Conflict";
+                                                        if (type === "both") return "🚨 Room + Time Conflict";
 
-                                                    return "✅ Safe";
-                                                  })()}
-                                                </td>
+                                                        return "✅ Safe";
+                                                      })()}
+                                                    </td>
+                                                  )}
                                                 {showActions && (
                                                   <td>
                                                     <ActionMenu actions={getAvailableActions(booking)} />

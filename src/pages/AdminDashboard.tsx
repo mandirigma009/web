@@ -53,12 +53,18 @@ useAuthGuard();
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [, setCurrentTime] = useState(new Date());
   const [loadingUser, setLoadingUser] = useState(true);
+  const [studentCourseId, setStudentCourseId] = useState<number | undefined>();
+const [studentYearLevel, setStudentYearLevel] = useState<string | undefined>();
+const [studentSectionId, setStudentSectionId] = useState<number | undefined>();
+
   const metrics = {
   activeUsers: users.length,
   pendingUsers: users.filter(u => u.role === 3).length, // example
   pendingBookings: pendingBookings.length,
   availableRooms: rooms.filter(r => r.status === 1).length,
 };
+
+
 
 
   const navigate = useNavigate();
@@ -85,6 +91,9 @@ useAuthGuard();
         setName(data.user.name);
         setUserRole(data.user.role);
         setId(data.user.id);
+        setStudentCourseId(data.user.department_id);
+        setStudentYearLevel(data.user.year_id);
+        setStudentSectionId(data.user.section_id);
         setActiveTab(
           data.user.role === 1 || data.user.role === 2 ? "Admin" : "Rooms"
         );
@@ -98,6 +107,15 @@ useAuthGuard();
     fetchUser();
   }, [navigate]);
 
+ useEffect(() => {
+  console.log("STUDENT INFO UPDATED:", {
+    studentCourseId,
+    studentYearLevel,
+    studentSectionId,
+  });
+}, [studentCourseId, studentYearLevel, studentSectionId]);
+
+  
   // ---------- Fetch users (admin only) ----------
   useEffect(() => {
     const fetchUsers = async () => {
@@ -336,7 +354,7 @@ useAuthGuard();
           <span className="icon"><FaDoorOpen /></span>
           <span className="label">Rooms</span>
         </button>
-{userRole && userRole !== 4 && (
+
         <button
           className={`sidebar-btn ${activeTab === "MyBookings" ? "active" : ""}`}
           onClick={() => setActiveTab("MyBookings")}
@@ -344,7 +362,6 @@ useAuthGuard();
           <span className="icon"><FaCalendarCheck /></span>
           <span className="label">{userRole === 1 || userRole === 2 ? "All Reservations" : "My Reservations"}</span>
         </button>
-        )}
   {userRole && userRole !== 4 && (
         <button
           className={`sidebar-btn ${activeTab === "Rejected" ? "active" : ""}`}
@@ -418,6 +435,9 @@ useAuthGuard();
             userRole={userRole}
             refreshMyBookings={fetchMyBookings}
             currentUserId={id}
+             studentCourseId={studentCourseId}
+            studentYearLevel={studentYearLevel}
+            studentSectionId={studentSectionId}
           />
         )}
 
