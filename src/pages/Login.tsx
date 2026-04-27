@@ -27,7 +27,8 @@ function Login() {
   useEffect(() => {
   const checkAuth = async () => {
     try {
-      const res = await fetch("api/me", {
+      const res = await fetch(" http://localhost:5000/api/me", {
+     // const res = await fetch("api/me", {
         method: "GET",
         credentials: "include",
       });
@@ -82,7 +83,7 @@ function Login() {
     setSuccess("");
 
     try {
-      const res = await fetch("api/login", {
+      const res = await fetch(" http://localhost:5000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -107,13 +107,6 @@ const [studentSectionId, setStudentSectionId] = useState<number | undefined>();
     fetchUser();
   }, [navigate]);
 
- useEffect(() => {
-  console.log("STUDENT INFO UPDATED:", {
-    studentCourseId,
-    studentYearLevel,
-    studentSectionId,
-  });
-}, [studentCourseId, studentYearLevel, studentSectionId]);
 
   
   // ---------- Fetch users (admin only) ----------

@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 5.1.1deb5ubuntu1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Jan 11, 2026 at 10:25 AM
--- Server version: 10.4.27-MariaDB
--- PHP Version: 8.2.0
+-- Host: localhost:3306
+-- Generation Time: Apr 13, 2026 at 03:18 AM
+-- Server version: 10.6.23-MariaDB-0ubuntu0.22.04.1
+-- PHP Version: 8.1.2-1ubuntu2.23
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -17,17 +17,16 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
---
--- Database: `myapp`
---
+DROP DATABASE IF EXISTS myapp;
+CREATE DATABASE myapp;
+USE myapp;
 
-CREATE DATABASE IF NOT EXISTS `myapp`;
-USE `myapp`;
 
 -- --------------------------------------------------------
 
 --
 -- Table structure for table `buildings`
+--
 
 CREATE TABLE `buildings` (
   `id` int(11) NOT NULL,
@@ -40,9 +39,7 @@ CREATE TABLE `buildings` (
 --
 
 INSERT INTO `buildings` (`id`, `building_name`, `created_at`) VALUES
-(1, 'Test Building 1', '2026-01-09 12:21:21'),
-(2, 'Test Building 2', '2026-01-09 13:25:05'),
-(3, 'Test Building 3', '2026-01-09 14:56:32');
+(1, 'Main Building', '2026-02-09 04:20:04');
 
 -- --------------------------------------------------------
 
@@ -59,8 +56,29 @@ CREATE TABLE `cron_last_run` (
 -- Dumping data for table `cron_last_run`
 --
 
-INSERT INTO `cron_last_run` (`id`, `last_processed`) VALUES
-(1, '2026-01-28 01:26:00');
+
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `departments`
+--
+
+CREATE TABLE `departments` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `departments`
+--
+
+INSERT INTO `departments` (`id`, `name`, `created_at`) VALUES
+(1, 'BSIS', '2026-04-06 12:24:02'),
+(2, 'HRS BUNDLE', '2026-04-06 12:24:29'),
+(3, 'BTVTED', '2026-04-06 12:24:45'),
+(4, 'ACT', '2026-04-09 09:38:35');
 
 -- --------------------------------------------------------
 
@@ -89,10 +107,13 @@ CREATE TABLE `rooms` (
 --
 
 INSERT INTO `rooms` (`id`, `room_number`, `room_name`, `room_description`, `floor_number`, `status`, `created_at`, `chairs`, `has_tv`, `has_projector`, `has_table`, `building_id`, `max_capacity`) VALUES
-(1, '125', 'R125', 'Classroom', 1, 1, '2025-09-21 23:16:26', 34, 0, 1, 1, 1, 40),
-(2, '412', 'R412', 'Classroom', 4, 1, '2025-09-22 21:12:51', 20, 0, 1, 0, 2, 35),
-(3, '317', 'R317', 'Classroom', 3, 1, '2025-10-05 09:51:38', 35, 0, 0, 1, 3, 50),
-(4, '314', 'R314', 'Classroom', 3, 1, '2025-10-06 00:38:10', 30, 1, 1, 1, 1, 45);
+(47, '101', 'RM101', 'Regular Classroom', 1, 1, '2026-02-22 14:26:09', 40, 1, 1, 1, 1, 45),
+(55, '102', 'RM102', 'Regular Classroom', 1, 3, '2026-02-22 14:31:18', 30, 0, 0, 0, 1, 30),
+(56, '103', 'RM103', 'Regular Classroom', 1, 4, '2026-02-22 14:31:46', 0, 1, 0, 1, 1, 0),
+(57, '201', 'RM201', 'Regular Classroom', 2, 1, '2026-02-22 14:32:46', 35, 1, 0, 1, 1, 35),
+(58, '104', 'RM104', 'Regular Classroom', 1, 1, '2026-02-22 14:33:40', 40, 1, 1, 0, 1, 40),
+(59, '202', 'RM202', 'Laboratory', 2, 1, '2026-02-22 14:34:37', 35, 1, 1, 1, 1, 35),
+(60, '203', 'RM203', 'Regular Classroom', 2, 1, '2026-02-22 14:35:33', 35, 0, 0, 1, 1, 40);
 
 -- --------------------------------------------------------
 
@@ -110,7 +131,11 @@ CREATE TABLE `room_bookings` (
   `reservation_start` time NOT NULL,
   `reservation_end` time NOT NULL,
   `notes` text DEFAULT NULL,
-  `subject` varchar(100) DEFAULT NULL,
+  `subject` varchar(99) NOT NULL,
+  `subject_id` int(11) DEFAULT NULL,
+  `year_id` int(11) DEFAULT NULL,
+  `section_id` int(11) DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `room_number` varchar(50) DEFAULT NULL,
   `room_name` varchar(100) DEFAULT NULL,
@@ -118,12 +143,16 @@ CREATE TABLE `room_bookings` (
   `building_name` varchar(100) DEFAULT NULL,
   `floor_number` int(11) DEFAULT NULL,
   `assigned_by` varchar(100) NOT NULL,
-  `status` enum('pending','approved','cancelled','rejected_by_admin','cancelled_not_approved_before_start') DEFAULT 'pending',
+  `status` enum('pending','approved','cancelled','rejected') DEFAULT 'pending',
   `is_archived` tinyint(1) DEFAULT 0,
   `approved_at` datetime DEFAULT NULL,
   `reject_reason` varchar(255) DEFAULT NULL,
   `rejected_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `room_bookings`
+--
 
 -- --------------------------------------------------------
 
@@ -155,12 +184,84 @@ CREATE TABLE `room_bookings_archive` (
   `rejected_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `room_bookings_archive`
+-- Table structure for table `sections`
 --
 
-INSERT INTO `room_bookings_archive` (`id`, `room_id`, `reserved_by`, `user_id`, `email`, `date_reserved`, `reservation_start`, `reservation_end`, `notes`, `created_at`, `room_number`, `room_name`, `room_description`, `building_name`, `floor_number`, `assigned_by`, `status`, `is_archived`, `approved_at`, `reject_reason`, `rejected_at`) VALUES
-(1, 30, 'test teacher', 4, 'yiyeujifoinau-7319@yopmail.com', '2026-01-16', '01:16:00', '01:30:00', 'test with subject', '2026-01-09 15:42:22', '211', 'test room capacity', 'testing room capacity 2', 'test building 3', 2, 'Admin1 test', 'cancelled', 1, NULL, 'this is sample cancel', '2026-01-11 17:10:36');
+CREATE TABLE `sections` (
+  `id` int(11) NOT NULL,
+  `year_id` int(11) NOT NULL,
+  `section_name` varchar(50) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `sections`
+--
+
+INSERT INTO `sections` (`id`, `year_id`, `section_name`, `created_at`) VALUES
+(1, 1, '1A', '2026-04-07 01:50:37'),
+(2, 1, '1B', '2026-04-07 01:50:51'),
+(3, 1, '1C', '2026-04-07 01:51:01'),
+(4, 1, '1D', '2026-04-07 01:51:12'),
+(5, 2, '2A', '2026-04-09 09:39:00'),
+(6, 2, '2B', '2026-04-09 09:39:06'),
+(7, 2, '2C', '2026-04-09 09:39:10'),
+(8, 3, '3A', '2026-04-09 09:41:03'),
+(9, 3, '3B', '2026-04-09 09:41:14'),
+(10, 3, '3C', '2026-04-09 09:41:21'),
+(11, 3, '3D', '2026-04-09 09:41:34'),
+(12, 3, '3E', '2026-04-09 09:41:40');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subjects`
+--
+
+CREATE TABLE `subjects` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `year_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `subjects`
+--
+
+INSERT INTO `subjects` (`id`, `name`, `created_at`, `year_id`) VALUES
+(1, 'MATH', '2026-04-07 01:51:34', 1),
+(2, 'English', '2026-04-07 02:01:25', 1),
+(3, 'RLW', '2026-04-07 02:01:45', 1),
+(4, 'IS-Mot', '2026-04-09 09:41:54', 3),
+(5, 'IS-ePc', '2026-04-09 09:43:09', 3),
+(6, 'IS- eFM', '2026-04-09 09:43:18', 3),
+(7, 'IS-ISP', '2026-04-09 09:43:29', 3),
+(8, 'IS-WeBa', '2026-04-09 09:43:35', 3);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `teacher_subject_assignments`
+--
+
+CREATE TABLE `teacher_subject_assignments` (
+  `id` int(11) NOT NULL,
+  `teacher_id` int(11) NOT NULL,
+  `department_id` int(11) NOT NULL,
+  `year_id` int(11) DEFAULT NULL,
+  `subject_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `teacher_subject_assignments`
+--
+
+
 
 -- --------------------------------------------------------
 
@@ -182,15 +283,18 @@ CREATE TABLE `users` (
   `verification_token` varchar(255) DEFAULT NULL,
   `verification_token_created_at` datetime DEFAULT NULL,
   `failed_attempts` int(11) DEFAULT 0,
-  `locked_until` datetime DEFAULT NULL
+  `locked_until` datetime DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `year_id` int(11) DEFAULT NULL,
+  `section_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `created_at`, `role`, `reset_code`, `reset_expires`, `status`, `verified`, `verification_token`, `verification_token_created_at`, `failed_attempts`, `locked_until`) VALUES
-(1, 'Admin1 test', 'AdminTest@mail.com', '$2b$10$7Pmq0nBpg8D2FZAXdZbHcOLsy8NnkSDdfJE01vPdma.ywGGSeqVcm', '2025-09-20 02:03:05', 1, NULL, NULL, 'active', 1, NULL, NULL, 0, NULL);
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `created_at`, `role`, `reset_code`, `reset_expires`, `status`, `verified`, `verification_token`, `verification_token_created_at`, `failed_attempts`, `locked_until`, `department_id`) VALUES
+(1, 'Juan Dela Cruz', 'admintest@mail.com', '$2b$10$HcDZfJr3B0xrC5z6MNOcGuTJbusqW2AWQXjAt2jltB2glomBN42I.', '2026-04-06 09:50:21', 1, NULL, NULL, 'active', 1, NULL, NULL, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -204,6 +308,29 @@ CREATE TABLE `user_sessions` (
   `last_active` datetime DEFAULT current_timestamp(),
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `years`
+--
+
+CREATE TABLE `years` (
+  `id` int(11) NOT NULL,
+  `department_id` int(11) NOT NULL,
+  `year_level` varchar(50) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `years`
+--
+
+INSERT INTO `years` (`id`, `department_id`, `year_level`, `created_at`) VALUES
+(1, 1, '1', '2026-04-07 01:48:52'),
+(2, 1, '2', '2026-04-07 01:52:43'),
+(3, 1, '3', '2026-04-09 09:40:46'),
+(4, 1, '4', '2026-04-09 09:54:09');
 
 --
 -- Indexes for dumped tables
@@ -223,6 +350,14 @@ ALTER TABLE `cron_last_run`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `departments`
+--
+ALTER TABLE `departments`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`),
+  ADD UNIQUE KEY `departments_name_unique` (`name`);
+
+--
 -- Indexes for table `rooms`
 --
 ALTER TABLE `rooms`
@@ -234,8 +369,7 @@ ALTER TABLE `rooms`
 -- Indexes for table `room_bookings`
 --
 ALTER TABLE `room_bookings`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_room_id` (`room_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `room_bookings_archive`
@@ -245,17 +379,49 @@ ALTER TABLE `room_bookings_archive`
   ADD KEY `idx_room_id` (`room_id`);
 
 --
+-- Indexes for table `sections`
+--
+ALTER TABLE `sections`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `sections_year_section_unique` (`year_id`,`section_name`);
+
+--
+-- Indexes for table `subjects`
+--
+ALTER TABLE `subjects`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `subjects_year_name_unique` (`year_id`,`name`);
+
+--
+-- Indexes for table `teacher_subject_assignments`
+--
+ALTER TABLE `teacher_subject_assignments`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `teacher_subject_unique` (`teacher_id`,`subject_id`),
+  ADD KEY `teacher_subject_department_fk` (`department_id`),
+  ADD KEY `teacher_subject_year_fk` (`year_id`),
+  ADD KEY `teacher_subject_subject_fk` (`subject_id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `department_id` (`department_id`);
 
 --
 -- Indexes for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
   ADD UNIQUE KEY `unique_session` (`user_id`,`session_token`);
+
+--
+-- Indexes for table `years`
+--
+ALTER TABLE `years`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `years_department_year_unique` (`department_id`,`year_level`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -265,31 +431,101 @@ ALTER TABLE `user_sessions`
 -- AUTO_INCREMENT for table `buildings`
 --
 ALTER TABLE `buildings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `departments`
+--
+ALTER TABLE `departments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `rooms`
 --
 ALTER TABLE `rooms`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
 
 --
 -- AUTO_INCREMENT for table `room_bookings`
 --
 ALTER TABLE `room_bookings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `room_bookings_archive`
 --
 ALTER TABLE `room_bookings_archive`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=249;
+
+--
+-- AUTO_INCREMENT for table `sections`
+--
+ALTER TABLE `sections`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- AUTO_INCREMENT for table `subjects`
+--
+ALTER TABLE `subjects`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `teacher_subject_assignments`
+--
+ALTER TABLE `teacher_subject_assignments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `years`
+--
+ALTER TABLE `years`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `sections`
+--
+ALTER TABLE `sections`
+  ADD CONSTRAINT `sections_ibfk_1` FOREIGN KEY (`year_id`) REFERENCES `years` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `sections_year_fk` FOREIGN KEY (`year_id`) REFERENCES `years` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `subjects`
+--
+ALTER TABLE `subjects`
+  ADD CONSTRAINT `fk_subject_year` FOREIGN KEY (`year_id`) REFERENCES `years` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `subjects_year_fk` FOREIGN KEY (`year_id`) REFERENCES `years` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `teacher_subject_assignments`
+--
+ALTER TABLE `teacher_subject_assignments`
+  ADD CONSTRAINT `teacher_subject_department_fk` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `teacher_subject_subject_fk` FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `teacher_subject_teacher_fk` FOREIGN KEY (`teacher_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `teacher_subject_year_fk` FOREIGN KEY (`year_id`) REFERENCES `years` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`);
+
+--
+-- Constraints for table `years`
+--
+ALTER TABLE `years`
+  ADD CONSTRAINT `years_department_fk` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `years_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
